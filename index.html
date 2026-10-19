@@ -631,6 +631,37 @@ function paybackPlan(S, d, tot, fi, items, prodK, escPct) {
   return { rows, pb, van, tir: irr(cf), invest, sh, shAuto, pBuy, pRid, prod1, H, cons, r, wbOut, invCost, total: cum, y1: rows[0] };
 }
 
+
+/* ---------- Confronti interni: varianti batteria / senza batteria e concorrenza ---------- */
+const BENCH = { fv: [1667, 2167], batt: [1833, 2500], note: 'Riferimenti 6 kWp IVA incl.: solo FV 10.000-13.000 €, FV + accumulo 11.000-15.000 € (Enpal, Reonic, One4Green, AssoSolare 2026): scalati linearmente sui kWp, indicativi' };
+function variants(S, R) {
+  const clone = () => JSON.parse(JSON.stringify(S));
+  const mk = (batt) => {
+    const s = clone(); s.price_mode = 'markup'; s.markup = R.tot.markup; s.inv_sel = 'auto'; s.batt_on = batt;
+    if (batt) { s.batt_kwh = Math.max(2, Math.round(R.d.Pdc)); s.batt_kw = 0; }
+    const r = compute(s); const pl = r.plan;
+    return { batt, kwh: batt ? r.d.battKwh : 0, inv: r.d.I.name, prod: r.d.prod, cost: r.tot.cost, net: r.tot.net, gross: r.tot.gross, margin: r.tot.margin, profit: r.tot.profit, netto: r.fisc.netto, detr: r.fisc.detr,
+      pb: pl ? pl.central.pb : null, pbp: pl ? pl.prudent.pb : null, van: pl ? pl.central.van : 0, tir: pl ? pl.central.tir : null, sh: pl ? pl.central.sh : 0, y1: pl ? pl.central.y1.sav + pl.central.y1.rid : 0 };
+  };
+  return { a: mk(false), b: mk(true), kwh: Math.max(2, Math.round(R.d.Pdc)) };
+}
+function market(S, R) {
+  const kwp = R.d.Pdc, band = R.d.battKwh > 0 ? BENCH.batt : BENCH.fv;
+  const lo = band[0] * kwp, hi = band[1] * kwp, ours = R.tot.gross;
+  const out = { lo, hi, ours, pos: ours < lo ? 'sotto' : ours > hi ? 'sopra' : 'dentro', perKwp: R.tot.perKwp, bandKind: R.d.battKwh > 0 ? 'FV + accumulo' : 'solo FV', conc: null };
+  if (S.conc_price > 0) {
+    const th = S.conc_price, kc = S.conc_kwp > 0 ? S.conc_kwp : kwp;
+    const fi = R.fisc, detT = fi.eligible ? Math.min(th, fi.cap) * fi.aliq / 100 : 0;
+    const s2 = JSON.parse(JSON.stringify(S)); s2.price_mode = 'price'; s2.price_gross = th; s2.inv_sel = S.inv_sel;
+    const r2 = compute(s2);
+    const tot2 = Object.assign({}, R.tot, { gross: th }), fi2 = Object.assign({}, fi, { rata: detT / fi.years });
+    const pb = R.d.prod > 0 ? paybackPlan(S, R.d, tot2, fi2, [], 1, S.e_esc || 0) : null;
+    out.conc = { name: S.conc_name || 'Concorrente', price: th, kwp: kc, perKwp: kc > 0 ? th / kc : 0, batt: S.conc_batt || 0, delta: ours - th, deltaPct: th > 0 ? (ours - th) / th * 100 : 0,
+      nettoT: th - detT, nettoO: fi.netto, matchMarkup: r2.tot.markup, matchMargin: r2.tot.margin, matchProfit: r2.tot.profit, pbT: pb ? pb.pb : null, pbO: R.plan ? R.plan.central.pb : null };
+  }
+  return out;
+}
+
 /* ---------- Accumulo ---------- */
 const BATT_CURVE = [[5, 420], [10, 350], [15, 320], [20, 300], [30, 280]];   // €/kWh batteria LFP + BMS, prezzo installatore (Reonic 2026: 280-450 €/kWh)
 function battPrice(E) {
@@ -665,6 +696,7 @@ const FISC_DEFAULT = {
     { y: 2028, main: 30, other: 30, cap: 48000 }
   ],
   years: 10,
+  ivaMode: 'intero',   // 'intero' = 10% su tutta la fornitura e posa (n. 127-quinquies); 'manodopera' = 10% fino al valore della manodopera, il resto al 22%
   vat: { imp: 10, edi: 10, prat: 22, wb: 22, prof: 22, onere: 22 },
   kwpMax: 20
 };
@@ -721,6 +753,7 @@ function defaults() {
     batt_on: false, batt_kwh: 10, batt_kw: 0,
     wb_on: false, wb_kw: 7.4, wb_line_m: 15, wb_det: false,
     l_ac1: 8, l_ac2: 15, dv_ac_max: 1.0, k_group_ac: 0.8, posa_ac: 'tubo', t_amb: 30, dv_dc_max: 1.0, k_group_dc: 0.8, posa_wb: 'tubo', dv_wb_max: 2.0,
+    fv_esistente: false, conc_name: '', conc_price: 0, conc_kwp: 0, conc_batt: 0, conc_note: '',
     profilo: 'misto', autoc_pct: 0, e_buy: 0, e_rid: 0, e_esc: 2, degr: 0.5, om_kwp: 12, inv_repl_year: 13, horizon: 20, disc: 3, lps: false, meter: true,
     redo: 'nessuno', redo_m2: 0,
     team: 2, h_day: 8, cost_h: 0, km: 25, eur_km: 0.5,
@@ -1054,24 +1087,43 @@ function compute(S) {
      TOTALI, IVA, PREZZO
      ============================================================ */
   const trR = S.transport / 100, cR = S.contingency / 100, pR = S.prof_on ? S.prof_pct / 100 : 0;
-  const vatRate = (it) => it.vcat === 'imp' ? (d.Pdc > F.kwpMax ? 22 : F.vat.imp) : (F.vat[it.vcat] != null ? F.vat[it.vcat] : 22);
-  for (const it of items) { it.rate = vatRate(it); it.val = it.tot * (it.mat && !it.pass ? 1 + trR : 1); }
+  const rImp = d.Pdc > F.kwpMax ? 22 : F.vat.imp;
+  const ivaMode = F.ivaMode === 'manodopera' && rImp < 22 ? 'manodopera' : 'intero';
+  const battEx = !!S.fv_esistente && d.battKwh > 0;                 // accumulo su impianto FV già esistente: 22%
+  const isB = (it) => it.vcat === 'imp' && it.mat && !it.pass && !(battEx && it.cat === C.BATT);   // beni (forniture materiali)
+  const isL = (it) => it.cat === C.MDO && it.vcat === 'imp';       // manodopera
+  const baseRate = (it) => it.vcat === 'imp' ? rImp : (F.vat[it.vcat] != null ? F.vat[it.vcat] : 22);
   const W = items.filter(i => !i.nomk);                    // lavori soggetti a ricarico e imprevisti
   const SI = items.filter(i => i.nomk && !i.pass);         // oneri di sicurezza: a costo, non ribassabili
   const PA = items.filter(i => i.pass);                    // oneri del distributore: a costo
+  for (const it of items) it.val = it.tot * (it.mat && !it.pass ? 1 + trR : 1);
   const vW = W.reduce((a, i) => a + i.val, 0), vSI = SI.reduce((a, i) => a + i.val, 0);
   const transport = items.filter(i => !i.pass).reduce((a, i) => a + i.val - i.tot, 0);
   const rP = F.vat.prof != null ? F.vat.prof : 22;
-  const gW = W.reduce((a, i) => a + i.val * (1 + i.rate / 100), 0), gSI = SI.reduce((a, i) => a + i.val * (1 + i.rate / 100), 0);
-  const gPA = PA.reduce((a, i) => a + i.tot * (1 + i.rate / 100), 0);
-  // spese professionali = pR × importo dei lavori (lavori con ricarico e imprevisti + sicurezza, esclusi gli oneri del distributore); passano a costo
-  let markup;
-  if (S.price_mode === 'price' && S.price_gross > 0 && gW > 0) markup = ((S.price_gross - gSI - gPA - (1 + rP / 100) * pR * vSI) / ((1 + cR) * (gW + (1 + rP / 100) * pR * vW)) - 1) * 100;
-  else markup = S.markup;
-  const fM = (1 + markup / 100) * (1 + cR);
-  for (const it of W) it.price = it.val * fM;
-  for (const it of SI) it.price = it.val;
-  for (const it of PA) it.price = it.tot;
+  // In modo "manodopera" la quota di beni eccedente il valore della manodopera va al 22%: f22 = eccedenza / beni.
+  // Il rapporto beni/manodopera non dipende dal ricarico (stesso fattore su entrambi), ma può dipendere dai prezzi in modalità prezzo fissato: si itera.
+  let f22 = 0, markup;
+  for (let pass = 0; pass < 8; pass++) {
+    for (const it of items) {
+      it.f22 = 0; it.rate = baseRate(it);
+      if (it.vcat === 'imp' && battEx && it.cat === C.BATT) { it.rate = 22; it.f22 = 1; }
+      else if (ivaMode === 'manodopera' && f22 > 0 && isB(it)) { it.f22 = f22; it.rate = rImp + (22 - rImp) * f22; }
+    }
+    const gW = W.reduce((a, i) => a + i.val * (1 + i.rate / 100), 0), gSI = SI.reduce((a, i) => a + i.val * (1 + i.rate / 100), 0);
+    const gPA = PA.reduce((a, i) => a + i.tot * (1 + i.rate / 100), 0);
+    // spese professionali = pR × importo dei lavori (lavori con ricarico e imprevisti + sicurezza, esclusi gli oneri del distributore); passano a costo
+    if (S.price_mode === 'price' && S.price_gross > 0 && gW > 0) markup = ((S.price_gross - gSI - gPA - (1 + rP / 100) * pR * vSI) / ((1 + cR) * (gW + (1 + rP / 100) * pR * vW)) - 1) * 100;
+    else markup = S.markup;
+    const fM = (1 + markup / 100) * (1 + cR);
+    for (const it of W) it.price = it.val * fM;
+    for (const it of SI) it.price = it.val;
+    for (const it of PA) it.price = it.tot;
+    if (ivaMode !== 'manodopera') break;
+    const Bp = items.filter(isB).reduce((a, i) => a + i.price, 0), Lp = items.filter(isL).reduce((a, i) => a + i.price, 0);
+    const fn = Bp > 0 ? Math.max(0, Bp - Lp) / Bp : 0;
+    if (Math.abs(fn - f22) < 1e-9) break; f22 = fn;
+  }
+  d.ivaMode = ivaMode; d.f22 = f22; d.battEx = battEx;
   const lavori = W.reduce((a, i) => a + i.price, 0) + SI.reduce((a, i) => a + i.price, 0);
   d.lavori = lavori;
   if (pR > 0 && lavori > 0) {
@@ -1082,13 +1134,15 @@ function compute(S) {
   let net = 0, vat = 0;
   for (const it of items) { it.vat = it.price * it.rate / 100; net += it.price; vat += it.vat; }
   const gross = net + vat;
+  const vb = {};
+  for (const it of items) { const parts = it.f22 > 0 ? (it.f22 >= 1 ? [[22, 1]] : [[rImp, 1 - it.f22], [22, it.f22]]) : [[it.rate, 1]]; for (const [rt, w] of parts) { const o = vb[rt] || (vb[rt] = { base: 0, vat: 0 }); o.base += it.price * w; o.vat += it.price * w * rt / 100; } }
   const itemsCost = items.reduce((a, i) => a + i.tot, 0);
   const contingency = cR * vW;                                          // riserva imprevisti a costo
   const cost = itemsCost + transport + contingency;
   const profit = net - cost;
   const byCat = {}, byCatPrice = {};
   for (const it of items) { byCat[it.cat] = (byCat[it.cat] || 0) + it.tot; byCatPrice[it.cat] = (byCatPrice[it.cat] || 0) + it.price; }
-  const tot = { cost, itemsCost, transport, contingency, net, vat, gross, markup, profit, margin: net > 0 ? profit / net * 100 : 0, lavori,
+  const tot = { vatBreak: vb, cost, itemsCost, transport, contingency, net, vat, gross, markup, profit, margin: net > 0 ? profit / net * 100 : 0, lavori,
     perKwp: d.Pdc > 0 ? gross / d.Pdc : 0, perKwpNet: d.Pdc > 0 ? net / d.Pdc : 0, costKwp: d.Pdc > 0 ? cost / d.Pdc : 0 };
 
   /* ---- detrazione ---- */
@@ -1120,6 +1174,11 @@ function compute(S) {
   const sw = items.filter(i => i.cat === C.SIC).reduce((a, b) => a + b.tot, 0);
   d.sicTot = sw;
 
+  if (d.Pdc <= F.kwpMax) {
+    if (ivaMode === 'manodopera') chk('info', 'IVA: 10% limitata al valore della manodopera', `Applicata la regola dei beni significativi: i beni (forniture) godono del 10% solo fino al valore della manodopera, l'eccedenza (${(d.f22 * 100).toFixed(0)}% dei beni) va al 22%. Modalità scelta nei parametri fiscali.`, 'art. 7 c.1 lett. b L. 488/1999 · n. 127-terdecies Tab. A parte III DPR 633/72 (da verificare con il commercialista)');
+    else chk('info', 'IVA agevolata 10% sull\'intero impianto', 'Fornitura e posa dell\'impianto FV fino a 20 kW e componenti: aliquota 10% sull\'intero corrispettivo (n. 127-quinquies, Tab. A parte III). Moduli, inverter e strutture non figurano nell\'elenco dei beni significativi del DM 29/12/1999 (probabile: da confermare con il commercialista; per la regola dei beni significativi cambiare la modalità nei parametri fiscali).', 'n. 127-quinquies Tab. A parte III DPR 633/72 · DM 29/12/1999');
+    if (battEx) chk('info', 'Accumulo su impianto esistente: IVA 22%', 'La batteria aggiunta a un impianto FV già in esercizio non rientra nel regime agevolato dell\'impianto: IVA ordinaria. Per i nuovi impianti con accumulo contestuale resta il 10% (probabile: da verificare caso per caso).', 'prassi AdE sui sistemi di accumulo · risposta a interpello 181/2026 (caso diverso)');
+  }
   /* ---- piano di rientro ---- */
   let plan = null;
   if (d.prod > 0 && tot.gross > 0) {
@@ -1133,7 +1192,7 @@ function compute(S) {
   return { d, items, checks, byCat, byCatPrice, tot, fisc: fi, plan, S };
 }
 
-const api = { MODS, INVS, ROOFS, REGIONS, FISC_DEFAULT, PR: PR0, setListino, catalog, defaults, compute, orientFactor, qsk, battPrice, pickAC };
+const api = { variants, market, BENCH, MODS, INVS, ROOFS, REGIONS, FISC_DEFAULT, PR: PR0, setListino, catalog, defaults, compute, orientFactor, qsk, battPrice, pickAC };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.PVRes = api;
 })(this);
 </script>
@@ -1180,13 +1239,15 @@ function qesData(R, S) {
     if (q.sic) { sic += it.val; continue; }
     const g = groups[q.grp - 1], key = q.m + (q.ric === false ? '#n' : '');
     g.rows[key] = g.rows[key] || { label: q.m, E: 0, F: 0, G: 0, ric: q.ric !== false, vat: { E: 0, F: 0, G: 0 }, pr: { E: 0, F: 0, G: 0 } };
-    g.rows[key][q.col] += it.val;
+    const f22 = it.f22 || 0;
+    if (f22 > 0 && q.col !== 'G' && q.ric !== false) { g.rows[key][q.col] += it.val * (1 - f22); g.rows[key].G += it.val * f22; }   // quota al 22% (beni oltre il valore della manodopera, accumulo su impianto esistente)
+    else g.rows[key][q.col] += it.val;
   }
   const out = groups.map(g => Object.values(g.rows).sort((a, b) => QES_ORDER.indexOf(a.label) - QES_ORDER.indexOf(b.label)));
   let wE = 0, wF = 0; for (const g of out) for (const x of g) { wE += x.E; wF += x.F; }
   const kE = wE + wF > 0 ? wE / (wE + wF) : 1;
   // IVA effettiva della colonna G (media pesata dei prezzi)
-  let gP = 0, gV = 0; for (const it of R.items) { const q = qesMacro(it, C); if (!q.pro && !q.sic && q.col === 'G') { gP += it.price; gV += it.vat; } }
+  let gP = 0, gV = 0; for (const it of R.items) { const q = qesMacro(it, C); if (q.pro || q.sic) continue; if (q.col === 'G') { gP += it.price; gV += it.vat; } else if ((it.f22 || 0) > 0 && q.ric !== false) { gP += it.price * it.f22; gV += it.price * it.f22 * 0.22; } }
   return { groups: out, P, sicE: sic * kE, sicF: sic * (1 - kE), kE, rG: gP > 0 ? gV / gP : 0.22 };
 }
 
@@ -1415,6 +1476,7 @@ const SCHEMA_F = [
   ] },
   { id: 'acc', t: 'Accumulo e ricarica EV', s: 'batteria domestica e wallbox', f: [
     { k: 'batt_on', l: 'Aggiungi accumulo (inverter ibrido)', t: 'c', wide: true },
+    { k: 'fv_esistente', l: 'Accumulo su impianto FV già esistente', t: 'c', wide: true, h: 'La batteria aggiunta a un impianto in esercizio ha IVA 22%.' },
     { k: 'batt_kwh', l: 'Capacità utile', t: 'n', u: 'kWh', step: 1 }, { k: 'batt_kw', l: 'Potenza batteria (0 = auto)', t: 'n', u: 'kW', step: 0.5 },
     { k: 'wb_on', l: 'Aggiungi stazione di ricarica EV', t: 'c', wide: true },
     { k: 'wb_kw', l: 'Potenza wallbox', t: 'o', o: [[3.7, '3,7 kW'], [7.4, '7,4 kW'], [11, '11 kW'], [22, '22 kW']], num: true },
@@ -1444,6 +1506,13 @@ const SCHEMA_F = [
     { k: 'inv_repl_year', l: 'Sostituzione inverter all\'anno', t: 'n', step: 1, h: '0 = nessuna sostituzione.' },
     { k: 'horizon', l: 'Orizzonte di calcolo', t: 'n', u: 'anni', step: 1 },
     { k: 'disc', l: 'Tasso di sconto per il VAN', t: 'n', u: '%', step: 0.5 }
+  ] },
+  { id: 'conc', t: 'Confronto con la concorrenza (interno)', s: 'prezzo di un\'offerta concorrente, solo per valutazione interna', f: [
+    { k: 'conc_name', l: 'Concorrente / fonte', t: 's' },
+    { k: 'conc_price', l: 'Prezzo offerto IVA inclusa', t: 'n', u: '€', step: 100 },
+    { k: 'conc_kwp', l: 'Potenza offerta (0 = uguale alla nostra)', t: 'n', u: 'kWp', step: 0.1 },
+    { k: 'conc_batt', l: 'Accumulo offerto', t: 'n', u: 'kWh', step: 1 },
+    { k: 'conc_note', l: 'Note', t: 's', wide: true }
   ] },
   { id: 'lav', t: 'Lavori speciali e sicurezza', s: 'amianto, guaina, accessi, D.Lgs. 81/08', f: [
     { k: 'redo', l: 'Opere sulla copertura', t: 'o', o: [['nessuno', 'Nessuna'], ['guaina', 'Rifacimento guaina (tetto piano)'], ['amianto', 'Bonifica amianto e nuova copertura']], wide: true },
@@ -1517,6 +1586,7 @@ function fiscHtml(S) {
   const v = F.vat;
   const vf = (k, l) => `<div class="fld"><label>${l}</label><span class="inp"><input type="number" data-fv="${k}" value="${v[k]}"><span class="u">%</span></span></div>`;
   return `<div style="padding:4px 16px 16px;border-top:1px solid var(--line);padding-top:14px">
+    <div class="fld wide"><label>Regime IVA su fornitura e posa dell'impianto</label><select data-fmode>${[['intero', '10% su tutta la fornitura e posa (n. 127-quinquies): impostazione predefinita'], ['manodopera', '10% solo fino al valore della manodopera, eccedenza al 22% (beni significativi)']].map(([a, b]) => `<option value="${a}" ${(F.ivaMode || 'intero') === a ? 'selected' : ''}>${b}</option>`).join('')}</select><span class="help">Con la seconda modalità tutte le forniture di materiali sono trattate come beni significativi (ipotesi prudente): il prezzo IVA inclusa sale.</span></div>
     <div class="fld wide"><label>Verifica dei parametri (data o fonte)</label><input type="text" data-fverified value="${esc(F.verified)}"></div>
     <div class="tablewrap" style="margin:10px 0"><table class="grid compact"><thead><tr><th>Anno spesa</th><th>% abit. principale</th><th>% altri casi</th><th>Limite € / unità</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="fgrid" style="padding:0;border:0">
@@ -1556,6 +1626,7 @@ function onForm(e) {
   else if (t.dataset.fyears != null) { const v = parseFloat(t.value); S.fisc.years = v > 0 ? v : 10; }
   else if (t.dataset.fkwp != null) { const v = parseFloat(t.value); S.fisc.kwpMax = v > 0 ? v : 20; }
   else if (t.dataset.fverified != null) S.fisc.verified = t.value;
+  else if (t.dataset.fmode != null) S.fisc.ivaMode = t.value;
   else return;
   save(); recompute();
   if (rebuild && (t.dataset.preset || t.dataset.k === 'inv_sel' || t.type === 'checkbox' || t.tagName === 'SELECT')) {
@@ -1627,6 +1698,33 @@ function planHtml(R, S) {
     <div>${planChart(pl, 420, 200)}<p class="help" style="margin:4px 0 0"><span style="color:#1F5F55">━</span> centrale &nbsp; <span style="color:#A85A1C">╌</span> prudente · asse: anni</p></div></div>
   <details class="okfold" style="margin-top:12px"><summary>Tabella anno per anno (scenario centrale)</summary><div class="tablewrap"><table class="boq" style="min-width:720px"><thead><tr><th>Anno</th><th class="num">Produzione kWh</th><th class="num">Autoconsumo kWh</th><th class="num">Risparmio</th><th class="num">Ritiro GSE</th><th class="num">Detrazione</th><th class="num">Costi</th><th class="num">Flusso</th><th class="num">Cumulato</th></tr></thead><tbody>${tr}</tbody></table></div></details></section>`;
 }
+
+function confrontiHtml(R, S) {
+  if (!R || !R.d.Ntot) return '';
+  let V, M; try { V = E.variants(S, R); M = E.market(S, R); } catch (e) { console.error(e); return ''; }
+  const yy = (x) => x === null || x === undefined ? 'oltre orizz.' : nf(x, 1) + ' anni';
+  const dl = (a, b, f) => { const x = b - a; return (x > 0 ? '+' : '') + f(x); };
+  const row = (l, a, b, f, hl) => `<tr${hl ? ' class="tot"' : ''}><td>${l}</td><td class="num">${f(a)}</td><td class="num">${f(b)}</td><td class="num">${dl(a, b, f)}</td></tr>`;
+  const A = V.a, B = V.b, pc = (x) => nf(x, 1) + ' %';
+  const rowY = (l, a, b, hl) => `<tr${hl ? ' class="tot"' : ''}><td>${l}</td><td class="num">${yy(a)}</td><td class="num">${yy(b)}</td><td class="num">${a === null || b === null ? '–' : dl(a, b, x => nf(x, 1) + ' anni')}</td></tr>`;
+  const var_ = `<div><h3 style="margin:0 0 6px;font-size:14px">Con e senza accumulo (batteria = ${V.kwh} kWh, come i kWp)</h3>
+    <div class="tablewrap"><table class="boq" style="min-width:420px"><thead><tr><th></th><th class="num">Senza accumulo</th><th class="num">Con ${V.kwh} kWh</th><th class="num">Differenza</th></tr></thead><tbody>
+    ${row('Costo interno', A.cost, B.cost, eur)}${row('Prezzo netto', A.net, B.net, eur)}${row('Prezzo IVA inclusa', A.gross, B.gross, eur, true)}
+    ${row('Utile lordo', A.profit, B.profit, eur)}${row('Margine', A.margin, B.margin, pc)}${row('Costo netto dopo detrazione', A.netto, B.netto, eur)}
+    ${row('Risparmio + ritiro, primo anno', A.y1, B.y1, eur)}${row('Autoconsumo', A.sh * 100, B.sh * 100, pc)}${rowY('Rientro centrale', A.pb, B.pb)}${rowY('Rientro prudente', A.pbp, B.pbp)}${row('VAN', A.van, B.van, eur, true)}</tbody></table></div>
+    <p class="help" style="margin-top:6px">Stesso ricarico (${nf(R.tot.markup, 1)}%) e stessi parametri dell'offerta; inverter scelto in automatico per ciascuna variante (${esc(A.inv)} / ${esc(B.inv)}).</p></div>`;
+  const c = M.conc;
+  const mkt = `<div><h3 style="margin:0 0 6px;font-size:14px">Confronto di mercato e concorrenza</h3>
+    <dl class="dims"><div><dt>Nostro prezzo IVA incl.</dt><dd><b>${eur(M.ours)}</b> · ${nf(M.perKwp, 0)} €/kWp</dd></div>
+    <div><dt>Fascia di mercato (${M.bandKind}, ${nf(R.d.Pdc, 2)} kWp)</dt><dd>${eur(M.lo)} – ${eur(M.hi)} → <b>${M.pos === 'dentro' ? 'nella fascia' : M.pos === 'sopra' ? 'sopra la fascia' : 'sotto la fascia'}</b></dd></div>
+    ${c ? `<div><dt>${esc(c.name)}</dt><dd><b>${eur(c.price)}</b> · ${nf(c.perKwp, 0)} €/kWp${c.kwp !== R.d.Pdc ? ' (' + nf(c.kwp, 2) + ' kWp)' : ''}${c.batt ? ' · accumulo ' + c.batt + ' kWh' : ''}</dd></div>
+    <div><dt>Differenza rispetto a noi</dt><dd><b>${(c.delta > 0 ? '+' : '') + eur(c.delta)}</b> (${(c.deltaPct > 0 ? '+' : '') + nf(c.deltaPct, 1)} %) ${c.delta > 0 ? 'siamo più cari' : 'siamo più economici'}</dd></div>
+    <div><dt>Costo netto dopo detrazione: noi / loro</dt><dd>${eur(c.nettoO)} / ${eur(c.nettoT)}</dd></div>
+    <div><dt>Rientro: noi / loro</dt><dd>${yy(c.pbO)} / ${yy(c.pbT)}</dd></div>
+    <div><dt>Per eguagliarli</dt><dd>ricarico <b>${nf(c.matchMarkup, 1)}%</b> (ora ${nf(R.tot.markup, 1)}%) → margine ${nf(c.matchMargin, 1)}%, utile ${eur(c.matchProfit)}</dd></div>` : '<div><dt>Concorrente</dt><dd class="muted">Inserisci il prezzo nella sezione «Confronto con la concorrenza».</dd></div>'}</dl>
+    <p class="help" style="margin-top:6px">${esc(E.BENCH.note)}.</p></div>`;
+  return `<section class="blk"><div class="blkhead"><div><h2>Confronti interni</h2><p>Solo per valutazione: non compaiono nel PDF per il cliente.</p></div></div><div class="two">${var_}${mkt}</div></section>`;
+}
 function renderLower() {
   const o = cur(); const S = o.S; if (!R) { $('#lower').innerHTML = ''; return; }
   const { d, items, tot, checks } = R;
@@ -1650,7 +1748,7 @@ function renderLower() {
       its.map(i => `<tr class="${i.edited ? 'edited' : ''}"><td class="desc">${esc(i.desc)}${i.ref ? `<small>${esc(i.ref)}</small>` : ''}</td><td class="um">${esc(i.um)}</td><td class="num">${nf(i.qty, i.qty % 1 ? 1 : 0)}</td><td class="pu"><span class="puw"><input type="number" step="any" data-ov="${i.id}" value="${Math.round(i.unit * 100) / 100}" aria-label="Costo unitario">${i.edited ? `<button class="rst" type="button" data-rst="${i.id}" title="Ripristina ${nf(i.def, 2)}">↺</button>` : ''}</span></td><td class="num">${eur(i.tot)}</td><td class="num">${eur(i.price)}</td></tr>`).join('');
   }).join('');
   const nOv = items.filter(i => i.edited).length;
-  $('#lower').innerHTML = planHtml(R, S) + `
+  $('#lower').innerHTML = planHtml(R, S) + confrontiHtml(R, S) + `
   <section class="blk"><div class="blkhead"><div><h2>Verifiche normative e tecniche</h2><p>${important.length ? 'Da risolvere o da conoscere prima dell\'offerta' : 'Nessun problema bloccante'}</p></div></div>
     <div class="two"><div><ul class="checks">${checksHtml(important.concat(rest)) || '<li><span class="pill ok">Ok</span><div><b>Nessuna segnalazione</b></div></li>'}</ul>
     <details class="okfold"><summary>${oks.length} verifiche superate</summary><ul class="checks">${checksHtml(oks)}</ul></details></div>
@@ -1729,6 +1827,15 @@ function planPrint(R, S) {
   <table><thead><tr><th>Anno</th><th class="n">Risparmio + ritiro</th><th class="n">Detrazione</th><th class="n">Cumulato centrale</th><th class="n">Cumulato prudente</th></tr></thead><tbody>${tr}</tbody></table>
   <p class="pr-note">Ipotesi: autoconsumo ${nf(c.sh * 100, 0)}% (${esc(pl.profiloLabel)}); costo evitato dell'energia ${nf(c.pBuy, 2)} €/kWh IVA inclusa; ritiro dedicato ${nf(c.pRid, 2)} €/kWh; variazione prezzo energia ${nf(S.e_esc, 1)}%/anno (nello scenario prudente 0%); degrado moduli ${nf(S.degr, 1)}%/anno; manutenzione ${nf(S.om_kwp, 0)} €/kWp·anno; sostituzione inverter all'anno ${S.inv_repl_year || '–'}${c.wbOut ? '; stazione di ricarica esclusa dall\'investimento' : ''}. Produzione stimata su media regionale con incertezza di circa ±10% (scenario prudente −10%). Il risultato dipende dai consumi reali: non è una garanzia di risparmio.</p>`;
 }
+
+function ivaPrint(R, S) {
+  const vb = R.tot.vatBreak || {}, d = R.d;
+  const rows = Object.keys(vb).map(Number).sort((a, b) => a - b).filter(r => vb[r].base > 0.005).map(r => `<tr><td>Aliquota ${r}%</td><td class="n">${eur(vb[r].base)}</td><td class="n">${eur(vb[r].vat)}</td></tr>`).join('');
+  const note = d.ivaMode === 'manodopera'
+    ? `Per la fornitura e posa dell'impianto l'IVA è del 10% sui beni fino a concorrenza del valore della manodopera; la parte eccedente dei beni è assoggettata all'aliquota ordinaria del 22% (regola dei beni significativi).`
+    : `La fornitura e posa dell'impianto fotovoltaico (fino a 20 kW, uso domestico) è assoggettata all'IVA agevolata del 10% sull'intero corrispettivo.${d.battEx ? ' L\'accumulo aggiunto a un impianto già esistente è assoggettato al 22%.' : ''}`;
+  return `<h2>Ripartizione dell'IVA</h2><table><thead><tr><th>Aliquota</th><th class="n">Imponibile</th><th class="n">IVA</th></tr></thead><tbody>${rows}<tr class="t"><td>Totale</td><td class="n">${eur(R.tot.net)}</td><td class="n">${eur(R.tot.vat)}</td></tr></tbody></table><p class="pr-note">${note} Spese professionali, pratiche, stazione di ricarica e oneri del distributore: aliquota ordinaria 22%, salvo diversa disposizione. Aliquote verificate: ${esc(S.fisc.verified)}.</p>`;
+}
 function printClient() {
   const o = cur(), S = o.S, { d, items, tot, fisc, checks } = R;
   const cats = [...new Set(items.map(i => i.cat))].filter(c => c !== R.d.C.WB);
@@ -1756,6 +1863,7 @@ function printClient() {
   <div class="pr-mini"><div><span class="l">Potenza</span><span class="v">${nf(d.Pdc, 2)} kWp</span><span class="n">${d.Ntot} moduli</span></div><div class="pro"><span class="l">Produzione stimata</span><span class="v">${nf(d.prod, 0)} kWh</span><span class="n">all'anno</span></div><div><span class="l">Accumulo</span><span class="v">${d.battKwh ? d.battKwh + ' kWh' : '–'}</span><span class="n">${d.battKwh ? 'ibrido' : 'non previsto'}</span></div><div class="sic"><span class="l">Durata lavori</span><span class="v">${d.days} gg</span><span class="n">posa in cantiere</span></div></div>
   <h2>Caratteristiche dell'impianto</h2><table><tbody>${comp.map(([a, b]) => `<tr><td style="width:28%">${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</tbody></table>
   <h2>Dettaglio economico</h2><table><thead><tr><th>Voce</th><th class="n">Imponibile</th><th class="n">IVA</th><th class="n">Totale</th></tr></thead><tbody>${catRows}<tr class="t"><td>Totale</td><td class="n">${eur(tot.net)}</td><td class="n">${eur(tot.vat)}</td><td class="n">${eur(tot.gross)}</td></tr></tbody></table>
+  ${ivaPrint(R, S)}
   <p class="pr-note">Oneri del distributore (preventivo di connessione) sono addebitati a costo e sono compresi nel totale.${S.wb_on && !S.wb_det ? ' La stazione di ricarica non è inclusa nella spesa su cui è calcolata la detrazione.' : ''}</p>
   ${detr}
   ${planPrint(R, S)}
@@ -1767,6 +1875,16 @@ function printClient() {
   <table style="margin-top:22px"><tbody><tr><td style="height:46px;width:50%">Per accettazione (firma del cliente)</td><td>${esc(S.azienda || 'L\'impresa')}${S.tecnico ? ' · ' + esc(S.tecnico) : ''}</td></tr></tbody></table>
   ${S.azienda ? `<div class="pr-foot">${esc(S.azienda)}</div>` : ''}`;
 }
+
+function confrontiPrint(R, S) {
+  if (!R || !R.d.Ntot) return '';
+  let V, M; try { V = E.variants(S, R); M = E.market(S, R); } catch (e) { return ''; }
+  const yy = (x) => x === null || x === undefined ? 'oltre orizz.' : nf(x, 1) + ' anni';
+  const A = V.a, B = V.b, c = M.conc;
+  const r = (l, a, b) => `<tr><td>${l}</td><td class="n">${a}</td><td class="n">${b}</td></tr>`;
+  return `<h2>Confronto con e senza accumulo (${V.kwh} kWh)</h2><table><thead><tr><th></th><th class="n">Senza</th><th class="n">Con ${V.kwh} kWh</th></tr></thead><tbody>${r('Costo interno', eur(A.cost), eur(B.cost))}${r('Prezzo IVA inclusa', eur(A.gross), eur(B.gross))}${r('Margine / utile', nf(A.margin, 1) + '% / ' + eur(A.profit), nf(B.margin, 1) + '% / ' + eur(B.profit))}${r('Costo netto dopo detrazione', eur(A.netto), eur(B.netto))}${r('Rientro centrale / prudente', yy(A.pb) + ' / ' + yy(A.pbp), yy(B.pb) + ' / ' + yy(B.pbp))}${r('VAN', eur(A.van), eur(B.van))}</tbody></table>
+  <h2>Mercato e concorrenza</h2><table><tbody><tr><td>Nostro prezzo IVA incl. ${eur(M.ours)} (${nf(M.perKwp, 0)} €/kWp) · fascia ${M.bandKind} ${eur(M.lo)}–${eur(M.hi)}: ${M.pos === 'dentro' ? 'nella fascia' : M.pos === 'sopra' ? 'sopra la fascia' : 'sotto la fascia'}</td></tr>${c ? `<tr><td>${esc(c.name)}: ${eur(c.price)} (${nf(c.perKwp, 0)} €/kWp) · differenza ${(c.delta > 0 ? '+' : '') + eur(c.delta)} (${nf(c.deltaPct, 1)}%) · per eguagliarli ricarico ${nf(c.matchMarkup, 1)}% (margine ${nf(c.matchMargin, 1)}%, utile ${eur(c.matchProfit)})</td></tr>` : ''}</tbody></table>`;
+}
 function printInternal() {
   const o = cur(), S = o.S, { d, items, tot, fisc, checks } = R;
   const cats = [...new Set(items.map(i => i.cat))];
@@ -1777,6 +1895,7 @@ function printInternal() {
   <div class="pr-hero"><div class="us"><span class="l">Costo interno</span><span class="v">${eur(tot.cost)}</span><span class="n">${nf(tot.costKwp, 0)} €/kWp</span></div><div class="them"><span class="l">Prezzo netto / IVA incl.</span><span class="v">${eur(tot.net)}</span><span class="n">${eur(tot.gross)} IVA inclusa · ${nf(tot.perKwp, 0)} €/kWp</span></div></div>
   <div class="pr-mini"><div><span class="l">Margine</span><span class="v">${nf(tot.margin, 1)}%</span><span class="n">sul prezzo netto</span></div><div class="pro"><span class="l">Utile lordo</span><span class="v">${eur(tot.profit)}</span><span class="n">markup ${nf(tot.markup, 1)}%</span></div><div><span class="l">Potenza</span><span class="v">${nf(d.Pdc, 2)} kWp</span><span class="n">${nf(d.prod, 0)} kWh/anno</span></div><div class="sic"><span class="l">Sicurezza</span><span class="v">${eur(d.sicTot)}</span><span class="n">${d.days} gg · ${d.ug} u-g</span></div></div>
   <h2>Riepilogo per categoria</h2><table><thead><tr><th>Categoria</th><th class="n c-us">Costo</th><th class="n c-them">Prezzo netto</th></tr></thead><tbody>${catRows}<tr><td>Trasporto e imprevisti</td><td class="n c-us">${eur(tot.cost - tot.itemsCost)}</td><td></td></tr><tr class="t"><td>Totale</td><td class="n c-us">${eur(tot.cost)}</td><td class="n c-them">${eur(tot.net)}</td></tr></tbody></table>
+  ${confrontiPrint(R, S)}
   <h2>Detrazione</h2><table><tbody><tr><td>Aliquota ${fisc.aliq}% · spesa agevolata ${eur(fisc.base)} · detrazione ${eur(fisc.detr)} · costo netto cliente ${eur(fisc.netto)}</td></tr></tbody></table>
   <h2 class="pr-sec">Computo estimativo</h2><table><thead><tr><th>Voce</th><th>UM</th><th class="n">Q.tà</th><th class="n">Unit.</th><th class="n c-us">Costo</th></tr></thead><tbody>${rows}</tbody></table>
   <h2>Verifiche e segnalazioni</h2><table><tbody>${imp.map(c => `<tr><td style="width:12%"><b>${c.lvl === 'err' ? 'ERRORE' : 'AVVISO'}</b></td><td>${esc(c.title)}<small>${esc(c.detail)}</small></td></tr>`).join('') || '<tr><td>Nessuna segnalazione.</td></tr>'}</tbody></table>
@@ -1808,6 +1927,21 @@ function addPlanSheet(wb) {
     row.getCell(10).value = { formula: `E${n}+F${n}+G${n}+H${n}+I${n}`, result: r.flow }; row.getCell(11).value = { formula: `K${n - 1}+J${n}`, result: r.cum }; });
   ws.getColumn(1).width = 34; for (let k = 2; k <= 12; k++) ws.getColumn(k).width = 17; for (let k = 5; k <= 12; k++) ws.getColumn(k).numFmt = money;
   ws.addRow([]); ws.addRow(['Ipotesi: autoconsumo ' + Math.round(c.sh * 100) + '%; costo evitato ' + c.pBuy + ' €/kWh; ritiro ' + c.pRid + ' €/kWh; produzione su media regionale ±10%. Il cumulato prudente è un valore calcolato (produzione −10%, prezzo energia costante).']);
+}
+
+function addIvaRows(ws) {
+  const vb = R.tot.vatBreak || {}, d = R.d, money = '#,##0.00 "€"';
+  ws.addRow([]); ws.addRow(['Ripartizione dell\'IVA', 'Imponibile', 'IVA']).font = { bold: true };
+  const f0 = ws.rowCount + 1;
+  for (const rt of Object.keys(vb).map(Number).sort((a, b) => a - b)) {
+    if (!(vb[rt].base > 0.005)) continue;
+    const r = ws.addRow(['Aliquota ' + rt + '%', +vb[rt].base.toFixed(2), null]); r.getCell(3).value = { formula: `B${r.number}*${rt}/100`, result: vb[rt].vat };
+    r.getCell(2).numFmt = money; r.getCell(3).numFmt = money;
+  }
+  const l = ws.rowCount; const t = ws.addRow(['Totale', null, null]); t.font = { bold: true };
+  t.getCell(2).value = { formula: `SUM(B${f0}:B${l})` }; t.getCell(3).value = { formula: `SUM(C${f0}:C${l})` }; t.getCell(2).numFmt = money; t.getCell(3).numFmt = money;
+  ws.addRow([d.ivaMode === 'manodopera' ? 'IVA 10% sui beni fino a concorrenza del valore della manodopera, eccedenza al 22% (regola dei beni significativi).' : 'IVA agevolata 10% sull\'intero corrispettivo di fornitura e posa dell\'impianto FV fino a 20 kW (n. 127-quinquies, Tab. A parte III DPR 633/72)' + (d.battEx ? '; accumulo su impianto esistente al 22%.' : '.')]);
+  ws.addRow(['Aliquota ordinaria 22%: spese professionali, pratiche, stazione di ricarica e oneri del distributore. Aliquote verificate: ' + (cur().S.fisc.verified || '')]);
 }
 async function exportXlsx(client) {
   if (!window.ExcelJS || !R) return toast('ExcelJS non disponibile');
@@ -1847,6 +1981,7 @@ async function exportXlsx(client) {
     [1, 2].forEach((c, i) => ws.getColumn(c).width = i ? 70 : 28);
     [5, 6, 7, 9, 10].forEach(c => { ws.getColumn(c).width = 16; ws.getColumn(c).numFmt = money; }); ws.getColumn(8).width = 8;
   }
+  addIvaRows(ws);
   addPlanSheet(wb);
   const buf = await wb.xlsx.writeBuffer();
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
