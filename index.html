@@ -662,6 +662,78 @@ function market(S, R) {
   return out;
 }
 
+/* ---------- Potenza obiettivo: proposta di configurazione e verifica di fattibilità ---------- */
+function propose(S) {
+  const M = S.mod, Am = M.L * M.W, fill = S.fill || 0.8, target = +S.target_kwp || 0;
+  if (!(target > 0) || !(M.p > 0)) return null;
+  const fal = (S.falde || []).map((f, i) => ({ i, yf: orientFactor(f.az, f.tilt) * (1 - (f.shade || 0) / 100), cap: f.area > 0 ? Math.floor(f.area * fill / Am) : null }));
+  if (!fal.length) return null;
+  const allocYield = (N) => {
+    const n = fal.map(() => 0); let rem = N;
+    // 1) falde con area nota: per resa decrescente, fino alla capienza
+    for (const f of fal.filter(x => x.cap !== null).sort((a, b) => b.yf - a.yf)) { const t = Math.min(rem, f.cap); n[f.i] = t; rem -= t; }
+    // 2) falde senza area: ripartizione proporzionale alla resa
+    const unk = fal.filter(x => x.cap === null);
+    if (unk.length && rem > 0) {
+      const W = unk.reduce((a, x) => a + x.yf, 0) || 1; let given = 0;
+      for (const f of unk) { const t = Math.floor(rem * f.yf / W); n[f.i] = t; given += t; }
+      let left = rem - given; for (const f of unk.slice().sort((a, b) => b.yf - a.yf)) { if (left <= 0) break; n[f.i]++; left--; }
+      rem = 0;
+    }
+    return { n, short: rem };
+  };
+  // ripartizione proporzionale a pesi, rispettando le capienze note
+  const allocW = (N, wf) => {
+    const n = fal.map(() => 0); let rem = N;
+    for (let it = 0; it < 12 && rem > 0; it++) {
+      const open = fal.filter(x => x.cap === null || n[x.i] < x.cap); if (!open.length) break;
+      const W = open.reduce((a, x) => a + wf(x), 0) || 1; let given = 0;
+      for (const f of open) { const room = f.cap === null ? Infinity : f.cap - n[f.i]; const t = Math.min(room, Math.floor(rem * wf(f) / W)); n[f.i] += t; given += t; }
+      let left = rem - given;
+      for (const f of open.slice().sort((a, b) => wf(b) - wf(a))) { if (left <= 0) break; if (f.cap === null || n[f.i] < f.cap) { n[f.i]++; left--; given++; } }
+      rem -= given; if (given === 0) break;
+    }
+    return { n, short: rem };
+  };
+  const MODES = [['resa', allocYield], ['resa×area', (N) => allocW(N, x => x.yf * (x.cap === null ? 30 : x.cap))], ['area', (N) => allocW(N, x => x.cap === null ? 30 : x.cap)], ['pari', (N) => allocW(N, x => 1)]];
+  const Nt = Math.max(1, Math.round(target * 1000 / M.p)), Nf = Math.max(1, Math.floor(target * 1000 / M.p)), Nc = Math.ceil(target * 1000 / M.p);
+  const tryN = (Nx, mode) => {
+    const Ax = mode[1](Nx); const s2 = JSON.parse(JSON.stringify(S)); s2.target_on = false; s2.price_mode = 'markup';
+    s2.falde = S.falde.map((f, i) => Object.assign({}, f, { n: Ax.n[i] }));
+    let rx = null; try { rx = compute(s2); } catch (e) { }
+    const errs = rx ? rx.checks.filter(c => c.lvl === 'err' && !/^Prezzo|^Margine/.test(c.title)).length : 99;
+    const warns = rx ? rx.checks.filter(c => c.lvl === 'warn' && !/^Produzione ben oltre|^Prezzo|^Margine|Caduta di tensione/.test(c.title)).length : 99;
+    const lowYf = fal.reduce((a, f) => a + (Ax.n[f.i] > 0 && f.yf < 0.75 ? Ax.n[f.i] : 0), 0);
+    return { Ax, rx, mode: mode[0], Nx, errs, warns, lowYf, prod: rx ? rx.d.prod : 0, short: Ax.short };
+  };
+  // si cercano il numero di moduli (±3) e il criterio di ripartizione che danno meno errori, poi meno avvisi, scarto minore dall'obiettivo e resa maggiore
+  const cands = [];
+  for (const dN of [0, -1, 1, -2, 2, -3, 3]) { if (Nt + dN < 1) continue; for (const m of MODES) { if (S.falde.length < 2 && m[0] !== 'resa') continue; cands.push(tryN(Nt + dN, m)); } }
+  const sc = (c) => [c.short > 0 ? 1 : 0, c.errs, c.lowYf > 0 ? 1 : 0, c.warns, Math.abs(c.Nx - Nt), -c.prod];
+  cands.sort((x, y) => { const a = sc(x), b = sc(y); for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k] - b[k]; return 0; });
+  const pick = cands[0], adj = pick.Nx - Nt;
+  const A = pick.Ax, N = pick.Nx - A.short, kwp = N * M.p / 1000, r = pick.rx;
+  const allKnown = fal.every(x => x.cap !== null), maxKwp = allKnown ? fal.reduce((a, x) => a + x.cap, 0) * M.p / 1000 : null;
+  const notes = [];
+  if (adj) notes.push({ lvl: 'warn', t: `Numero di moduli regolato di ${adj > 0 ? '+' : ''}${adj} (${Nt + adj} invece di ${Nt}) per ottenere stringhe compatibili con l'inverter.` });
+  if (S.falde.length > 1) notes.push({ lvl: 'info', t: `Criterio di ripartizione scelto: ${pick.mode} (confrontati resa, resa×area, area, parti uguali).` });
+  if (A.short > 0) notes.push({ lvl: 'err', t: `Spazio insufficiente: entrano ${N} moduli su ${Nt} (${kwp.toFixed(2).replace('.', ',')} kWp). Aggiungere area utile o ridurre l'obiettivo.` });
+  if (kwp > S.fisc.kwpMax + 1e-9 || target > S.fisc.kwpMax + 1e-9) notes.push({ lvl: 'err', t: `Oltre ${S.fisc.kwpMax} kWp: niente IVA 10% né detrazione, e il tool residenziale non è applicabile (usare il preventivatore industriale).` });
+  if (S.fase !== 'tri' && kwp > 6 * (S.dcac_max || 1.3) + 1e-9) notes.push({ lvl: 'err', t: `Fornitura monofase: la potenza di produzione è limitata a 6 kW (CEI 0-21), cioè circa ${(6 * (S.dcac_max || 1.3)).toFixed(1).replace('.', ',')} kWp con DC/AC ${S.dcac_max || 1.3}. Per ${target.toString().replace('.', ',')} kWp serve la fornitura trifase.` });
+  fal.forEach(f => { if (A.n[f.i] > 0 && f.yf < 0.75) notes.push({ lvl: 'warn', t: `Falda ${f.i + 1}: resa relativa ${Math.round(f.yf * 100)}% (orientamento/ombre sfavorevoli): ${A.n[f.i]} moduli su una falda poco produttiva.` }); });
+  if (r) {
+    for (const c of r.checks) {
+      if (/^Prezzo|^Margine/.test(c.title)) continue;
+      if (c.lvl === 'err' && !notes.some(x => x.t.includes(c.title))) notes.push({ lvl: 'err', t: c.title + ': ' + c.detail });
+      else if (c.lvl === 'warn' && /DC\/AC|Produzione ben oltre|SPI|MPPT/i.test(c.title)) notes.push({ lvl: 'warn', t: c.title + ': ' + c.detail });
+    }
+    if (S.pot_imp > 0 && r.d.Pac > S.pot_imp * 3) notes.push({ lvl: 'warn', t: `Potenza di produzione molto superiore alla potenza impegnata (${S.pot_imp} kW): verificare la richiesta al distributore.` });
+  }
+  const verdict = notes.some(x => x.lvl === 'err') ? 'no' : notes.some(x => x.lvl === 'warn') ? 'cond' : 'ok';
+  const rep = (Nx) => ({ N: Nx, kwp: Nx * M.p / 1000 });
+  return { target, N, Nt, alloc: A.n, kwp, delta: kwp - target, maxKwp, verdict, notes, alts: { floor: rep(Nf), ceil: rep(Nc) }, inv: r ? r.d.I.name : '', Pac: r ? r.d.Pac : 0, prod: r ? r.d.prod : 0, ratio: r ? r.d.ratio : 0, fal: fal.map(f => ({ yf: f.yf, cap: f.cap })) };
+}
+
 /* ---------- Accumulo ---------- */
 const BATT_CURVE = [[5, 420], [10, 350], [15, 320], [20, 300], [30, 280]];   // €/kWh batteria LFP + BMS, prezzo installatore (Reonic 2026: 280-450 €/kWh)
 function battPrice(E) {
@@ -753,7 +825,7 @@ function defaults() {
     batt_on: false, batt_kwh: 10, batt_kw: 0,
     wb_on: false, wb_kw: 7.4, wb_line_m: 15, wb_det: false,
     l_ac1: 8, l_ac2: 15, dv_ac_max: 1.0, k_group_ac: 0.8, posa_ac: 'tubo', t_amb: 30, dv_dc_max: 1.0, k_group_dc: 0.8, posa_wb: 'tubo', dv_wb_max: 2.0,
-    fv_esistente: false, conc_name: '', conc_price: 0, conc_kwp: 0, conc_batt: 0, conc_note: '',
+    target_on: false, target_kwp: 0, fv_esistente: false, conc_name: '', conc_price: 0, conc_kwp: 0, conc_batt: 0, conc_note: '',
     profilo: 'misto', autoc_pct: 0, e_buy: 0, e_rid: 0, e_esc: 2, degr: 0.5, om_kwp: 12, inv_repl_year: 13, horizon: 20, disc: 3, lps: false, meter: true,
     redo: 'nessuno', redo_m2: 0,
     team: 2, h_day: 8, cost_h: 0, km: 25, eur_km: 0.5,
@@ -1192,7 +1264,7 @@ function compute(S) {
   return { d, items, checks, byCat, byCatPrice, tot, fisc: fi, plan, S };
 }
 
-const api = { variants, market, BENCH, MODS, INVS, ROOFS, REGIONS, FISC_DEFAULT, PR: PR0, setListino, catalog, defaults, compute, orientFactor, qsk, battPrice, pickAC };
+const api = { propose, variants, market, BENCH, MODS, INVS, ROOFS, REGIONS, FISC_DEFAULT, PR: PR0, setListino, catalog, defaults, compute, orientFactor, qsk, battPrice, pickAC };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.PVRes = api;
 })(this);
 </script>
@@ -1577,7 +1649,10 @@ function faldeHtml(S) {
     <td><input type="number" data-fi="${i}" data-fk="area" value="${f.area}" step="1"></td>
     <td><input type="number" data-fi="${i}" data-fk="l_dc" value="${f.l_dc}" step="1"></td>
     <td><button class="btn sm ghost" type="button" data-delfalda="${i}" ${S.falde.length < 2 ? 'disabled' : ''}>Elimina</button></td></tr>`).join('');
-  return `<div class="tablewrap" style="margin:0 16px 12px"><table class="grid compact falde"><thead><tr><th>#</th><th>Moduli</th><th>Azimut °</th><th>Inclin. °</th><th>Ombre %</th><th>Area utile m²</th><th>Cavo DC (m, 1 via)</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+  const tg = `<div style="padding:4px 16px 12px;border-bottom:1px solid var(--line);margin-bottom:12px"><div class="fgrid" style="padding:0;border:0"><label class="fld chk wide"><input type="checkbox" data-k="target_on" ${S.target_on ? 'checked' : ''}><span>Parti da una potenza obiettivo</span><span class="help">Il tool propone i moduli per falda in base a resa e area utile e verifica se è fattibile. Lasciando la spunta vuota si inseriscono i moduli a mano.</span></label>
+    ${S.target_on ? `<div class="fld"><label for="f_target_kwp">Potenza obiettivo</label><span class="inp"><input type="number" id="f_target_kwp" data-k="target_kwp" value="${S.target_kwp || ''}" step="0.1" inputmode="decimal"><span class="u">kWp</span></span></div>` : ''}</div>
+    ${S.target_on ? '<div id="targetBox"></div>' : ''}</div>`;
+  return tg + `<div class="tablewrap" style="margin:0 16px 12px"><table class="grid compact falde"><thead><tr><th>#</th><th>Moduli</th><th>Azimut °</th><th>Inclin. °</th><th>Ombre %</th><th>Area utile m²</th><th>Cavo DC (m, 1 via)</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
   <div style="padding:0 16px 16px" class="acts"><button class="btn sm" type="button" id="addFalda">+ Aggiungi falda</button><span class="help">Azimut: 0 = Sud, −90 = Est, +90 = Ovest, 180 = Nord. Un inverter con 2 MPPT gestisce al massimo 2 falde con orientamenti diversi. Area utile 0 = nessun controllo di spazio.</span></div>`;
 }
 function fiscHtml(S) {
@@ -1617,7 +1692,10 @@ function onForm(e) {
     if (typeof v === 'number' && isNaN(v)) return;
     if (t.dataset.preset) { setp(S, 'mod_preset', v); S.mod = Object.assign({}, clone(E.MODS[v])); }
     else setp(S, k, v);
-    if (k === 'wb_kw') { }
+    if ((k === 'target_on' && v) || (k === 'target_kwp' && S.target_on)) {
+      const P = S.target_kwp > 0 ? E.propose(S) : null;
+      if (P) { P.alloc.forEach((n, i) => { S.falde[i].n = n; }); document.querySelectorAll('input[data-fk="n"]').forEach(el => { const i = +el.dataset.fi; if (S.falde[i]) el.value = S.falde[i].n; }); }
+    }
   } else if (t.dataset.fi != null) {
     const v = parseFloat(t.value); S.falde[+t.dataset.fi][t.dataset.fk] = isNaN(v) ? 0 : v;
   } else if (t.dataset.ft != null) {
@@ -1778,10 +1856,29 @@ function updatePlaceholders() {
     try { const a = f.auto(R, S); el.placeholder = a === '' ? '' : 'auto ' + a; } catch (e) { }
   }
 }
+
+function renderTarget() {
+  const box = $('#targetBox'); if (!box) return; const S = cur().S;
+  let P = null; try { P = E.propose(S); } catch (e) { console.error(e); }
+  if (!P) { box.innerHTML = '<p class="help">Inserisci la potenza obiettivo.</p>'; return; }
+  const cl = { ok: 'ok', cond: 'warn', no: 'err' }[P.verdict], lab = { ok: 'Fattibile', cond: 'Fattibile con condizioni', no: 'Non fattibile così' }[P.verdict];
+  const cur_ = (S.falde || []).reduce((a, f) => a + (f.n || 0), 0) * S.mod.p / 1000;
+  const same = P.alloc.every((n, i) => n === S.falde[i].n);
+  box.innerHTML = `<div style="background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:12px 14px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="pill ${cl}">${lab}</span><b>Proposta: ${P.N} moduli = ${nf(P.kwp, 2)} kWp</b><span class="muted">(obiettivo ${nf(P.target, 2)} kWp, ${P.delta >= 0 ? '+' : ''}${nf(P.delta, 2)})</span></div>
+    <p style="margin:8px 0 0;font-size:13px">Ripartizione: ${P.alloc.map((n, i) => `falda ${i + 1}: <b>${n}</b>${P.fal[i].cap !== null ? ` (max ${P.fal[i].cap})` : ''} · resa relativa ${Math.round(P.fal[i].yf * 100)}%`).join(' · ')}</p>
+    <p style="margin:4px 0 0;font-size:13px">Alternative: ${P.alts.floor.N} moduli = ${nf(P.alts.floor.kwp, 2)} kWp · ${P.alts.ceil.N} moduli = ${nf(P.alts.ceil.kwp, 2)} kWp${P.maxKwp !== null ? ` · massimo con l'area indicata: ${nf(P.maxKwp, 2)} kWp` : ''}. Inverter: ${esc(P.inv)} · produzione ~${nf(P.prod, 0)} kWh/anno.</p>
+    ${P.notes.length ? `<ul class="checks" style="margin-top:8px">${P.notes.map(x => `<li class="chk-${x.lvl}"><span class="pill ${x.lvl}">${x.lvl === 'err' ? 'Blocco' : 'Condizione'}</span><div>${esc(x.t)}</div></li>`).join('')}</ul>` : ''}
+    <div class="acts" style="margin-top:10px"><button class="btn sm primary" type="button" id="applyTarget" ${same ? 'disabled' : ''}>${same ? 'Proposta già applicata' : 'Applica la proposta alle falde'}</button><span class="help">Configurazione attuale: ${nf(cur_, 2)} kWp. Dopo aver cambiato area utile, orientamento o ombre, riapplica la proposta.</span></div></div>`;
+}
+function applyTarget() {
+  const o = cur(); const S = o.S; const P = E.propose(S); if (!P) return;
+  P.alloc.forEach((n, i) => { S.falde[i].n = n; });
+  save(); recompute(); keepOpen(); const sy = window.scrollY; buildForm(); window.scrollTo(0, sy); renderAll(false);
+}
 function renderAll(withForm) {
   const o = cur(); if (!o) return;
   if (withForm) buildForm();
-  renderAside(); renderLower(); updatePlaceholders();
+  renderAside(); renderLower(); updatePlaceholders(); renderTarget();
   $('#crumb').innerHTML = `<span class="muted">Offerta</span><span class="sep">/</span><span class="crumbsite">${esc(offerName(o.S))}</span>`;
 }
 
@@ -2145,6 +2242,7 @@ function init() {
   f.addEventListener('change', e => { if (e.target.tagName === 'SELECT' || e.target.type === 'checkbox') onForm(e); });
   f.addEventListener('click', e => {
     const o = cur(); const S = o.S;
+    if (e.target.id === 'applyTarget') { applyTarget(); return; }
     if (e.target.id === 'addFalda') { keepOpen(); S.falde.push({ n: 8, az: 0, tilt: 25, shade: 0, area: 0, l_dc: 15 }); save(); recompute(); buildForm(); renderAll(false); }
     if (e.target.dataset.delfalda != null) { keepOpen(); S.falde.splice(+e.target.dataset.delfalda, 1); save(); recompute(); buildForm(); renderAll(false); }
   });
