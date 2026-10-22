@@ -306,6 +306,7 @@ details.method .notes{margin-top:12px}
 }
 @media (max-width:1080px){#backup{grid-template-columns:minmax(0,1fr)} .sitehead{grid-template-columns:minmax(0,1fr)} .addsec{margin-left:0}}
 
+.vtabs{display:flex;gap:8px;margin:0 0 12px}.vtabs button{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 14px;border:1px solid var(--line);background:var(--sunk);border-radius:var(--r);font-weight:700;font-size:15px;color:var(--ink);cursor:pointer}.vtabs button small{font-weight:400;font-size:11.5px;color:var(--muted)}.vtabs button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.vtabs button.on small{color:var(--accent-ink);opacity:.85}.vtabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .falde input{width:100%;min-width:64px;border:1px solid var(--line);background:var(--sunk);border-radius:4px;padding:5px 6px;font-family:var(--f-mono);font-size:13.5px}
 table.grid.falde{min-width:620px}
 #listino{position:fixed;top:0;right:0;height:100vh;width:min(780px,100vw);background:var(--surface);border-left:1px solid var(--line);z-index:40;display:flex;flex-direction:column;box-shadow:-12px 0 32px rgba(0,0,0,.22)}
@@ -489,6 +490,7 @@ const INVS = {
 };
 
 /* ---------- Coperture ---------- */
+const KIT_LABEL = { hook: 'ganci su coppi/tegole', rail_screw: 'binari su arcarecci', minirail: 'mini-rail su lamiera', ballast: 'zavorrato su tetto piano' };
 const ROOFS = {
   coppi:   { name: 'Coppi / tegole in laterizio · ganci', kit: 'hook', h: 0.55, pitched: true, frag: true },
   tegcls:  { name: 'Tegole in cemento · ganci', kit: 'hook', h: 0.50, pitched: true, frag: true },
@@ -825,7 +827,7 @@ function defaults() {
     batt_on: false, batt_kwh: 10, batt_kw: 0,
     wb_on: false, wb_kw: 7.4, wb_line_m: 15, wb_det: false,
     l_ac1: 8, l_ac2: 15, dv_ac_max: 1.0, k_group_ac: 0.8, posa_ac: 'tubo', t_amb: 30, dv_dc_max: 1.0, k_group_dc: 0.8, posa_wb: 'tubo', dv_wb_max: 2.0,
-    target_on: false, target_kwp: 0, fv_esistente: false, conc_name: '', conc_price: 0, conc_kwp: 0, conc_batt: 0, conc_note: '',
+    str_kit: 'auto', str_orient: 'v', hook_per_mod: 0, ballast_kg: 0, days_man: 0, target_on: false, target_kwp: 0, fv_esistente: false, conc_name: '', conc_price: 0, conc_kwp: 0, conc_batt: 0, conc_note: '',
     profilo: 'misto', autoc_pct: 0, e_buy: 0, e_rid: 0, e_esc: 2, degr: 0.5, om_kwp: 12, inv_repl_year: 13, horizon: 20, disc: 3, lps: false, meter: true,
     redo: 'nessuno', redo_m2: 0,
     team: 2, h_day: 8, cost_h: 0, km: 25, eur_km: 0.5,
@@ -971,7 +973,7 @@ function compute(S) {
   if (d.qs * 1000 > (M.snowPa || 5400) / 1.5) chk('warn', 'Carico neve vicino al limite del modulo', `Neve al suolo qsk ${snowK.toFixed(2).replace('.', ',')} kN/m², carico sul tetto ≈ ${d.qs.toFixed(2).replace('.', ',')} kN/m² (zona ${S.zona_neve}, ${S.quota} m s.l.m.). Verificare carico ammesso dal modulo e dalla struttura di montaggio con il costruttore.`, 'NTC 2018 §3.4 · EN 1991-1-3');
   else chk('info', 'Carico neve di sito', `qsk ${snowK.toFixed(2).replace('.', ',')} kN/m² (zona ${S.zona_neve}, ${S.quota} m s.l.m.), carico sul tetto ≈ ${d.qs.toFixed(2).replace('.', ',')} kN/m².`, 'NTC 2018 §3.4');
   chk('info', 'Verifica della copertura esistente', 'Il fissaggio dei moduli è di norma un intervento locale (carico aggiunto ≈ 12–15 kg/m²): verificare lo stato del manto, delle travi e degli ancoraggi; documentare la verifica.', 'NTC 2018 §8.4.3');
-  if (roof.kit === 'ballast') chk('warn', 'Zavorre su tetto piano', 'Peso da calcolare al vento e alla portata del solaio: verifica strutturale necessaria.', 'NTC 2018 §3.3 e §8');
+  if (((S.str_kit && S.str_kit !== 'auto') ? S.str_kit : roof.kit) === 'ballast') chk('warn', 'Zavorre su tetto piano', 'Peso da calcolare al vento e alla portata del solaio: verifica strutturale necessaria.', 'NTC 2018 §3.3 e §8');
   if (S.roof_type === 'amianto') chk('warn', 'Fibrocemento: bonifica prima dell\'installazione', 'Con presenza di amianto i moduli non si fissano sulle lastre: rimozione e nuova copertura, con piano di lavoro all\'ASL almeno 30 giorni prima (salvo urgenza).', 'D.Lgs. 81/08 art. 256 · DM 06/09/1994');
   if (S.anno_edif && S.anno_edif < 1992 && (S.roof_type === 'piana' || S.redo === 'guaina')) chk('info', 'Guaina o manto ante 1992', 'Possibile presenza di amianto in guaine e mastici: analisi prima di forare o rimuovere.', 'D.Lgs. 81/08 art. 248');
 
@@ -985,7 +987,7 @@ function compute(S) {
   };
   d.C = C;
   const N = d.Ntot;
-  const lenOf = (f) => M.W + 0.02;
+  const lenOf = (f) => (S.str_orient === 'o' ? M.L : M.W) + 0.02;   // lunghezza di binario per modulo: moduli in verticale = larghezza, in orizzontale = lunghezza
   const impVat = d.Pdc > F.kwpMax ? 'imp22' : 'imp';
 
   add(C.MOD, 'mod', `Modulo FV ${M.name}`, N, 'pz', modPrice, { mat: true });
@@ -1008,13 +1010,19 @@ function compute(S) {
   }
 
   // strutture
+  const kit = S.str_kit && S.str_kit !== 'auto' ? S.str_kit : roof.kit;
+  d.kit = kit; d.kitAuto = roof.kit; d.kitMan = kit !== roof.kit;
+  const KIT_OK = { hook: ['coppi', 'tegcls', 'ardesia'], rail_screw: ['legno'], minirail: ['lamiera', 'amianto', 'legno'], ballast: ['piana'] };
+  if (d.kitMan && !(KIT_OK[kit] || []).includes(S.roof_type)) chk('warn', 'Struttura non tipica per questa copertura', `Il sistema «${KIT_LABEL[kit]}» è scelto a mano ma per «${roof.name}» il sistema previsto è «${KIT_LABEL[roof.kit]}»: verificare con il fornitore del sistema di fissaggio, la portata dell'orditura e la tenuta della copertura.`, 'NTC 2018 §3.3 e §8 · istruzioni del costruttore');
   const strRail = Math.round(N * 2 * lenOf());
-  switch (roof.kit) {
+  const hookN = S.hook_per_mod > 0 ? S.hook_per_mod : 2.5 * (roof.hookK || 1);
+  const ballastKg = S.ballast_kg > 0 ? S.ballast_kg : 40;
+  switch (kit) {
     case 'hook':
       add(C.STR, 'clamp', 'Morsetti centrali e terminali in alluminio', Math.round(N * 2.4), 'pz', PR.clamp, { mat: true });
       add(C.STR, 'rail', 'Binari in alluminio estruso', strRail, 'm', PR.rail, { mat: true });
       add(C.STR, 'splice', 'Giunti di continuità per binari', Math.ceil(strRail / 6), 'pz', PR.splice, { mat: true });
-      add(C.STR, 'hook', `Ganci inox regolabili per ${S.roof_type === 'ardesia' ? 'lose in pietra' : 'coppi/tegole'}`, Math.round(N * 2.5 * (roof.hookK || 1)), 'pz', PR.hook, { mat: true });
+      add(C.STR, 'hook', `Ganci inox regolabili per ${S.roof_type === 'ardesia' ? 'lose in pietra' : 'coppi/tegole'}`, Math.round(N * hookN), 'pz', PR.hook, { mat: true });
       break;
     case 'rail_screw':
       add(C.STR, 'clamp', 'Morsetti centrali e terminali in alluminio', Math.round(N * 2.4), 'pz', PR.clamp, { mat: true });
@@ -1029,7 +1037,7 @@ function compute(S) {
       break;
     case 'ballast':
       add(C.STR, 'kit_ballast', 'Supporto zavorrato aerodinamico (basi, profili, controventi)', N, 'pz mod', PR.kit_ballast, { mat: true });
-      add(C.STR, 'ballast', 'Zavorre in cls (peso indicativo, da verificare al vento)', Math.round(N * 40), 'kg', PR.ballast, { mat: true, ref: 'NTC 2018 §3.3' });
+      add(C.STR, 'ballast', 'Zavorre in cls (peso indicativo, da verificare al vento)', Math.round(N * ballastKg), 'kg', PR.ballast, { mat: true, ref: 'NTC 2018 §3.3' });
       add(C.STR, 'prot', 'Tappetini di protezione guaina', N * 2, 'pz', PR.prot, { mat: true });
       break;
   }
@@ -1102,7 +1110,10 @@ function compute(S) {
   d.H = H;
   const crewH = Math.max(1, S.team * S.h_day);
   d.hEff = d.hTot / Math.max(0.3, S.prod_eff);
-  d.daysWork = Math.max(1, Math.ceil(d.hEff / crewH));
+  d.daysAuto = Math.max(1, Math.ceil(d.hEff / crewH));
+  d.daysMan = S.days_man > 0;
+  d.daysWork = d.daysMan ? Math.max(1, Math.round(S.days_man)) : d.daysAuto;
+  if (d.daysMan) d.hEff = d.daysWork * crewH;
   d.days = d.daysWork + (d.asbDays || 0);
   d.months = Math.max(1, Math.ceil(d.days / 21));
   add(C.MDO, 'mdo_mod', 'Posa strutture, moduli' + (d.Nopt ? ' e ottimizzatori' : ''), +(H.mod + H.opt).toFixed(1), 'h', costH);
@@ -1111,7 +1122,11 @@ function compute(S) {
   add(C.MDO, 'mdo_batt', 'Installazione e configurazione accumulo', +H.batt.toFixed(1), 'h', costH);
   add(C.MDO, 'mdo_wb', 'Installazione stazione di ricarica e linea dedicata', +H.wb.toFixed(1), 'h', costH, { vcat: 'wb', det: !!S.wb_det });
   add(C.MDO, 'mdo_test', 'Verifiche iniziali (isolamento, Voc/Isc, prove di funzionamento), messa in servizio, dichiarazione di conformità', +H.test.toFixed(1), 'h', costH, { ref: 'DM 37/08 art. 7 · CEI 64-8/6 · CEI EN 62446-1' });
-  add(C.MDO, 'mdo_idle', 'Ore non produttive di squadra (carico/scarico, spostamenti in cantiere, tempi morti)', +(d.hTot * (1 / Math.max(0.3, S.prod_eff) - 1)).toFixed(1), 'h', costH);
+  add(C.MDO, 'mdo_idle', 'Ore non produttive di squadra (carico/scarico, spostamenti in cantiere, tempi morti)', +(d.daysMan ? Math.max(0, d.daysWork * crewH - d.hTot) : d.hTot * (1 / Math.max(0.3, S.prod_eff) - 1)).toFixed(1), 'h', costH);
+  if (d.daysMan) {
+    if (d.daysWork * crewH < d.hTot - 0.5) chk('warn', 'Giorni di lavoro inseriti inferiori alle ore stimate', `${d.daysWork} gg × ${S.team} operai × ${S.h_day} h = ${Math.round(d.daysWork * crewH)} h, contro ${Math.round(d.hTot)} h produttive stimate (${d.daysAuto} gg in automatico): verificare squadra e giorni.`);
+    else chk('info', 'Giorni di lavoro inseriti a mano', `${d.daysWork} gg invece di ${d.daysAuto} in automatico: le ore non produttive e il costo della squadra sono ricalcolati su ${Math.round(d.daysWork * crewH)} h, e con essi trasferte, ponteggio/PLE e durata del cantiere.`);
+  }
   add(C.MDO, 'travel_km', `Trasferimenti (${d.days} giorni × ${S.km * 2} km A/R)`, Math.round(d.days * S.km * 2), 'km', S.eur_km);
 
   /* ---- sicurezza ---- */
@@ -1498,7 +1513,7 @@ const offerName = S => [S.cliente, S.comune].filter(Boolean).join(' · ') || 'Of
 const opt = (a) => a.map(x => Array.isArray(x) ? x : [x, x]);
 const REG = Object.keys(E.REGIONS).sort().map(r => [r, r]);
 const INV_OPTS = [['auto', 'Automatico (il più economico compatibile)']].concat(Object.entries(E.INVS).map(([k, v]) => [k, v.name]));
-const SCHEMA_F = [
+const SCHEMA_RAW = [
   { id: 'cli', t: 'Cliente e immobile', s: 'dati della pratica e requisiti per la detrazione', open: true, f: [
     { k: 'cliente', l: 'Cliente', t: 's', wide: true },
     { k: 'indirizzo', l: 'Indirizzo dell\'immobile', t: 's' },
@@ -1615,6 +1630,27 @@ const SCHEMA_F = [
   ] },
   { id: 'fisc', custom: 'fisc', t: 'Parametri fiscali', s: 'aliquote IVA e detrazione, modificabili e datate' }
 ];
+// Riorganizzazione in due aree: IMPIANTO (tecnica e cantiere) e COMMERCIALE (cliente, costi, prezzi, fisco, piano di rientro)
+const SCHEMA_F = (() => {
+  const by = (id) => SCHEMA_RAW.find(x => x.id === id);
+  const take = (sec, keys) => { const out = []; sec.f = sec.f.filter(f => { if (keys.includes(f.k)) { out.push(f); return false; } return true; }); return out; };
+  const detF = take(by('cli'), ['abit_princ', 'titolare']).concat(take(by('for'), ['pay_year', 'altre_spese', 'irpef']));
+  const ecoF = by('eco').f;
+  const daysF = { k: 'days_man', l: 'Giorni di lavoro in cantiere', t: 'n', u: 'gg', step: 1, auto: (r) => r.d.daysAuto, h: 'Vuoto = calcolato dalle ore stimate. Se lo inserisci, costo della squadra, trasferte, ponteggio/PLE e durata del cantiere si ricalcolano su questi giorni.' };
+  const strut = { id: 'strut', t: 'Struttura di fissaggio', s: 'sistema di ancoraggio dei moduli alla copertura', box: 'strBox', f: [
+    { k: 'str_kit', l: 'Sistema di fissaggio', t: 'o', wide: true, o: [['auto', 'Automatico: in base al tipo di copertura'], ['hook', 'Ganci su coppi / tegole / ardesia'], ['rail_screw', 'Binari su arcarecci (tetto in legno)'], ['minirail', 'Mini-rail su lamiera / sandwich'], ['ballast', 'Zavorrato su tetto piano']], h: 'Il sistema è proposto dal tipo di copertura (sezione «Sito e copertura»). Cambialo solo se il sopralluogo indica altro: il tool segnala gli abbinamenti non tipici.' },
+    { k: 'str_orient', l: 'Orientamento dei moduli', t: 'o', o: [['v', 'Verticale (portrait)'], ['o', 'Orizzontale (landscape)']], h: 'Cambia la lunghezza dei binari per modulo.' },
+    { k: 'hook_per_mod', l: 'Ganci o staffe per modulo', t: 'n', step: 0.1, auto: (r) => nf(2.5 * ((r.d.roof && r.d.roof.hookK) || 1), 1), h: 'Solo per il sistema a ganci. Vuoto = stima automatica.' },
+    { k: 'ballast_kg', l: 'Zavorra per modulo', t: 'n', u: 'kg', step: 5, auto: () => '40', h: 'Solo tetto piano: valore indicativo, da verificare al vento e alla portata del solaio.' }
+  ] };
+  const det = { id: 'det', t: 'Requisiti del cliente per la detrazione', s: 'abitazione principale, anno dei pagamenti, capienza', f: detF };
+  const eco = by('eco'); eco.t = 'Squadra, costi e prezzo'; eco.s = 'operai, giorni, trasferte, costo orario, imprevisti, spese professionali (parametri interni, non appaiono nell\'offerta al cliente)';
+  { const o = {}; ecoF.forEach(f => o[f.k] = f); const ord = ['team', 'h_day', 'days_man', 'prod_eff', 'km', 'eur_km', 'cost_h', 'transport', 'contingency', 'prof_on', 'prof_pct', 'prof_split']; o.days_man = daysF; eco.f = ord.map(k => o[k]); }
+  const g = (g_, arr) => arr.map(x => Object.assign(x, { g: g_ }));
+  return g('imp', [by('cli'), by('for'), by('sito'), by('falde'), strut, by('mod'), by('acc'), by('ele'), by('lav'), eco])
+    .concat(g('com', [det, by('piano'), by('conc'), by('com'), by('fisc')]));
+})();
+const UI = { tab: (() => { try { return localStorage.getItem('fvres.tab') === 'com' ? 'com' : 'imp'; } catch (e) { return 'imp'; } })() };
 
 const getp = (o, p) => p.split('.').reduce((a, k) => a == null ? a : a[k], o);
 const setp = (o, p, v) => { const ks = p.split('.'); const l = ks.pop(); const t = ks.reduce((a, k) => a[k], o); t[l] = v; };
@@ -1673,8 +1709,9 @@ function fiscHtml(S) {
 }
 function buildForm() {
   const o = cur(); const S = o.S;
-  $('#form').innerHTML = SCHEMA_F.map(sec => {
-    const body = sec.custom === 'falde' ? faldeHtml(S) : sec.custom === 'fisc' ? fiscHtml(S) : `<div class="fgrid">${sec.f.map(f => fieldHtml(f, S)).join('')}</div>`;
+  const tabs = `<div class="vtabs" role="tablist"><button type="button" role="tab" data-tab="imp" class="${UI.tab === 'imp' ? 'on' : ''}" aria-selected="${UI.tab === 'imp'}">Impianto<small>tecnica e cantiere</small></button><button type="button" role="tab" data-tab="com" class="${UI.tab === 'com' ? 'on' : ''}" aria-selected="${UI.tab === 'com'}">Commerciale<small>cliente, costi, prezzo, fisco, rientro</small></button></div>`;
+  $('#form').innerHTML = tabs + SCHEMA_F.filter(sec => sec.g === UI.tab).map(sec => {
+    const body = sec.custom === 'falde' ? faldeHtml(S) : sec.custom === 'fisc' ? fiscHtml(S) : `<div class="fgrid">${sec.f.map(f => fieldHtml(f, S)).join('')}</div>${sec.box ? `<div id="${sec.box}" style="padding:0 16px 16px"></div>` : ''}`;
     return `<details class="sec" data-sec="${sec.id}" ${openSec.has(sec.id) || sec.open ? 'open' : ''}><summary><span class="sec-t">${esc(sec.t)}</span><span class="sec-s">${esc(sec.s || '')}</span></summary>${body}</details>`;
   }).join('');
 }
@@ -1826,11 +1863,12 @@ function renderLower() {
       its.map(i => `<tr class="${i.edited ? 'edited' : ''}"><td class="desc">${esc(i.desc)}${i.ref ? `<small>${esc(i.ref)}</small>` : ''}</td><td class="um">${esc(i.um)}</td><td class="num">${nf(i.qty, i.qty % 1 ? 1 : 0)}</td><td class="pu"><span class="puw"><input type="number" step="any" data-ov="${i.id}" value="${Math.round(i.unit * 100) / 100}" aria-label="Costo unitario">${i.edited ? `<button class="rst" type="button" data-rst="${i.id}" title="Ripristina ${nf(i.def, 2)}">↺</button>` : ''}</span></td><td class="num">${eur(i.tot)}</td><td class="num">${eur(i.price)}</td></tr>`).join('');
   }).join('');
   const nOv = items.filter(i => i.edited).length;
-  $('#lower').innerHTML = planHtml(R, S) + confrontiHtml(R, S) + `
+  $('#lower').innerHTML = (UI.tab === 'imp' ? `
   <section class="blk"><div class="blkhead"><div><h2>Verifiche normative e tecniche</h2><p>${important.length ? 'Da risolvere o da conoscere prima dell\'offerta' : 'Nessun problema bloccante'}</p></div></div>
     <div class="two"><div><ul class="checks">${checksHtml(important.concat(rest)) || '<li><span class="pill ok">Ok</span><div><b>Nessuna segnalazione</b></div></li>'}</ul>
     <details class="okfold"><summary>${oks.length} verifiche superate</summary><ul class="checks">${checksHtml(oks)}</ul></details></div>
     <dl class="dims">${dims.map(([a, b]) => `<div><dt>${esc(a)}</dt><dd>${esc(b)}</dd></div>`).join('')}</dl></div></section>
+` : planHtml(R, S) + confrontiHtml(R, S) + `
   <section class="blk"><div class="blkhead"><div><h2>Computo estimativo</h2><p>Costi di acquisto/esecuzione modificabili riga per riga. ${nOv ? `<b>${nOv}</b> voci modificate.` : ''}</p></div><div class="boqbar">${nOv ? '<button class="btn sm" id="rstAll" type="button">Ripristina tutti i prezzi</button>' : ''}</div></div>
     <details class="okfold" style="margin-top:14px"><summary style="color:var(--ink)">Fonti dei prezzi e livello di certezza (valori di default; il tuo listino ha la precedenza: ${Object.keys(DB.listino).length} voci attive)</summary>
     <div class="tablewrap" style="margin-top:8px"><table class="boq" style="min-width:640px"><thead><tr><th>Voce</th><th>Valore di default</th><th>Fonte</th><th>Certezza</th></tr></thead><tbody>
@@ -1847,7 +1885,7 @@ function renderLower() {
     <div class="tablewrap"><table class="boq"><thead><tr><th>Voce</th><th>UM</th><th class="num">Q.tà</th><th class="num">Costo unit.</th><th class="num">Costo</th><th class="num">Prezzo netto</th></tr></thead><tbody>${rows}</tbody>
     <tbody class="foot"><tr><td colspan="4">Trasporto e imprevisti</td><td class="num">${eur(tot.cost - tot.itemsCost)}</td><td></td></tr>
     <tr class="tot"><td colspan="4">Totale (costo interno / prezzo netto IVA esclusa)</td><td class="num">${eur(tot.cost)}</td><td class="num">${eur(tot.net)}</td></tr>
-    <tr><td colspan="5">IVA</td><td class="num">${eur(tot.vat)}</td></tr><tr class="tot"><td colspan="5">Totale IVA inclusa</td><td class="num">${eur(tot.gross)}</td></tr></tbody></table></div></section>`;
+    <tr><td colspan="5">IVA</td><td class="num">${eur(tot.vat)}</td></tr><tr class="tot"><td colspan="5">Totale IVA inclusa</td><td class="num">${eur(tot.gross)}</td></tr></tbody></table></div></section>`);
 }
 function updatePlaceholders() {
   if (!R) return; const S = cur().S;
@@ -1875,10 +1913,20 @@ function applyTarget() {
   P.alloc.forEach((n, i) => { S.falde[i].n = n; });
   save(); recompute(); keepOpen(); const sy = window.scrollY; buildForm(); window.scrollTo(0, sy); renderAll(false);
 }
+
+function renderStructBox() {
+  const box = $('#strBox'); if (!box || !R) return;
+  const d = R.d, its = R.items.filter(i => i.cat === d.C.STR); const tot = its.reduce((a, i) => a + i.tot, 0), pr = its.reduce((a, i) => a + i.price, 0);
+  const lab = { hook: 'ganci su coppi/tegole', rail_screw: 'binari su arcarecci', minirail: 'mini-rail su lamiera', ballast: 'zavorrato su tetto piano' };
+  const rows = its.map(i => `<tr><td>${esc(i.desc)}</td><td class="num">${nf(i.qty, 0)} ${esc(i.um)}</td><td class="num">${nf(i.unit, 2)} €</td><td class="num">${eur(i.tot)}</td></tr>`).join('');
+  box.innerHTML = `<div style="background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:12px 14px"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><b>Struttura in uso: ${esc(lab[d.kit])}</b><span class="muted">${d.kitMan ? 'scelta a mano (automatico: ' + esc(lab[d.kitAuto]) + ')' : 'automatica dalla copertura'}</span></div>
+    <div class="tablewrap" style="margin-top:8px"><table class="boq" style="min-width:520px"><thead><tr><th>Componente</th><th class="num">Quantità</th><th class="num">Unitario</th><th class="num">Costo</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="3">Totale struttura (costo / prezzo netto ${eur(pr)})</td><td class="num">${eur(tot)}</td></tr></tbody></table></div>
+    <p class="help" style="margin:6px 0 0">${nf(d.Pdc > 0 ? tot / d.Pdc : 0, 0)} €/kWp. I prezzi unitari si aggiornano dal <b>Listino prezzi</b> (gruppo «Strutture») o riga per riga nel computo.</p></div>`;
+}
 function renderAll(withForm) {
   const o = cur(); if (!o) return;
   if (withForm) buildForm();
-  renderAside(); renderLower(); updatePlaceholders(); renderTarget();
+  renderAside(); renderLower(); updatePlaceholders(); renderTarget(); renderStructBox();
   $('#crumb').innerHTML = `<span class="muted">Offerta</span><span class="sep">/</span><span class="crumbsite">${esc(offerName(o.S))}</span>`;
 }
 
@@ -2242,6 +2290,8 @@ function init() {
   f.addEventListener('change', e => { if (e.target.tagName === 'SELECT' || e.target.type === 'checkbox') onForm(e); });
   f.addEventListener('click', e => {
     const o = cur(); const S = o.S;
+    const tb = e.target.closest && e.target.closest('[data-tab]');
+    if (tb && tb.dataset.tab !== UI.tab) { UI.tab = tb.dataset.tab; try { localStorage.setItem('fvres.tab', UI.tab); } catch (err) { } keepOpen(); renderAll(true); window.scrollTo(0, 0); return; }
     if (e.target.id === 'applyTarget') { applyTarget(); return; }
     if (e.target.id === 'addFalda') { keepOpen(); S.falde.push({ n: 8, az: 0, tilt: 25, shade: 0, area: 0, l_dc: 15 }); save(); recompute(); buildForm(); renderAll(false); }
     if (e.target.dataset.delfalda != null) { keepOpen(); S.falde.splice(+e.target.dataset.delfalda, 1); save(); recompute(); buildForm(); renderAll(false); }
