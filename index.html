@@ -322,7 +322,14 @@ table.lt input[type=text]{font-family:var(--f-body)}
 table.lt input:disabled{opacity:.45}
 table.lt td:nth-child(3){width:110px} table.lt td:nth-child(5){width:150px}
 table.lt tr.edited td:nth-child(3) input{background:var(--warn-bg);color:var(--warn);font-weight:500}
-@media print{#listino{display:none!important}}
+@media print{#listino{display:none!important}
+@page land{size:A4 landscape;margin:9mm 10mm}
+.pr-land{page:land;break-after:page}
+.pr-land:last-child{break-after:auto}
+.pr-prelim{font-size:8.6pt;background:#FBE9E7;border-left:5px solid #C0392B;color:#7a1f14;padding:6px 9px;margin:4px 0 6px;border-radius:3px}
+.sch-wrap{border:1px solid #D3DBD8;border-radius:4px;padding:4px}
+.sch-wrap svg{display:block;width:100%;height:auto;max-height:145mm}
+.pr-land table{font-size:7.8pt}}
 </style></head><body>
 <div class="wrap">
   <header class="top">
@@ -396,7 +403,7 @@ table.lt tr.edited td:nth-child(3) input{background:var(--warn-bg);color:var(--w
   <div class="lscroll"><table class="boq lt"><thead><tr><th>Voce</th><th class="num">Default</th><th>Tuo valore</th><th>Fonte</th><th>Data</th><th></th></tr></thead><tbody id="listBody"></tbody></table></div>
 </aside>
 <div id="printArea" aria-hidden="true"></div>
-<div id="printMenu" hidden><button class="btn sm primary" id="pmClient" type="button">PDF offerta per il cliente</button><button class="btn sm" id="pmInt" type="button">PDF analisi interna (costi e margini)</button><button class="btn sm" id="pmXc" type="button">Excel per il cliente (solo prezzi)</button><button class="btn sm" id="pmQes" type="button">QES (quadro economico di spesa, formato aziendale)</button><button class="btn sm" id="pmXi" type="button">Excel interno (formule attive)</button></div>
+<div id="printMenu" hidden><button class="btn sm primary" id="pmClient" type="button">PDF offerta per il cliente</button><button class="btn sm" id="pmInt" type="button">PDF analisi interna (costi e margini)</button><button class="btn sm" id="pmSch" type="button">Schema unifilare preliminare (interno)</button><button class="btn sm" id="pmXc" type="button">Excel per il cliente (solo prezzi)</button><button class="btn sm" id="pmQes" type="button">QES (quadro economico di spesa, formato aziendale)</button><button class="btn sm" id="pmXi" type="button">Excel interno (formule attive)</button></div>
 <div id="toast" hidden role="status"></div>
 
 <script>
@@ -2048,8 +2055,8 @@ function printInternal() {
 }
 function doPrint(kind) {
   if (!R) return;
-  $('#printArea').innerHTML = kind === 'int' ? printInternal() : printClient();
-  document.title = (kind === 'int' ? 'Analisi interna' : 'Offerta') + ' - ' + offerName(cur().S);
+  $('#printArea').innerHTML = kind === 'sch' ? printSchema() : kind === 'int' ? printInternal() : printClient();
+  document.title = (kind === 'sch' ? 'Schema unifilare preliminare' : kind === 'int' ? 'Analisi interna' : 'Offerta') + ' - ' + offerName(cur().S);
   setTimeout(() => { window.print(); }, 50);
 }
 
@@ -2320,6 +2327,7 @@ function init() {
   $('#btnPrint').onclick = () => { const m = $('#printMenu'); m.hidden = !m.hidden; };
   $('#pmClient').onclick = () => { $('#printMenu').hidden = true; doPrint('cli'); };
   $('#pmInt').onclick = () => { $('#printMenu').hidden = true; doPrint('int'); };
+  $('#pmSch').onclick = () => { $('#printMenu').hidden = true; doPrint('sch'); };
   $('#pmXc').onclick = () => { $('#printMenu').hidden = true; exportXlsx(true); };
   $('#pmQes').onclick = () => { $('#printMenu').hidden = true; exportQES(); };
   $('#pmXi').onclick = () => { $('#printMenu').hidden = true; exportXlsx(false); };
@@ -2345,6 +2353,218 @@ function init() {
   window.__PV = { setState: fn => { const o = cur(); fn(o.S); recompute(); renderAll(true); }, exportQES, DB: () => DB, R: () => R, newOffer, show, doPrintHtml: k => (k === 'int' ? printInternal() : printClient()) };
 }
 document.addEventListener('DOMContentLoaded', init);
-})();
-</script>
+/* ============================================================
+   SCHEMA UNIFILARE PRELIMINARE (documento interno)
+   Generato dai risultati di calcolo: stringhe, linee DC/AC, protezioni.
+   NON è il progetto (DM 37/08 art. 5) né lo schema da allegare alla DiCo.
+   ============================================================ */
+const SCH = {
+  az(a) { a = +a || 0; const t = [[-157.5, 'N'], [-112.5, 'NE'], [-67.5, 'E'], [-22.5, 'SE'], [22.5, 'S'], [67.5, 'SO'], [112.5, 'O'], [157.5, 'NO']]; for (const [lim, n] of t) if (a < lim) return n; return 'N'; },
+  v(n, d = 1) { return nf(n, d); }
+};
+
+function schemaData(R, S) {
+  const d = R.d, I = d.I, M = S.mod, fase = d.fase, tri = fase === 3;
+  const spiExt = d.Pac > 11.08, rinc = d.Pac > 20;
+  const mppt = d.fs.map((z, i) => {
+    const sec = d.dcSec[i] || {};
+    const Ns = z.Ns || z.f.n, s = z.s || 1;
+    return {
+      i: i + 1, falda: `Falda ${i + 1} · ${SCH.az(z.f.az)} (az ${nf(z.f.az || 0, 0)}°, tilt ${nf(z.f.tilt || 0, 0)}°)`,
+      n: z.f.n, s, Ns, kwp: z.f.n * M.p / 1000, ok: !!z.ok,
+      voc: Ns * d.VocTmin, vmp: Ns * M.vmp, isc: s * M.isc,
+      S: sec.S, L: z.f.l_dc || 15, dv: sec.dv, Iz: sec.Iz
+    };
+  });
+  const ac = (x, L) => ({ S: x.S, In: x.In, Iz: x.Iz, dv: x.dv, L });
+  const wbPh = S.wb_on ? (S.wb_kw > 7.5 ? 3 : (tri && S.wb_kw > 3.7 ? 3 : 1)) : 0;
+  return {
+    d, I, M, tri, fase, spiExt, rinc, mppt,
+    ac1: ac(d.ac1, S.l_ac1), ac2: ac(d.ac2, S.l_ac2),
+    nc: tri ? 5 : 3, poles: tri ? '4P' : '2P', V: tri ? '400/230 V 3F+N' : '230 V F+N',
+    batt: S.batt_on ? { kwh: d.battKwh, kw: d.battKw } : null,
+    wb: S.wb_on && d.wbc ? { kw: S.wb_kw, ph: wbPh, S: d.wbc.S, In: d.wbc.In, Iz: d.wbc.Iz, dv: d.wbc.dv, L: S.wb_line_m, poles: wbPh === 3 ? '4P' : '2P' } : null,
+    meter: !!S.meter, lps: !!S.lps
+  };
+}
+
+function schemaSvg(R, S) {
+  const D = schemaData(R, S);
+  const nM = Math.max(1, D.mppt.length);
+  const W = 1120, rowH = 92, top = nM === 1 ? 110 : 76;
+  const yRows = D.mppt.map((_, i) => top + 30 + i * rowH);
+  const yInv = (yRows[0] + yRows[yRows.length - 1]) / 2;
+  const yMain = yInv;                                            // dorsale AC
+  const hI0 = Math.max(70, yRows[yRows.length - 1] - yRows[0] + 52), invBot = yRows[0] - 26 + hI0;
+  const H = Math.max(invBot + (D.batt ? 125 : 45), yMain + (D.wb ? 175 : 95)) + 44;
+  const T = (x, y, t, o = {}) => `<text x="${x}" y="${y}"${o.a ? ` text-anchor="${o.a}"` : ''}${o.w ? ` font-weight="${o.w}"` : ''}${o.s ? ` font-size="${o.s}"` : ''}${o.c ? ` fill="${o.c}"` : ''}>${esc(t)}</text>`;
+  const L = (x1, y1, x2, y2, o = {}) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"${o.dash ? ' stroke-dasharray="5 4"' : ''}${o.w ? ` stroke-width="${o.w}"` : ''}${o.c ? ` stroke="${o.c}"` : ''}/>`;
+  const earth = (x, y) => `${L(x, y, x, y + 8)}${L(x - 9, y + 8, x + 9, y + 8)}${L(x - 6, y + 12, x + 6, y + 12)}${L(x - 3, y + 16, x + 3, y + 16)}`;
+  // dispositivo in linea orizzontale: rettangolo con sigla
+  const dev = (x, y, w, sig, l1, l2, l3) => `<rect x="${x}" y="${y - 13}" width="${w}" height="26" fill="#fff"/>${T(x + w / 2, y + 4, sig, { a: 'middle', w: 700, s: 10 })}${l1 ? T(x + w / 2, y - 19, l1, { a: 'middle', s: 9 }) : ''}${l2 ? T(x + w / 2, y + 26, l2, { a: 'middle', s: 8.5 }) : ''}${l3 ? T(x + w / 2, y + 37, l3, { a: 'middle', s: 8.5 }) : ''}`;
+  // SPD in derivazione verso terra
+  const spd = (x, y, lab) => `${L(x, y, x, y + 18)}<rect x="${x - 9}" y="${y + 18}" width="18" height="22" fill="#fff"/><path d="M${x - 5} ${y + 24} h10 l-5 9 z"/>${L(x, y + 40, x, y + 48)}${earth(x, y + 48)}${T(x + 13, y + 33, lab, { s: 8.5 })}`;
+  const node = (x, y) => `<circle cx="${x}" cy="${y}" r="2.6" fill="#141C1A"/>`;
+  let g = '';
+
+  /* --- titolo zone --- */
+  const zones = [[20, 300, 'GENERATORE FV (lato DC)'], [310, 430, 'CONVERSIONE'], [520, 750, 'QUADRO AC FV (nuovo)'], [790, 1110, 'QUADRO GENERALE ESISTENTE · CONSEGNA']];
+  zones.forEach(([a, b, t]) => { g += T((a + b) / 2, 22, t, { a: 'middle', w: 700, s: 9.5, c: '#1F5F55' }) + L(a, 28, b, 28, { c: '#1F5F55' }); });
+
+  /* --- campo FV per MPPT --- */
+  const xInv = 320, wInv = 100;
+  D.mppt.forEach((m, i) => {
+    const y = yRows[i];
+    // simbolo stringa: due moduli + puntini
+    g += `<rect x="24" y="${y - 16}" width="26" height="32" fill="#fff"/>${L(24, y + 16, 50, y - 16)}<rect x="58" y="${y - 16}" width="26" height="32" fill="#fff"/>${L(58, y + 16, 84, y - 16)}`;
+    g += T(92, y + 4, '···', { s: 11 });
+    g += T(24, y - 22, `MPPT ${m.i} — ${m.s} × ${m.Ns} moduli (${nf(m.kwp, 2)} kWp)`, { w: 700, s: 9.5 });
+    g += T(24, y + 30, m.falda, { s: 8.5 });
+    g += T(24, y + 41, `Voc(${S.t_min} °C) ${nf(m.voc, 0)} V · Vmp ${nf(m.vmp, 0)} V · Isc ${nf(m.isc, 1)} A`, { s: 8.5 });
+    // cavo DC
+    g += L(110, y, 245, y);
+    g += T(178, y - 6, `H1Z2Z2-K 2×1×${m.S || '?'} mm²`, { a: 'middle', s: 8.5 });
+    g += T(178, y + 13, `L ${nf(m.L, 0)} m · ΔV ${nf(m.dv || 0, 2)}%`, { a: 'middle', s: 8.5 });
+    // SPD DC (aggiuntivo solo con LPS)
+    if (D.lps) { g += node(232, y) + spd(232, y, ''); if (i === 0) g += T(244, y + 64, 'SPD DC T2', { s: 8.5 }); }
+    // sezionatore DC (integrato)
+    g += L(245, y, 262, y) + dev(262, y, 34, 'QS', '', '') + L(296, y, xInv, y);
+  });
+  g += T(279, yRows[yRows.length - 1] + 30, 'QS-DC integrato', { a: 'middle', s: 8 }) + T(279, yRows[yRows.length - 1] + 40, 'nell\'inverter (verif.)', { a: 'middle', s: 8 });
+
+  /* --- inverter --- */
+  const yI0 = yRows[0] - 26, hI = Math.max(70, yRows[yRows.length - 1] - yRows[0] + 52);
+  g += `<rect x="${xInv}" y="${yI0}" width="${wInv}" height="${hI}" fill="#fff" stroke-width="1.8"/>${L(xInv, yI0 + hI, xInv + wInv, yI0)}`;
+  g += T(xInv + 14, yI0 + 18, '=', { s: 16, w: 700 }) + T(xInv + wInv - 22, yI0 + hI - 8, '~', { s: 18, w: 700 });
+  g += T(xInv + wInv / 2, yI0 - 8, 'INV — ' + (D.I.hyb ? 'inverter ibrido' : 'inverter di stringa'), { a: 'middle', w: 700, s: 9.5 });
+  g += T(xInv + wInv / 2, yI0 + hI + 14, `${nf(D.d.Pac, 2)} kW · ${D.I.ph === 3 ? 'trifase' : 'monofase'} · ${D.I.mppt} MPPT`, { a: 'middle', s: 8.5 });
+  g += T(xInv + wInv / 2, yI0 + hI + 25, D.spiExt ? 'SPI esterno (vedi quadro AC)' : 'SPI e DDI integrati (CEI 0-21)', { a: 'middle', s: 8.5 });
+  g += T(xInv + wInv / 2, yI0 + hI + 36, 'cert. CEI 0-21 edizione vigente', { a: 'middle', s: 8 });
+
+  /* --- accumulo (DC su ibrido) --- */
+  if (D.batt) {
+    const xb = xInv + wInv / 2, yb = yI0 + hI + 74;
+    g += L(xb, yI0 + hI + 40, xb, yI0 + hI + 42);
+    g += `<rect x="${xb - 14}" y="${yI0 + hI + 42}" width="28" height="18" fill="#fff"/>` + T(xb, yI0 + hI + 55, 'QB', { a: 'middle', w: 700, s: 9 });
+    g += L(xb, yI0 + hI + 60, xb, yb - 4);
+    g += `<rect x="${xb - 40}" y="${yb - 4}" width="80" height="38" fill="#fff"/>`;
+    for (let k = 0; k < 4; k++) g += L(xb - 22 + k * 14, yb + (k % 2 ? 9 : 4), xb - 22 + k * 14, yb + (k % 2 ? 25 : 30), { w: k % 2 ? 1.4 : 2.6 });
+    g += T(xb + 46, yb + 10, `BAT — LFP ${nf(D.batt.kwh, 0)} kWh / ${nf(D.batt.kw, 1)} kW`, { s: 8.5, w: 700 });
+    g += T(xb + 46, yb + 21, 'BMS (IEC 62619) · protezioni DC del costruttore', { s: 8.5 });
+    g += T(xb + 46, yb + 32, D.I.hyb ? 'collegamento DC sull\'ibrido (verif. scheda)' : 'inverter non ibrido: accumulo lato AC da definire', { s: 8 });
+  }
+
+  /* --- linea AC1 → quadro AC FV --- */
+  const xQ0 = 520, xQ1 = 750;
+  g += L(xInv + wInv, yMain, xQ0, yMain);
+  g += T((xInv + wInv + xQ0) / 2, yMain - 6, `FG16OR16 ${D.nc}G${D.ac1.S}`, { a: 'middle', s: 8.5 });
+  g += T((xInv + wInv + xQ0) / 2, yMain + 13, `L ${nf(D.ac1.L, 0)} m · ΔV ${nf(D.ac1.dv, 2)}%`, { a: 'middle', s: 8.5 });
+  g += `<rect x="${xQ0}" y="${yMain - 62}" width="${xQ1 - xQ0}" height="148" fill="none" stroke-dasharray="6 4" stroke="#1F5F55"/>`;
+  g += T(xQ0 + 4, yMain - 50, 'QAC-FV · ' + D.V, { s: 8.5, c: '#1F5F55', w: 700 });
+  let x = xQ0 + 8;
+  if (D.spiExt) {
+    g += L(xQ0, yMain, x + 6, yMain) + dev(x + 6, yMain, 34, 'DDI', 'SPI est.', '', ''); x += 46;
+  } else g += L(xQ0, yMain, x, yMain);
+  g += L(x, yMain, x + 10, yMain) + dev(x + 10, yMain, 40, 'QF1', `${D.poles} C${D.ac1.In}`, 'Icn ≥ Icc', '(da verif.)'); x += 60;
+  g += L(x, yMain, x + 10, yMain) + dev(x + 10, yMain, 40, 'ID1', 'Id', 'tipo A o B', 'sec. costr.'); x += 60;
+  g += L(x, yMain, xQ1, yMain) + node(x + 22, yMain) + spd(x + 22, yMain, 'SPD T2');
+  if (D.rinc) g += T(xQ0 + 4, yMain + 80, '+ dispositivo di rincalzo (> 20 kW)', { s: 8 });
+
+  /* --- linea AC2 → quadro generale --- */
+  const xG0 = 810, xBus = 850;
+  g += L(xQ1, yMain, xG0, yMain);
+  g += T((xQ1 + xG0) / 2, yMain - 6, `${D.nc}G${D.ac2.S}`, { a: 'middle', s: 8.5 });
+  g += T((xQ1 + xG0) / 2, yMain + 13, `${nf(D.ac2.L, 0)} m · ${nf(D.ac2.dv, 2)}%`, { a: 'middle', s: 8.5 });
+  // quadro generale esistente
+  const yB0 = yMain - 80, yB1 = yMain + (D.wb ? 150 : 70);
+  g += `<rect x="${xG0}" y="${yB0 - 16}" width="200" height="${yB1 - yB0 + 40}" fill="none" stroke-dasharray="3 3" stroke="#6B7672"/>`;
+  g += T(xG0 + 4, yB0 - 4, 'QG — quadro generale (esistente)', { s: 8.5, w: 700, c: '#6B7672' });
+  g += L(xG0, yMain, xBus, yMain) + node(xBus, yMain) + L(xBus, yB0 + 14, xBus, yB1, { w: 3.2 });
+  // DG verso la consegna (in alto)
+  const yDG = yB0 + 14;
+  g += L(xBus, yDG, xBus + 24, yDG) + dev(xBus + 24, yDG, 40, 'DG', '', '', '') + L(xBus + 64, yDG, 1040, yDG);
+  g += T(xBus + 30, yDG + 26, 'In, Icn, Id: tipo e', { s: 8 });
+  g += T(xBus + 30, yDG + 36, 'selettività da verif.', { s: 8 });
+  // misuratore di scambio (TA dell'EMS)
+  if (D.meter) { g += `<circle cx="${xBus + 120}" cy="${yDG}" r="7" fill="#fff"/>` + T(xBus + 120, yDG + 20, 'TA meter', { a: 'middle', s: 8 }) + T(xBus + 120, yDG + 30, 'EMS', { a: 'middle', s: 8 }); }
+  // contatore M1 + rete
+  g += `<circle cx="1052" cy="${yDG}" r="13" fill="#fff"/>` + T(1052, yDG + 3, 'kWh', { a: 'middle', s: 8, w: 700 }) + T(1052, yDG - 18, 'M1 bidirez.', { a: 'middle', s: 8.5 });
+  g += L(1065, yDG, 1100, yDG, { dash: true }) + T(1100, yDG + 18, 'Rete BT', { a: 'end', s: 8.5 }) + T(1100, yDG + 29, 'distributore', { a: 'end', s: 8.5 }) + T(1100, yDG + 40, 'TT ' + (D.tri ? '400 V' : '230 V'), { a: 'end', s: 8.5 });
+  // utenze esistenti
+  const yU = yMain + 40;
+  g += L(xBus, yU, xBus + 24, yU) + dev(xBus + 24, yU, 34, 'QF..', '', '') + L(xBus + 58, yU, xBus + 80, yU) + T(xBus + 84, yU + 3, 'utenze domestiche', { s: 8.5 }) + T(xBus + 84, yU + 14, '(esistenti)', { s: 8 });
+  // wallbox
+  if (D.wb) {
+    const yW = yMain + 100;
+    g += L(xBus, yW, xBus + 14, yW) + dev(xBus + 14, yW, 40, 'QFW', `${D.wb.poles} C${D.wb.In}`, 'Id 30 mA', 'A+6mA DC / B') + L(xBus + 54, yW, xBus + 120, yW);
+    g += T(xBus + 87, yW - 6, `${D.wb.ph === 3 ? 5 : 3}G${D.wb.S} · ${nf(D.wb.L, 0)} m`, { a: 'middle', s: 8 });
+    g += `<rect x="${xBus + 120}" y="${yW - 14}" width="34" height="28" fill="#fff"/>` + T(xBus + 137, yW + 4, 'EV', { a: 'middle', w: 700, s: 10 });
+    g += T(xBus + 137, yW + 26, `${nf(D.wb.kw, 1)} kW`, { a: 'middle', s: 8.5 }) + T(xBus + 137, yW + 37, 'CEI 64-8 sez. 722', { a: 'middle', s: 8 });
+  }
+  // terra
+  const yE = H - 34;
+  g += L(20, yE, 1000, yE, { dash: true, c: '#3B7D3B' }) + earth(1000, yE).replace(/<line /g, '<line stroke="#3B7D3B" ');
+  g += T(24, yE - 5, 'PE / equipotenziale: telai e strutture (6 mm²), SPD, masse inverter e quadri → impianto di terra esistente (TT, RE da misurare)', { s: 8.5, c: '#3B7D3B' });
+
+  // filigrana
+  const wm = `<text x="${W / 2}" y="${H / 2 + 30}" text-anchor="middle" font-size="64" font-weight="800" fill="#C0392B" opacity=".07" transform="rotate(-12 ${W / 2} ${H / 2})">PRELIMINARE</text>`;
+  return `<svg class="sch" viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif" font-size="9">${wm}<g stroke="#141C1A" fill="none" stroke-width="1.3">${g}</g></svg>`
+    .replace(/<text ([^>]*)>/g, (m, a) => /fill=/.test(a) ? `<text stroke="none" ${a}>` : `<text stroke="none" fill="#141C1A" ${a}>`);
+}
+
+function schemaRows(R, S) {
+  const D = schemaData(R, S), rows = [];
+  D.mppt.forEach(m => rows.push(['Stringhe MPPT ' + m.i, `${m.s} × ${m.Ns} moduli ${esc(S.mod.name || '')}`, `Voc(${S.t_min} °C) ${nf(m.voc, 0)} V ≤ Vmax inverter ${Math.min(D.I.vmax, S.mod.vmax)} V · Isc ${nf(m.isc, 1)} A ≤ ${D.I.isc} A`, 'CEI 64-8 sez. 712 · IEC 62548']));
+  D.mppt.forEach(m => rows.push(['Linea DC MPPT ' + m.i, `H1Z2Z2-K 2×1×${m.S} mm² · ${nf(m.L, 0)} m`, `Iz ${nf(m.Iz || 0, 0)} A ≥ 1,25·Isc ${nf(1.25 * m.isc, 1)} A · ΔV ${nf(m.dv || 0, 2)}%`, 'EN 50618 · CEI 82-25']));
+  rows.push(['QS-DC', 'Sezionatore lato DC', 'Integrato nell\'inverter: verificare scheda tecnica; altrimenti sezionatore DC esterno per MPPT', 'CEI 64-8 sez. 712']);
+  rows.push(['SPD DC', D.lps ? `SPD tipo 2 DC, uno per MPPT (${D.mppt.length} pz)` : 'Integrati nell\'inverter (se previsti)', D.lps ? 'Edificio con LPS: aggiuntivi lato DC' : 'Necessità e classe da valutazione del rischio di fulminazione', 'CEI EN 62305-2 · CEI EN 61643-31']);
+  rows.push(['INV', esc(D.I.name), `${nf(D.d.Pac, 2)} kW AC · rapporto DC/AC ${nf(D.d.ratio, 2)} · ${D.spiExt ? 'SPI esterno' : 'SPI/DDI integrati'}`, 'CEI 0-21']);
+  if (D.batt) rows.push(['BAT', `Accumulo LFP ${nf(D.batt.kwh, 0)} kWh / ${nf(D.batt.kw, 1)} kW`, 'Collegamento DC sull\'inverter ibrido; protezioni DC del costruttore (QB)', 'IEC 62619 · CEI 0-21']);
+  rows.push(['Linea AC1', `FG16OR16 ${D.nc}G${D.ac1.S} mm² · ${nf(D.ac1.L, 0)} m`, `Ib ${nf(D.I.iac, 1)} A ≤ In ${D.ac1.In} A ≤ Iz ${nf(D.ac1.Iz, 0)} A · ΔV ${nf(D.ac1.dv, 2)}%`, 'CEI 64-8 art. 433, 525 · CEI-UNEL 35024/1']);
+  rows.push(['SPD T2', 'SPD tipo 2 AC nel quadro AC FV', 'Uc e In secondo sistema TT e costruttore', 'CEI 64-8 sez. 534']);
+  if (D.spiExt) rows.push(['SPI + DDI', 'Protezione di interfaccia esterna e dispositivo di interfaccia', `Obbligatori oltre 11,08 kW${D.rinc ? '; oltre 20 kW anche rincalzo' : ''}`, 'CEI 0-21']);
+  rows.push(['QF1', `Magnetotermico ${D.poles} curva C ${D.ac1.In} A`, 'Potere di interruzione ≥ Icc presunta al punto (valori tipici 6 kA mono / 10 kA tri, da confermare); I²t ≤ K²S² da verificare', 'CEI 64-8 sez. 433-434']);
+  rows.push(['ID1', 'Differenziale linea FV', 'Tipo (A o B) e IΔn secondo istruzioni del costruttore dell\'inverter; selettività con il differenziale a monte nel QG', 'CEI 64-8 sez. 712, 413']);
+  rows.push(['Linea AC2', `FG16OR16 ${D.nc}G${D.ac2.S} mm² · ${nf(D.ac2.L, 0)} m`, `In ${D.ac2.In} A ≤ Iz ${nf(D.ac2.Iz, 0)} A · ΔV ${nf(D.ac2.dv, 2)}% (tot. AC ${nf(D.ac1.dv + D.ac2.dv, 2)}%)`, 'CEI 64-8 art. 433, 525']);
+  rows.push(['DG / QG', 'Quadro generale esistente', 'Da rilevare: interruttore generale (In, curva, Icn), differenziale generale (tipo, IΔn), spazio disponibile', 'CEI 64-8']);
+  if (D.meter) rows.push(['Meter EMS', 'Misuratore di scambio con TA (non fiscale)', 'Al punto di scambio, a valle di M1, per monitoraggio e gestione dell\'accumulo', '—']);
+  rows.push(['M1 / M2', 'Contatore bidirezionale del distributore', 'Contatore di produzione M2 solo se richiesto dal distributore o dal regime di cessione', 'CEI 0-21 · TICA']);
+  if (D.wb) rows.push(['QFW + EV', `Wallbox ${nf(D.wb.kw, 1)} kW · ${D.wb.poles} C${D.wb.In} · ${D.wb.ph === 3 ? 5 : 3}G${D.wb.S} mm² ${nf(D.wb.L, 0)} m`, 'Id 30 mA tipo A con rilevazione 6 mA DC (RDC-DD) oppure tipo B; ΔV ' + nf(D.wb.dv, 2) + '%', 'CEI 64-8 sez. 722']);
+  rows.push(['PE', 'Conduttori di protezione ed equipotenziali', 'Telai e strutture 6 mm² (moduli in classe II: secondo istruzioni), SPD, masse; verifica RE·IΔn ≤ 50 V', 'CEI 64-8 sez. 413, 712.54']);
+  return rows;
+}
+
+const SCH_CHECKS = [
+  'Quadro generale esistente: interruttore generale (In, curva, potere di interruzione) e differenziale a monte (tipo, IΔn) — in particolare selettività e compatibilità del tipo con la linea FV.',
+  'Corrente di cortocircuito presunta al punto di consegna e potere di interruzione di tutti gli apparecchi; verifica I²t ≤ K²S² delle linee (non eseguita da questo strumento).',
+  'Impianto di terra (sistema TT): misura di RE, verifica RE·IΔn ≤ 50 V, collegamenti equipotenziali.',
+  'Inverter e moduli reali (datasheet): coordinamento delle stringhe (Voc a temperatura minima, Isc, finestra MPPT), tipo di differenziale richiesto, sezionatore e SPD DC integrati, certificazione dell\'SPI secondo l\'edizione vigente della CEI 0-21.',
+  'Accumulo: modalità di collegamento (DC/AC), protezioni prescritte dal costruttore, luogo di installazione; eventuale funzionamento in isola/backup con commutazione e interblocco secondo CEI 0-21.',
+  'Necessità e classe degli SPD da valutazione del rischio di fulminazione (CEI EN 62305-2).',
+  'Prevenzione incendi: se l\'edificio ospita o serve attività soggette (DPR 151/2011) si applicano le Linee guida VVF (nota DCPREV 14030 del 01/09/2025): sezionamento di emergenza, segnaletica, distanze; negli altri casi restano un riferimento di buona tecnica.',
+  'Configurazione di misura (M1, eventuale M2) secondo le indicazioni del distributore nel preventivo di connessione.',
+  'Progetto a firma di professionista abilitato nei casi previsti dal DM 37/08 art. 5; lo schema da allegare alla dichiarazione di conformità è quello dell\'impianto come realizzato.'
+];
+
+function printSchema() {
+  const o = cur(), S = o.S;
+  const rows = schemaRows(R, S).map(r => `<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${esc(r[2])}</td><td><small>${esc(r[3])}</small></td></tr>`).join('');
+  const d = R.d;
+  return `<div class="pr-land">
+  ${printHead('Schema unifilare preliminare', 'Documento interno · ' + offerName(S), S, o)}
+  <div class="pr-prelim"><b>SCHEMA PURAMENTE PRELIMINARE — NON VALIDO PER COSTRUZIONE.</b> Ricavato automaticamente dai dati dell'offerta per capire collegamenti e apparecchiature. Non è il progetto dell'impianto (DM 37/08 art. 5) né lo schema da allegare alla dichiarazione di conformità. Le taglie indicate sono di primo dimensionamento e richiedono tutte le verifiche elencate in calce.</div>
+  <div class="pr-sub">${esc(S.indirizzo || '')} ${S.comune ? '· ' + esc(S.comune) : ''} · fornitura ${d.fase === 3 ? 'trifase 400 V' : 'monofase 230 V'}${S.pot_imp ? ' · ' + nf(S.pot_imp, 1) + ' kW impegnati' : ''} · ${nf(d.Pdc, 2)} kWp · ${d.Ntot} moduli · inverter ${esc(d.I.name)}</div>
+  <div class="sch-wrap">${schemaSvg(R, S)}</div>
+  <div class="pr-note">Legenda: QS sezionatore · QF magnetotermico · ID differenziale · DDI dispositivo di interfaccia · SPI protezione di interfaccia · SPD limitatore di sovratensione · DG dispositivo generale · M1 contatore di scambio · tratteggio verde: protezione/equipotenziale · riquadro grigio: parti esistenti da rilevare.</div>
+  </div>
+  <div class="pr-land">
+  <h2>Apparecchiature e linee (valori preliminari)</h2>
+  <table><thead><tr><th style="width:11%">Sigla</th><th style="width:27%">Componente</th><th>Caratteristiche e verifiche eseguite</th><th style="width:17%">Riferimento</th></tr></thead><tbody>${rows}</tbody></table>
+  <h2>Verifiche da completare prima della realizzazione</h2>
+  <table><tbody>${SCH_CHECKS.map((c, i) => `<tr><td style="width:3%"><b>${i + 1}</b></td><td>${esc(c)}</td></tr>`).join('')}</tbody></table>
+  <div class="pr-foot">Schema preliminare generato dal Preventivatore FV residenziale. Uso interno: non consegnare al cliente né allegare a pratiche. Norme richiamate: CEI 0-21, CEI 64-8 (sez. 412-413, 433-434, 525, 534, 712, 722), CEI 82-25, CEI-UNEL 35024/1, EN 50618, CEI EN 61643-31, CEI EN 62305-2, DM 37/08, nota VVF DCPREV 14030/2025.</div>
+  </div>`;
+}
+
+})();</script>
 </body></html>
