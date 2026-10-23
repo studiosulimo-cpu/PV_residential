@@ -323,8 +323,7 @@ table.lt input:disabled{opacity:.45}
 table.lt td:nth-child(3){width:110px} table.lt td:nth-child(5){width:150px}
 table.lt tr.edited td:nth-child(3) input{background:var(--warn-bg);color:var(--warn);font-weight:500}
 @media print{#listino{display:none!important}
-@page land{size:A4 landscape;margin:9mm 10mm}
-.pr-land{page:land;break-after:page}
+.pr-land{break-after:page}
 .pr-land:last-child{break-after:auto}
 .pr-prelim{font-size:8.6pt;background:#FBE9E7;border-left:5px solid #C0392B;color:#7a1f14;padding:6px 9px;margin:4px 0 6px;border-radius:3px}
 .sch-wrap{border:1px solid #D3DBD8;border-radius:4px;padding:4px}
@@ -2057,6 +2056,12 @@ function doPrint(kind) {
   if (!R) return;
   $('#printArea').innerHTML = kind === 'sch' ? printSchema() : kind === 'int' ? printInternal() : printClient();
   document.title = (kind === 'sch' ? 'Schema unifilare preliminare' : kind === 'int' ? 'Analisi interna' : 'Offerta') + ' - ' + offerName(cur().S);
+  // schema: tutte le pagine A4 orizzontali (regola @page globale attiva solo per questa stampa)
+  let st = document.getElementById('pgLand');
+  if (kind === 'sch') { if (!st) { st = document.createElement('style'); st.id = 'pgLand'; document.head.appendChild(st); } st.textContent = '@page{size:A4 landscape;margin:9mm 10mm}'; }
+  else if (st) st.remove();
+  const clear = () => { const s = document.getElementById('pgLand'); if (s) s.remove(); window.removeEventListener('afterprint', clear); };
+  if (kind === 'sch') window.addEventListener('afterprint', clear);
   setTimeout(() => { window.print(); }, 50);
 }
 
