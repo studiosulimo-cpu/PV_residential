@@ -344,12 +344,12 @@ table.lt tr.edited td:nth-child(3) input{background:var(--warn-bg);color:var(--w
       <div>
         <h3>Backup</h3>
         <p>Le offerte si salvano da sole in questo browser. Per lavorare da un altro computer o non perdere dati, scarica il backup e salvalo in una cartella cloud.</p>
-        <div class="acts"><button class="btn primary sm" id="bkDownload" type="button">Scarica backup di tutte le offerte</button><button class="btn sm ghost" id="bkCopy" type="button">Copia negli appunti</button></div>
-        <ol style="margin-top:10px"><li>Scarica il file .json e salvalo su OneDrive/Drive.</li><li>Sull'altro computer: <b>Importa file</b> e scegli lo stesso .json.</li><li>L'importazione unisce i dati e tiene la versione più recente di ogni offerta.</li></ol>
+        <div class="acts"><button class="btn primary sm" id="bkDownload" type="button">Scarica backup di tutte le offerte</button><button class="btn sm" id="bkOne" type="button" hidden>Esporta solo l'offerta aperta</button><button class="btn sm ghost" id="bkCopy" type="button">Copia negli appunti</button></div>
+        <ol style="margin-top:10px"><li>Scarica il file .json e salvalo su OneDrive/Drive.</li><li>Sull'altro computer: <b>Importa file</b> e scegli lo stesso .json.</li><li>L'importazione unisce i dati e tiene la versione più recente di ogni offerta.</li><li>Per condividere <b>una sola offerta</b> con un collega: pulsante <b>Esporta</b> nell'elenco delle offerte (o «Esporta solo l'offerta aperta» qui sopra). Il collega la carica con <b>Importa file</b>.</li></ol>
       </div>
       <div class="imp">
         <h3>Importa</h3>
-        <div class="acts"><span class="btn sm filebtn">Importa file .json<input type="file" id="importFile" accept=".json,application/json"></span></div>
+        <div class="acts"><span class="btn sm filebtn">Importa file .json<input type="file" id="importFile" accept=".json,application/json"></span></div><label class="muted" style="font-size:12.5px;display:flex;gap:6px;align-items:center;margin:6px 0"><input type="checkbox" id="impListino"> Per una singola offerta: importa anche il listino prezzi di chi l'ha esportata (sovrascrive le voci più vecchie del tuo listino)</label>
         <label for="importTxt" class="muted" style="font-size:12.5px">oppure incolla qui il testo del backup</label>
         <textarea id="importTxt" placeholder="Testo del backup"></textarea>
         <div class="acts"><button class="btn sm primary" id="bkImport" type="button">Importa testo</button></div>
@@ -1189,7 +1189,12 @@ function compute(S) {
   const W = items.filter(i => !i.nomk);                    // lavori soggetti a ricarico e imprevisti
   const SI = items.filter(i => i.nomk && !i.pass);         // oneri di sicurezza: a costo, non ribassabili
   const PA = items.filter(i => i.pass);                    // oneri del distributore: a costo
-  for (const it of items) it.val = it.tot * (it.mat && !it.pass ? 1 + trR : 1);
+  // opere edili trattate come i materiali: trasporto + ricarico + imprevisti (restano servizi ai fini IVA)
+  for (const it of items) { it.tr = (it.mat || it.cat === C.EDI) && !it.pass; it.val = it.tot * (it.tr ? 1 + trR : 1); }
+  // imprevisti: regola fissa, solo materiali, opere edili e manodopera (mai pratiche, spese tecniche, sicurezza, TICA, spese professionali)
+  const impOn = (it) => !it.nomk && (it.mat || it.cat === C.EDI || it.cat === C.MDO);
+  for (const it of items) it.kImp = impOn(it) ? 1 + cR : 1;
+  const vWc = W.reduce((a, i) => a + i.val * i.kImp, 0);
   const vW = W.reduce((a, i) => a + i.val, 0), vSI = SI.reduce((a, i) => a + i.val, 0);
   const transport = items.filter(i => !i.pass).reduce((a, i) => a + i.val - i.tot, 0);
   const rP = F.vat.prof != null ? F.vat.prof : 22;
@@ -1202,13 +1207,13 @@ function compute(S) {
       if (it.vcat === 'imp' && battEx && it.cat === C.BATT) { it.rate = 22; it.f22 = 1; }
       else if (ivaMode === 'manodopera' && f22 > 0 && isB(it)) { it.f22 = f22; it.rate = rImp + (22 - rImp) * f22; }
     }
-    const gW = W.reduce((a, i) => a + i.val * (1 + i.rate / 100), 0), gSI = SI.reduce((a, i) => a + i.val * (1 + i.rate / 100), 0);
+    const gW = W.reduce((a, i) => a + i.val * i.kImp * (1 + i.rate / 100), 0), gSI = SI.reduce((a, i) => a + i.val * (1 + i.rate / 100), 0);
     const gPA = PA.reduce((a, i) => a + i.tot * (1 + i.rate / 100), 0);
     // spese professionali = pR × importo dei lavori (lavori con ricarico e imprevisti + sicurezza, esclusi gli oneri del distributore); passano a costo
-    if (S.price_mode === 'price' && S.price_gross > 0 && gW > 0) markup = ((S.price_gross - gSI - gPA - (1 + rP / 100) * pR * vSI) / ((1 + cR) * (gW + (1 + rP / 100) * pR * vW)) - 1) * 100;
+    if (S.price_mode === 'price' && S.price_gross > 0 && gW > 0) markup = ((S.price_gross - gSI - gPA - (1 + rP / 100) * pR * vSI) / (gW + (1 + rP / 100) * pR * vWc) - 1) * 100;
     else markup = S.markup;
-    const fM = (1 + markup / 100) * (1 + cR);
-    for (const it of W) it.price = it.val * fM;
+    const fM = 1 + markup / 100;
+    for (const it of W) it.price = it.val * fM * it.kImp;
     for (const it of SI) it.price = it.val;
     for (const it of PA) it.price = it.tot;
     if (ivaMode !== 'manodopera') break;
@@ -1230,7 +1235,7 @@ function compute(S) {
   const vb = {};
   for (const it of items) { const parts = it.f22 > 0 ? (it.f22 >= 1 ? [[22, 1]] : [[rImp, 1 - it.f22], [22, it.f22]]) : [[it.rate, 1]]; for (const [rt, w] of parts) { const o = vb[rt] || (vb[rt] = { base: 0, vat: 0 }); o.base += it.price * w; o.vat += it.price * w * rt / 100; } }
   const itemsCost = items.reduce((a, i) => a + i.tot, 0);
-  const contingency = cR * vW;                                          // riserva imprevisti a costo
+  const contingency = vWc - vW;                                         // riserva imprevisti a costo (solo voci con imprevisti)
   const cost = itemsCost + transport + contingency;
   const profit = net - cost;
   const byCat = {}, byCatPrice = {};
@@ -1324,7 +1329,7 @@ function qesMacro(it, C) {
 
 function qesData(R, S) {
   const C = R.d.C, groups = [{ rows: {} }, { rows: {} }];
-  let sic = 0, P = 0;
+  let sic = 0, P = 0; const impB = { E: 0, F: 0, G: 0 };   // costo delle voci soggette a imprevisti, per colonna
   for (const it of R.items) {
     if (!(it.val > 0.005)) continue;
     const q = qesMacro(it, C);
@@ -1333,15 +1338,16 @@ function qesData(R, S) {
     const g = groups[q.grp - 1], key = q.m + (q.ric === false ? '#n' : '');
     g.rows[key] = g.rows[key] || { label: q.m, E: 0, F: 0, G: 0, ric: q.ric !== false, vat: { E: 0, F: 0, G: 0 }, pr: { E: 0, F: 0, G: 0 } };
     const f22 = it.f22 || 0;
-    if (f22 > 0 && q.col !== 'G' && q.ric !== false) { g.rows[key][q.col] += it.val * (1 - f22); g.rows[key].G += it.val * f22; }   // quota al 22% (beni oltre il valore della manodopera, accumulo su impianto esistente)
-    else g.rows[key][q.col] += it.val;
+    const im = q.ric !== false && (it.kImp || 1) > 1;
+    if (f22 > 0 && q.col !== 'G' && q.ric !== false) { g.rows[key][q.col] += it.val * (1 - f22); g.rows[key].G += it.val * f22; if (im) { impB[q.col] += it.val * (1 - f22); impB.G += it.val * f22; } }   // quota al 22% (beni oltre il valore della manodopera, accumulo su impianto esistente)
+    else { g.rows[key][q.col] += it.val; if (im) impB[q.col] += it.val; }
   }
   const out = groups.map(g => Object.values(g.rows).sort((a, b) => QES_ORDER.indexOf(a.label) - QES_ORDER.indexOf(b.label)));
   let wE = 0, wF = 0; for (const g of out) for (const x of g) { wE += x.E; wF += x.F; }
   const kE = wE + wF > 0 ? wE / (wE + wF) : 1;
   // IVA effettiva della colonna G (media pesata dei prezzi)
   let gP = 0, gV = 0; for (const it of R.items) { const q = qesMacro(it, C); if (q.pro || q.sic) continue; if (q.col === 'G') { gP += it.price; gV += it.vat; } else if ((it.f22 || 0) > 0 && q.ric !== false) { gP += it.price * it.f22; gV += it.price * it.f22 * 0.22; } }
-  return { groups: out, P, sicE: sic * kE, sicF: sic * (1 - kE), kE, rG: gP > 0 ? gV / gP : 0.22 };
+  return { impB, groups: out, P, sicE: sic * kE, sicF: sic * (1 - kE), kE, rG: gP > 0 ? gV / gP : 0.22 };
 }
 
 async function exportQES(ctx) {
@@ -1399,7 +1405,8 @@ async function exportQES(ctx) {
   const R_ = (t) => t + d, sum = (c, a, b) => { let x = 0; for (let i = a; i <= b; i++) x += V[c + i] || 0; return x; };
   const tot3 = (t, fe) => { let h = 0; for (const c of 'EFG') { const [f, v] = fe(c); setF(c + R_(t), f, v); h += v; } setF('H' + R_(t), `E${R_(t)}+F${R_(t)}+G${R_(t)}`, h); };
   // imprevisti: sui lavori con ricarico; gli oneri del distributore (TICA) e la sicurezza ne sono esclusi
-  tot3(23, c => c === 'G' && ticaRow ? [`(SUM(G${g0}:G${mEnd - 1})-G${ticaRow})*$K$4`, (sum('G', g0, mEnd - 1) - (V['G' + ticaRow] || 0)) * V.K4] : [`SUM(${c}${g0}:${c}${mEnd - 1})*$K$4`, sum(c, g0, mEnd - 1) * V.K4]);
+  // imprevisti: solo sulle voci con imprevisti attivi (default manodopera): costo di quelle voci × (1+ricarico) × K4
+  tot3(23, c => { const b = Math.round((Q.impB[c] || 0) * 100) / 100; return [`${b.toFixed(2)}*(1+$K$7)*$K$4`, (Q.impB[c] || 0) * (1 + ric) * V.K4]; });
   tot3(25, c => [`SUM(${c}6:${c}${R_(23)})`, sum(c, 6, R_(23))]);
   // spese professionali: P comprende la cassa. Ripartizione: quota progettazione / DL-CSE-verifiche, poi impiantistica / edile
   const M4 = V.M4, pre = Q.P / (1 + M4), sp = (S.prof_split != null ? S.prof_split : 60) / 100;
@@ -1621,7 +1628,7 @@ const SCHEMA_RAW = [
     { k: 'cost_h', l: 'Costo orario', t: 'n', u: '€/h', step: 1, auto: (r) => nf(r.d.costHauto, 0), h: 'Vuoto = valore del Listino prezzi (default 32 €/h, stima: sostituire con il costo aziendale).' }, { k: 'km', l: 'Distanza cantiere', t: 'n', u: 'km' },
     { k: 'eur_km', l: 'Costo chilometrico', t: 'n', u: '€/km', step: 0.05 },
     { k: 'transport', l: 'Trasporto e logistica su materiali', t: 'n', u: '%', step: 0.5 },
-    { k: 'contingency', l: 'Imprevisti sul prezzo lavori', t: 'n', u: '%', step: 0.5 },
+    { k: 'contingency', l: 'Imprevisti', t: 'n', u: '%', step: 0.5, h: 'Regola fissa: si applicano a materiali, opere edili e manodopera; mai a pratiche e spese tecniche, sicurezza, TICA e spese professionali.' },
     { k: 'prod_eff', l: 'Produttività della squadra', t: 'n', step: 0.05, h: 'Quota di ore effettivamente produttive; il resto è carico/scarico, spostamenti e tempi morti.' },
     { k: 'prof_on', l: 'Includi spese professionali', t: 'c', wide: true, h: 'Progettazione (sempre esterna), direzione lavori, coordinamento sicurezza, verifiche e cassa: passano a costo, senza ricarico.' },
     { k: 'prof_pct', l: 'Spese professionali', t: 'n', u: '% dei lavori', step: 0.5, h: 'Valida fino a 20 kW; oltre usare il preventivatore industriale (DM parametri).' },
@@ -1943,11 +1950,11 @@ function renderHome() {
   const q = ($('#siteSearch').value || '').toLowerCase();
   const list = Object.values(DB.offers).filter(o => !q || (offerName(o.S) + ' ' + o.S.indirizzo).toLowerCase().includes(q)).sort((a, b) => b.updated - a.updated);
   $('#offersTable').innerHTML = `<thead><tr><th>Offerta</th><th class="num">kWp</th><th class="num">Prezzo IVA incl.</th><th class="num">Margine</th><th>Aggiornata</th><th></th></tr></thead><tbody>` +
-    (list.length ? list.map(o => { let r = null; try { r = E.compute(o.S); } catch (e) { } return `<tr><td><button class="lnk" data-open="${o.id}">${esc(offerName(o.S))}</button><small>${esc(o.S.indirizzo)}</small></td><td class="num">${r ? nf(r.d.Pdc, 2) : '–'}</td><td class="num">${r ? eur(r.tot.gross) : '–'}</td><td class="num">${r ? nf(r.tot.margin, 1) + ' %' : '–'}</td><td class="muted">${new Date(o.updated).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</td><td class="acts-cell"><button class="btn sm" data-dup="${o.id}">Duplica</button><button class="btn sm danger" data-del="${o.id}">Elimina</button></td></tr>`; }).join('') : '<tr><td colspan="6" class="empty">Nessuna offerta. Premi «Nuova offerta».</td></tr>') + '</tbody>';
+    (list.length ? list.map(o => { let r = null; try { r = E.compute(o.S); } catch (e) { } return `<tr><td><button class="lnk" data-open="${o.id}">${esc(offerName(o.S))}</button><small>${esc(o.S.indirizzo)}</small></td><td class="num">${r ? nf(r.d.Pdc, 2) : '–'}</td><td class="num">${r ? eur(r.tot.gross) : '–'}</td><td class="num">${r ? nf(r.tot.margin, 1) + ' %' : '–'}</td><td class="muted">${new Date(o.updated).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</td><td class="acts-cell"><button class="btn sm" data-exp="${o.id}" title="Scarica questa offerta in un file .json da condividere">Esporta</button><button class="btn sm" data-dup="${o.id}">Duplica</button><button class="btn sm danger" data-del="${o.id}">Elimina</button></td></tr>`; }).join('') : '<tr><td colspan="6" class="empty">Nessuna offerta. Premi «Nuova offerta».</td></tr>') + '</tbody>';
 }
 function show(v) {
   view = v; $('#vHome').hidden = v !== 'home'; $('#vOffer').hidden = v !== 'offer';
-  $('#btnHome').hidden = v === 'home'; $('#btnPrint').hidden = v === 'home'; $('#crumb').hidden = v === 'home';
+  $('#btnHome').hidden = v === 'home'; $('#btnPrint').hidden = v === 'home'; $('#bkOne').hidden = v === 'home'; $('#crumb').hidden = v === 'home';
   if (v === 'home') renderHome(); else { recompute(); renderAll(true); }
   window.scrollTo(0, 0);
 }
@@ -2117,26 +2124,38 @@ async function exportXlsx(client) {
     ws.getColumn(1).width = 52; [2, 3, 4].forEach(c => { ws.getColumn(c).width = 16; ws.getColumn(c).numFmt = money; });
     if (fisc.eligible) { ws.addRow([]); ws.addRow(['Detrazione IRPEF ' + fisc.aliq + '% (stima)', null, null, +fisc.detr.toFixed(2)]); ws.addRow(['Rata annua × ' + fisc.years, null, null, +fisc.rata.toFixed(2)]); ws.addRow(['Costo netto dopo detrazione', null, null, +fisc.netto.toFixed(2)]); }
   } else {
-    ws.addRow(['Fattore di ricarico complessivo (su voci non passanti)', null, null, null, null, null, null]);
-    const frRow = ws.rowCount; const f = items.find(i => !i.pass); const factor = f ? f.price / f.tot : 1;
-    ws.getCell(`G${frRow}`).value = +factor.toFixed(6); ws.getCell(`G${frRow}`).numFmt = '0.0000';
+    // parametri attivi: il prezzo di ogni riga = costo × (1+trasporto·T) × (1+ricarico·M) × (1+imprevisti·I)
+    const pr = [['Ricarico sui lavori', R.tot.markup / 100], ['Trasporto e logistica (materiali e opere edili)', S.transport / 100], ['Imprevisti (solo voci con I = 1)', S.contingency / 100]];
+    const pRow = {};
+    pr.forEach(([l, v], k) => { const r = ws.addRow([l, null, null, null, null, null, null, null, null, +v.toFixed(6)]); r.getCell(10).numFmt = '0.00%'; r.getCell(10).font = { bold: true, color: { argb: 'FF1F5F55' } }; pRow[k] = r.number; });
+    ws.addRow(['T = trasporto applicato (materiali e opere edili) · M = ricarico applicato (no sicurezza, TICA, spese professionali) · I = imprevisti applicati (materiali, opere edili e manodopera). Modificando J' + pRow[0] + '–J' + pRow[2] + ' o i flag 0/1 il prezzo si ricalcola.']).font = { italic: true, size: 9 };
     ws.addRow([]);
-    ws.addRow(['Categoria', 'Voce', 'UM', 'Q.tà', 'Costo unitario', 'Costo', 'Prezzo netto', 'IVA %', 'IVA', 'Totale']).font = { bold: true };
+    ws.addRow(['Categoria', 'Voce', 'UM', 'Q.tà', 'Costo unitario', 'Costo', 'T', 'M', 'I', 'Prezzo netto', 'IVA %', 'IVA', 'Totale']).font = { bold: true };
     const first = ws.rowCount + 1;
+    const $J = k => '$J$' + pRow[k];
     for (const i of items) {
-      const r = ws.addRow([i.cat, i.desc, i.um, i.qty, i.unit, null, null, i.rate, null, null]);
+      const T = i.tr ? 1 : 0, M = i.nomk ? 0 : 1, I = (i.kImp || 1) > 1 ? 1 : 0;
+      const r = ws.addRow([i.cat, i.desc, i.um, i.qty, i.unit, null, T, M, I, null, i.rate, null, null]);
       const n = r.number;
       r.getCell(6).value = { formula: `D${n}*E${n}`, result: i.tot };
-      r.getCell(7).value = { formula: i.pass ? `F${n}` : `F${n}*$G$${frRow}`, result: i.price };
-      r.getCell(9).value = { formula: `G${n}*H${n}/100`, result: i.vat };
-      r.getCell(10).value = { formula: `G${n}+I${n}`, result: i.price + i.vat };
+      r.getCell(10).value = { formula: `F${n}*(1+${$J(1)}*G${n})*(1+${$J(0)}*H${n})*(1+${$J(2)}*I${n})`, result: i.price };
+      r.getCell(12).value = { formula: `J${n}*K${n}/100`, result: i.vat };
+      r.getCell(13).value = { formula: `J${n}+L${n}`, result: i.price + i.vat };
     }
-    const last = ws.rowCount; const r = ws.addRow(['Totale voci', null, null, null, null, null, null, null, null, null]); r.font = { bold: true };
-    ['F', 'G', 'I', 'J'].forEach(col => r.getCell(col).value = { formula: `SUM(${col}${first}:${col}${last})` });
-    ws.addRow([]);
-    ws.addRow(['Nota: trasporto, spese generali e imprevisti (' + eur(tot.cost - tot.itemsCost) + ') sono ripartiti nel fattore di ricarico G' + frRow + '.']);
+    const last = ws.rowCount; const r = ws.addRow(['Totale voci', null, null, null, null, null, null, null, null, null, null, null, null]); r.font = { bold: true };
+    ['F', 'J', 'L', 'M'].forEach(col => r.getCell(col).value = { formula: `SUM(${col}${first}:${col}${last})` });
+    const tr = r.number;
+    const c1 = ws.addRow(['Costo interno (voci + trasporto + riserva imprevisti)', null, null, null, null, null, null, null, null, null, null, null, null]);
+    c1.getCell(10).value = { formula: `SUMPRODUCT(F${first}:F${last},1+${$J(1)}*G${first}:G${last})+SUMPRODUCT(F${first}:F${last},1+${$J(1)}*G${first}:G${last},${$J(2)}*I${first}:I${last})`, result: tot.cost };
+    const c2 = ws.addRow(['Utile lordo', null, null, null, null, null, null, null, null, null, null, null, null]); c2.font = { bold: true };
+    c2.getCell(10).value = { formula: `J${tr}-J${c1.number}`, result: tot.profit };
+    const c3 = ws.addRow(['Margine sul prezzo netto', null, null, null, null, null, null, null, null, null, null, null, null]);
+    c3.getCell(10).value = { formula: `IF(J${tr}=0,0,J${c2.number}/J${tr})`, result: tot.margin / 100 }; c3.getCell(10).numFmt = '0.0%';
+    [c1, c2].forEach(x => x.getCell(10).numFmt = money);
     [1, 2].forEach((c, i) => ws.getColumn(c).width = i ? 70 : 28);
-    [5, 6, 7, 9, 10].forEach(c => { ws.getColumn(c).width = 16; ws.getColumn(c).numFmt = money; }); ws.getColumn(8).width = 8;
+    [5, 6, 10, 12, 13].forEach(c => { ws.getColumn(c).width = 16; if (c !== 10) ws.getColumn(c).numFmt = money; });
+    for (let k = first; k <= tr; k++) ws.getCell('J' + k).numFmt = money;
+    [7, 8, 9].forEach(c => ws.getColumn(c).width = 4); ws.getColumn(11).width = 7;
   }
   addIvaRows(ws);
   addPlanSheet(wb);
@@ -2161,14 +2180,25 @@ async function exportQES() {
    ============================================================ */
 function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3200); }
 function download(name, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+function exportOne(id) {
+  const o = DB.offers[id]; if (!o) return;
+  const used = {};   // voci di listino personali presenti al momento dell'esportazione (per riprodurre gli stessi prezzi)
+  for (const [k, e] of Object.entries(DB.listino || {})) used[k] = e;
+  const pack = { app: 'fv-residenziale', type: 'offerta', exported: new Date().toISOString(), offers: { [id]: o }, listino: used };
+  const nm = offerName(o.S).replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'offerta';
+  download('offerta-' + nm + '-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(pack, null, 1));
+  toast('Offerta esportata: ' + offerName(o.S));
+}
 function importText(t) {
   let d; try { d = JSON.parse(t); } catch (e) { return toast('File non valido'); }
+  const single = d && d.type === 'offerta';
   const offers = d && d.offers ? d.offers : {};
   let n = 0;
   for (const [id, o] of Object.entries(offers)) { const mine = DB.offers[id]; if (!mine || (o.updated || 0) > (mine.updated || 0)) { o.S = merge(newState(), o.S); DB.offers[id] = o; n++; } }
   let nl = 0;
-  for (const [k, e] of Object.entries(d.listino || {})) { const m = DB.listino[k]; if (e && e.v != null && (!m || (e.date || '') > (m.date || ''))) { DB.listino[k] = e; nl++; } }
-  E.setListino(DB.listino); save(); renderHome(); renderListinoCount(); toast(n + ' offerte e ' + nl + ' voci di listino importate o aggiornate (si tiene la versione più recente)');
+  const withList = !single || ($('#impListino') && $('#impListino').checked);
+  for (const [k, e] of Object.entries(withList ? (d.listino || {}) : {})) { const m = DB.listino[k]; if (e && e.v != null && (!m || (e.date || '') > (m.date || ''))) { DB.listino[k] = e; nl++; } }
+  E.setListino(DB.listino); save(); renderHome(); renderListinoCount(); toast(single ? (n ? 'Offerta importata' : 'Offerta già presente in versione più recente') + (withList ? ' · ' + nl + ' voci di listino aggiornate' : ' · prezzi calcolati con il tuo listino') : n + ' offerte e ' + nl + ' voci di listino importate o aggiornate (si tiene la versione più recente)');
 }
 
 
@@ -2326,6 +2356,7 @@ function init() {
   $('#offersTable').addEventListener('click', e => {
     const t = e.target;
     if (t.dataset.open) { DB.cur = t.dataset.open; show('offer'); }
+    if (t.dataset.exp) { exportOne(t.dataset.exp); return; }
     if (t.dataset.dup) { const s = clone(DB.offers[t.dataset.dup].S); s.cliente = (s.cliente || '') + ' (copia)'; newOffer(s); }
     if (t.dataset.del && confirm('Eliminare questa offerta? Non si può annullare.')) { delete DB.offers[t.dataset.del]; save(); renderHome(); }
   });
@@ -2351,6 +2382,7 @@ function init() {
   $('#bkDownload').onclick = () => download('backup-fv-residenziale-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(DB));
   $('#bkCopy').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(JSON.stringify(DB)).then(() => toast('Backup copiato negli appunti'), () => toast('Copia non riuscita')); };
   $('#importFile').onchange = e => { const f0 = e.target.files[0]; if (!f0) return; const r = new FileReader(); r.onload = () => importText(r.result); r.readAsText(f0); e.target.value = ''; };
+  $('#bkOne').onclick = () => { const o = cur(); if (o) exportOne(o.id); };
   $('#bkImport').onclick = () => importText($('#importTxt').value);
   window.addEventListener('beforeunload', () => { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) { } });
   const ids = Object.keys(DB.offers);
