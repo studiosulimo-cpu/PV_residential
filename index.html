@@ -327,6 +327,8 @@ table.lt tr.edited td:nth-child(3) input{background:var(--warn-bg);color:var(--w
 #offHome .offlock,#offBox .offlock{background:var(--warn-bg);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:8px;padding:10px 12px;margin:0 0 12px;font-size:14px}
 .offpw{display:inline-flex;gap:6px;margin-left:6px;flex-wrap:wrap}.offpw input,.offform input[type=text],.offform input[type=password]{border:1px solid var(--line);background:var(--sunk);border-radius:var(--r);padding:6px 9px;min-width:0}
 .offstat{font-size:13.5px;padding:4px 0 6px}.offpub summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--accent)}.offform{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+#priceRef .pref{background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);padding:8px 12px;margin:0 0 12px;font-size:13.5px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}#priceRef .pref.frozen{border-left:4px solid var(--accent)}#priceRef .pref.warn{border-left:4px solid var(--warn);background:var(--warn-bg)}#priceRef .pref-acts{margin-left:auto;display:flex;gap:6px}
+@media print{#priceRef{display:none}}
 table.lt td.num small{display:block;font-size:10.5px;color:var(--muted)}
 @media print{#listino{display:none!important}
 .pr-land{break-after:page}
@@ -376,6 +378,7 @@ table.lt td.num small{display:block;font-size:10.5px;color:var(--muted)}
   </section>
 
   <section id="vOffer" hidden>
+    <div id="priceRef"></div>
     <div class="main">
       <div id="form" aria-label="Dati dell'offerta"></div>
       <aside class="sum">
@@ -1819,7 +1822,39 @@ let R = null;           // risultato compute
 let view = 'home';
 const openSec = new Set(['cli']);
 
-function recompute() { const o = cur(); if (!o) return; try { R = E.compute(o.S); } catch (e) { console.error(e); R = null; } }
+// prezzi dell'offerta: bloccati (snapshot al momento dell'invio) oppure listino corrente
+function usePrices(o) { if (o && o.freeze) { E.setListino(o.freeze.L); E.setArchive(o.freeze.A); } else applyLayers(); }
+function liveCompute(S) { applyLayers(); try { return E.compute(S); } catch (e) { return null; } }
+function recompute() { const o = cur(); if (!o) return; usePrices(o); try { R = E.compute(o.S); } catch (e) { console.error(e); R = null; } renderPriceRef(); }
+function snapshotPrices() {
+  const L = {}; for (const [k, e] of Object.entries(offL())) L[k] = Object.assign({}, e);
+  for (const [k, e] of Object.entries(DB.listino || {})) { L[k] = Object.assign({}, L[k] || {}); if (e.v != null) L[k].v = e.v; if (e.d) L[k].d = e.d; }
+  return { L, A: JSON.parse(JSON.stringify(E.archive())) };
+}
+function renderPriceRef() {
+  const el = $('#priceRef'), o = cur(); if (!el || !o || !R) return;
+  const created = o.created ? new Date(o.created).toLocaleDateString('it-IT') : '—';
+  const offTxt = (ver, date) => ver ? 'listino ufficiale del ' + fmtD(date) : 'prezzi di default del tool';
+  if (o.freeze) {
+    const F = o.freeze; let liveTxt = '';
+    const lr = liveCompute(o.S); usePrices(o);
+    if (lr) { const dlt = lr.tot.gross - R.tot.gross; liveTxt = Math.abs(dlt) < 0.5 ? ' · con il listino attuale il prezzo non cambia.' : ` · con il listino attuale sarebbe <b>${eur(lr.tot.gross)}</b> (${dlt > 0 ? '+' : ''}${eur(dlt)}, costo ${lr.tot.cost > R.tot.cost ? '+' : ''}${eur(lr.tot.cost - R.tot.cost)}).`; }
+    el.innerHTML = `<div class="pref frozen"><b>🔒 Prezzi bloccati il ${fmtD(F.at)}</b> (${offTxt(F.offVer, F.offDate)}) · offerta creata il ${created}${liveTxt}
+      <span class="pref-acts"><button class="btn sm" type="button" data-pref="update">Aggiorna ai prezzi attuali</button><button class="btn sm ghost" type="button" data-pref="unlock">Sblocca</button></span></div>`;
+  } else {
+    const O = DB.official, stale = O && o.updated && new Date(O.loaded || O.date).getTime() > o.updated;
+    el.innerHTML = `<div class="pref${stale ? ' warn' : ''}">Offerta creata il ${created} · prezzi correnti: ${offTxt(O && O.version, O && O.date)}${Object.values(DB.listino || {}).some(e => e.v != null) ? ' + tuoi valori personali' : ''}${stale ? ' · <b>il listino è cambiato dopo l\'ultima modifica di questa offerta</b>' : ''}
+      <span class="pref-acts"><button class="btn sm primary" type="button" data-pref="lock" title="Da usare quando l'offerta viene inviata al cliente: i prezzi non cambiano più con i nuovi listini">🔒 Blocca prezzi (offerta inviata)</button></span></div>`;
+  }
+}
+function onPriceRef(e) {
+  const b = e.target.closest('[data-pref]'); if (!b) return; const o = cur(); if (!o) return;
+  const a = b.dataset.pref;
+  if (a === 'lock') { applyLayers(); const sn = snapshotPrices(); o.freeze = Object.assign(sn, { at: new Date().toISOString(), offVer: DB.official ? DB.official.version : null, offDate: DB.official ? DB.official.date : null }); toast('Prezzi bloccati: l\'offerta non cambia più con i nuovi listini'); }
+  if (a === 'update' && confirm('Ricalcolare l\'offerta con il listino attuale? I prezzi bloccati verranno sostituiti.')) { delete o.freeze; applyLayers(); const sn = snapshotPrices(); o.freeze = Object.assign(sn, { at: new Date().toISOString(), offVer: DB.official ? DB.official.version : null, offDate: DB.official ? DB.official.date : null }); toast('Offerta aggiornata ai prezzi attuali e di nuovo bloccata'); }
+  if (a === 'unlock' && confirm('Sbloccare i prezzi? L\'offerta seguirà di nuovo il listino corrente.')) { delete o.freeze; }
+  o.updated = Date.now(); save(); recompute(); renderAll(true);
+}
 
 /* ============================================================
    FORM
@@ -2107,7 +2142,8 @@ function renderHome() {
   const q = ($('#siteSearch').value || '').toLowerCase();
   const list = Object.values(DB.offers).filter(o => !q || (offerName(o.S) + ' ' + o.S.indirizzo).toLowerCase().includes(q)).sort((a, b) => b.updated - a.updated);
   $('#offersTable').innerHTML = `<thead><tr><th>Offerta</th><th class="num">kWp</th><th class="num">Prezzo IVA incl.</th><th class="num">Margine</th><th>Aggiornata</th><th></th></tr></thead><tbody>` +
-    (list.length ? list.map(o => { let r = null; try { r = E.compute(o.S); } catch (e) { } return `<tr><td><button class="lnk" data-open="${o.id}">${esc(offerName(o.S))}</button><small>${esc(o.S.indirizzo)}</small></td><td class="num">${r ? nf(r.d.Pdc, 2) : '–'}</td><td class="num">${r ? eur(r.tot.gross) : '–'}</td><td class="num">${r ? nf(r.tot.margin, 1) + ' %' : '–'}</td><td class="muted">${new Date(o.updated).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</td><td class="acts-cell"><button class="btn sm" data-exp="${o.id}" title="Scarica questa offerta in un file .json da condividere">Esporta</button><button class="btn sm" data-dup="${o.id}">Duplica</button><button class="btn sm danger" data-del="${o.id}">Elimina</button></td></tr>`; }).join('') : '<tr><td colspan="6" class="empty">Nessuna offerta. Premi «Nuova offerta».</td></tr>') + '</tbody>';
+    (list.length ? list.map(o => { let r = null; usePrices(o); try { r = E.compute(o.S); } catch (e) { } return `<tr><td><button class="lnk" data-open="${o.id}">${esc(offerName(o.S))}</button><small>${esc(o.S.indirizzo)}${o.created ? ' · creata il ' + new Date(o.created).toLocaleDateString('it-IT') : ''}${o.freeze ? ' · <b>🔒 prezzi del ' + fmtD(o.freeze.at) + '</b>' : ''}</small></td><td class="num">${r ? nf(r.d.Pdc, 2) : '–'}</td><td class="num">${r ? eur(r.tot.gross) : '–'}</td><td class="num">${r ? nf(r.tot.margin, 1) + ' %' : '–'}</td><td class="muted">${new Date(o.updated).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</td><td class="acts-cell"><button class="btn sm" data-exp="${o.id}" title="Scarica questa offerta in un file .json da condividere">Esporta</button><button class="btn sm" data-dup="${o.id}">Duplica</button><button class="btn sm danger" data-del="${o.id}">Elimina</button></td></tr>`; }).join('') : '<tr><td colspan="6" class="empty">Nessuna offerta. Premi «Nuova offerta».</td></tr>') + '</tbody>';
+  applyLayers();
 }
 function show(v) {
   view = v; $('#vHome').hidden = v !== 'home'; $('#vOffer').hidden = v !== 'offer';
@@ -2460,7 +2496,7 @@ async function readSheet(file) {
   if (/\.csv$|\.txt$/i.test(file.name)) return readCsv(await file.text());
   const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer());
   const ws = wb.worksheets[0]; const rows = [];
-  ws.eachRow({ includeEmpty: false }, row => { const r = []; row.eachCell({ includeEmpty: true }, (c, i) => { r[i - 1] = c.value && c.value.richText ? c.value.richText.map(x => x.text).join('') : c.value; }); rows.push(r); });
+  ws.eachRow({ includeEmpty: false }, row => { const r = []; row.eachCell({ includeEmpty: true }, (c, i) => { const v = c.value; r[i - 1] = v && v.richText ? v.richText.map(x => x.text).join('') : v && typeof v === 'object' && 'formula' in v ? v.result : v; }); rows.push(r); });
   return rows;
 }
 async function importListino(file) {
@@ -2685,7 +2721,7 @@ function openListino(on) {
    ============================================================ */
 function init() {
   load(); renderSave();
-  document.addEventListener('click', e => { if (e.target.closest('#offBox,#offHome')) onOffClick(e); });
+  document.addEventListener('click', e => { if (e.target.closest('#offBox,#offHome')) onOffClick(e); if (e.target.closest('#priceRef')) onPriceRef(e); });
   document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('offPwIn')) { const b = e.target.closest('.offlock').querySelector('.offPwBtn'); b && b.click(); } });
   document.addEventListener('change', e => { if (e.target.id === 'offFile') { const f0 = e.target.files[0]; if (!f0) return; f0.text().then(t => openOfficial(JSON.parse(t), getPw()).then(r => { if (r === false) toast('Inserisci la password del listino per sbloccarlo'); })).catch(er => toast('File non valido: ' + er.message)); e.target.value = ''; } });
   loadOfficial();
