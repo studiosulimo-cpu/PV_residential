@@ -504,7 +504,6 @@ const INVS = {
   ht8:  mk('Ibrido trifase 8 kW · 2 MPPT', 3, true, 8, 2, 1, 1850),
   ht10: mk('Ibrido trifase 10 kW · 2 MPPT', 3, true, 10, 2, 2, 2250),
   ht12: mk('Ibrido trifase 12 kW · 2 MPPT', 3, true, 12, 2, 2, 2650),
-  ht15: mk('Ibrido trifase 15 kW · 3 MPPT', 3, true, 15, 3, 2, 3200)
 };
 
 /* ---------- Archivio materiali (modelli reali) ----------
@@ -540,8 +539,7 @@ const ARCH0 = {
     zcsh3p6: { brand: 'ZCS', model: '3PH HYD 6000 ZP3', ph: 3, hyb: true, pac: 6, mppt: 3, inp: 1, vmax: 1100, vmin: 160, vmaxm: 950, imax: 20, isc: 25, iac: 9.6, pbatt: 6, bmod: 'zbt5k', bmax: 6, price: 1537.51, src: 'Datasheet ZCS 3PH HYD 5000-12000 ZP3 (serie confermata)' },
     zcsh3p8: { brand: 'ZCS', model: '3PH HYD 8000 ZP3', ph: 3, hyb: true, pac: 8, mppt: 3, inp: 1, vmax: 1100, vmin: 160, vmaxm: 950, imax: 20, isc: 25, iac: 12.8, pbatt: 8, bmod: 'zbt5k', bmax: 6, price: 1646, src: 'Datasheet ZCS 3PH HYD 5000-12000 ZP3 (serie confermata)' },
     zcsh3p10: { brand: 'ZCS', model: '3PH HYD 10000 ZP3', ph: 3, hyb: true, pac: 10, mppt: 3, inp: 1, vmax: 1100, vmin: 160, vmaxm: 950, imax: 20, isc: 25, iac: 15.9, pbatt: 10, bmod: 'zbt5k', bmax: 6, price: 1695, src: 'Datasheet ZCS 3PH HYD 5000-12000 ZP3 (serie confermata)' },
-    zcsh3p12: { brand: 'ZCS', model: '3PH HYD 12000 ZP3', ph: 3, hyb: true, pac: 12, mppt: 3, inp: 1, vmax: 1100, vmin: 160, vmaxm: 950, imax: 20, isc: 25, iac: 19.1, pbatt: 10, bmod: 'zbt5k', bmax: 6, price: 1734.66, src: 'Datasheet ZCS 3PH HYD 5000-12000 ZP3 (serie confermata)' },
-    zcsh3p15: { brand: 'ZCS', model: '3PH HYD15000 ZSS', ph: 3, hyb: true, pac: 15, mppt: 2, inp: 2, vmax: 1000, vmin: 180, vmaxm: 960, imax: 25, isc: 30, iac: 24, pbatt: 15, bmod: 'weco5k3hv', bmax: 0, price: 2333.1, src: 'Datasheet ZCS 3PH HYD 10000-20000 ZSS (modello confermato: batterie HV WeCo 5k3 con HV Box, NON ZBT 5K; aggiungere la batteria in archivio con il suo prezzo)' }
+    zcsh3p12: { brand: 'ZCS', model: '3PH HYD 12000 ZP3', ph: 3, hyb: true, pac: 12, mppt: 3, inp: 1, vmax: 1100, vmin: 160, vmaxm: 950, imax: 20, isc: 25, iac: 19.1, pbatt: 10, bmod: 'zbt5k', bmax: 6, price: 1734.66, src: 'Datasheet ZCS 3PH HYD 5000-12000 ZP3 (serie confermata)' }
   },
   batt: {
     zbt5k: { brand: 'ZCS', model: 'HV ZBT 5K', kwh: 5.1, nmin: 1, nmax: 6, price: 1236.54, src: 'Datasheet ZCS ZP1/ZP3: modulo 5,1 kWh, 1-4 moduli in monofase (ZP1), 1-6 in trifase (ZP3). Capacità nominale: l\'utile può essere inferiore.' }
@@ -834,9 +832,9 @@ function setListino(m) { LIST = {}; LDESC = {}; for (const [k, v] of Object.entr
 const LP = (k, def) => (LIST[k] !== undefined ? LIST[k] : def);
 const PR0 = {
   opt: 55, opt_ctrl: 175,
-  clamp: 1.6, minirail: 3.3, screw: 0.30, rail: 6.0, splice: 2.5, hook: 4.0, kit_ballast: 26, ballast: 0.09, prot: 2.0, deckscrew: 0.6,
+  clamp: 1.6, minirail: 3.3, screw: 0.30, rail: 6.0, splice: 2.5, hook: 4.0, kit_ballast: 26, ballast: 0.06, prot: 2.0, deckscrew: 0.6,
   mc4: 6.0, corr: 0.6, earth: 1.2,
-  qac_1: 220, qac_3: 340, spd_dc: 120, meter_1: 180, meter_3: 260, batt_kit: 250,
+  qac_1: 220, qac_3: 340, qg_fv_1: 45, qg_fv_3: 85, spd_dc: 120, meter_1: 180, meter_3: 260, batt_kit: 250,
   wb_74: 1100, wb_11: 1300, wb_22: 1900, wb_line: 14, wb_prot: 150,
   ple: 220, ple_tr: 300, scaf_ms: 24, scaf_nolo: 2.8, parap_ms: 23, parap_nolo: 2.0, fall_kit: 1028, dpi: 150, lifeline: 55, lifeline_doc: 600, coord: 700, fence: 3.7,
   asb_rem: 16, asb_plan: 900, asb_mon: 280, sandwich: 42, flashing: 25, guaina_new: 26, demo_guaina: 5, asb_test: 250,
@@ -867,7 +865,7 @@ const CAT_LABELS = {
   rail: ['Strutture', 'Binario in alluminio', 'm'], splice: ['Strutture', 'Giunto per binari', 'pz'], hook: ['Strutture', 'Gancio inox per coppi/tegole', 'pz'],
   kit_ballast: ['Strutture', 'Supporto zavorrato (tetto piano)', 'pz mod'], ballast: ['Strutture', 'Zavorra in cls', 'kg'], prot: ['Strutture', 'Tappetino protezione guaina', 'pz'], deckscrew: ['Strutture', 'Staffa/vite su arcareccio (base)', 'pz'],
   mc4: ['Cavi e quadri', 'Connettori MC4 (coppia)', 'coppia'], corr: ['Cavi e quadri', 'Corrugato per calate DC', 'm'], earth: ['Cavi e quadri', 'Conduttore di terra 6 mm²', 'm'],
-  qac_1: ['Cavi e quadri', 'Quadro AC FV monofase', 'a corpo'], qac_3: ['Cavi e quadri', 'Quadro AC FV trifase', 'a corpo'], spd_dc: ['Cavi e quadri', 'SPD lato DC', 'pz'],
+  qac_1: ['Cavi e quadri', 'Quadro AC FV monofase', 'a corpo'], qg_fv_1: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 2P', 'pz'], qg_fv_3: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 4P', 'pz'], qac_3: ['Cavi e quadri', 'Quadro AC FV trifase', 'a corpo'], spd_dc: ['Cavi e quadri', 'SPD lato DC', 'pz'],
   meter_1: ['Inverter e accessori', 'Misuratore di scambio monofase', 'pz'], meter_3: ['Inverter e accessori', 'Misuratore di scambio trifase', 'pz'], batt_kit: ['Accumulo', 'Kit collegamento batteria (cavi, protezioni, staffe)', 'a corpo'],
   wb_74: ['Wallbox', 'Wallbox 7,4 kW', 'pz'], wb_11: ['Wallbox', 'Wallbox 11 kW', 'pz'], wb_22: ['Wallbox', 'Wallbox 22 kW', 'pz'], wb_line: ['Wallbox', 'Linea dedicata wallbox', 'm'], wb_prot: ['Wallbox', 'Protezioni dedicate wallbox', 'a corpo'],
   ple: ['Sicurezza e mezzi', 'Nolo PLE (piattaforma elevabile)', '€/gg'], ple_tr: ['Sicurezza e mezzi', 'Trasporto PLE A/R', 'a corpo'], scaf_ms: ['Sicurezza e mezzi', 'Ponteggio: montaggio, smontaggio e 1° mese', '€/m²'], scaf_nolo: ['Sicurezza e mezzi', 'Ponteggio: nolo mesi successivi', '€/m²·mese'],
@@ -911,7 +909,7 @@ function defaults() {
     inv_sel: 'auto', dcac_max: 1.3, dcac_min: 0.85,
     batt_on: false, batt_kwh: 10, batt_kw: 0, batt_model: '', batt_n: 0, inv_brand: 'ZCS',
     wb_on: false, wb_kw: 7.4, wb_line_m: 15, wb_det: false,
-    l_ac1: 8, l_ac2: 15, dv_ac_max: 1.0, k_group_ac: 0.8, posa_ac: 'tubo', t_amb: 30, dv_dc_max: 1.0, k_group_dc: 0.8, posa_wb: 'tubo', dv_wb_max: 2.0,
+    l_ac1: 8, l_ac2: 15, mont_l: 10, mont_s: 10, icc_ka: 0, ra_ohm: 0, qg_rcd: 'nd', qg_idn: 30, qg_sel: false, qg_in: 0, inv_rcd: 'A', inv_idn: 30, dv_ac_max: 1.0, k_group_ac: 0.8, posa_ac: 'tubo', t_amb: 30, dv_dc_max: 1.0, k_group_dc: 0.8, posa_wb: 'tubo', dv_wb_max: 2.0,
     str_kit: 'auto', str_orient: 'v', hook_per_mod: 0, ballast_kg: 0, days_man: 0, target_on: false, target_kwp: 0, fv_esistente: false, conc_name: '', conc_price: 0, conc_kwp: 0, conc_batt: 0, conc_note: '',
     profilo: 'misto', autoc_pct: 0, e_buy: 0, e_rid: 0, e_esc: 2, degr: 0.5, om_kwp: 12, inv_repl_year: 13, horizon: 20, disc: 3, lps: false, meter: true,
     redo: 'nessuno', redo_m2: 0,
@@ -1216,6 +1214,7 @@ function compute(S) {
     add(C.WB, 'wb', `Stazione di ricarica EV ${S.wb_kw} kW (Modo 3, IEC 61851)`, 1, 'pz', PR[wbk], { lk: 'pr.' + wbk, mat: true, vcat: 'wb', det: !!S.wb_det, ref: 'CEI 64-8 sez. 722' });
     const wbPh = S.wb_kw > 7.5 ? 3 : (fase === 3 && S.wb_kw > 3.7 ? 3 : 1);
     const wbIb = wbPh === 1 ? S.wb_kw * 1000 / 230 : S.wb_kw * 1000 / (Math.sqrt(3) * 400);
+    d.wbPh = wbPh; d.wbIb = wbIb;
     d.wbc = pickAC(wbIb, S.wb_line_m, wbPh === 1 ? 230 : 400, wbPh, 1, S.dv_wb_max || 2, S.posa_wb, S.t_amb, 0.95);
     const wbPrice = +(PR.wb_line + (LP('cab.ac.' + d.wbc.S, AC_PRICE[d.wbc.S]) - LP('cab.ac.6', AC_PRICE[6])) * (wbPh === 3 ? 1.5 : 1)).toFixed(2);
     add(C.WB, 'wb_line', `Linea dedicata FG16OR16 ${wbPh === 1 ? 3 : 5}G${d.wbc.S} mm² (${POSA_LABEL[d.wbc.posa]}), canalizzazione e posa`, S.wb_line_m, 'm', wbPrice, { mat: true, vcat: 'wb', det: !!S.wb_det, ref: 'CEI 64-8 sez. 722 · art. 433, 525' });
@@ -1225,6 +1224,81 @@ function compute(S) {
     if (S.pot_imp > 0 && S.pot_imp < S.wb_kw + 3) chk('warn', 'Wallbox e potenza impegnata', `Con ${S.pot_imp} kW impegnati la ricarica a ${S.wb_kw} kW stacca il contatore insieme ai carichi domestici: prevedere gestione dinamica del carico o aumento di potenza.`, 'CEI 64-8 sez. 722');
     if (S.wb_kw > 7.5 && fase === 1) chk('err', 'Wallbox oltre 7,4 kW su monofase', 'Serve una fornitura trifase.');
     if (!S.wb_det) chk('info', 'Wallbox esclusa dalla detrazione', 'Nel computo la stazione di ricarica non entra nella spesa detraibile. Se il cliente ha diritto a un\'agevolazione specifica per le infrastrutture di ricarica va verificata a parte (non controllata in questo strumento).', 'art. 16-ter DL 63/2013 (da verificare)');
+  }
+
+  /* ============================================================
+     VERIFICHE DELLE PROTEZIONI (schema unifilare) — CEI 64-8 sez. 413, 433-434, 525, 534, 712, 722; CEI 0-21
+     Correnti di cortocircuito con il metodo convenzionale (impedenze dei cavi, ρ Cu 0,018 Ω·mm²/m a 20 °C,
+     fattore 1,5 e tensione 0,8·U0 per il minimo). Valori di primo dimensionamento.
+     ============================================================ */
+  {
+    const P = d.prot = { lines: [], notes: [] };
+    const U0 = 230, RHO20 = 0.018, K_CU = 143;   // k per conduttori Cu isolati in XLPE/EPR (CEI 64-8 tab. 43A)
+    const iccDel = S.icc_ka > 0 ? S.icc_ka : (fase === 3 ? 10 : 6);   // valori convenzionali dei distributori BT (6 kA mono, 10 kA tri)
+    const iccFN = fase === 3 ? (S.icc_ka > 0 ? iccDel * 0.6 : 6) : iccDel;   // tri: F-N ≈ 60% del trifase (convenzionale 6 kA su 10 kA)
+    P.iccDel = iccDel; P.iccFN = iccFN; P.iccAuto = !(S.icc_ka > 0);
+    const Zfn = U0 / (iccFN * 1000), Z3 = (400 / Math.sqrt(3)) / (iccDel * 1000);
+    const pts = { del: 0, qg: (S.mont_l || 0) / (S.mont_s || 10) };
+    pts.qac = pts.qg + (S.l_ac2 || 0) / d.ac2.S;
+    pts.inv = pts.qac + (S.l_ac1 || 0) / d.ac1.S;
+    if (d.wbc) pts.wb = pts.qg + (S.wb_line_m || 0) / d.wbc.S;
+    const iccMax = (x) => { const fn = U0 / (Zfn + RHO20 * 2 * x), t3 = fase === 3 ? (400 / Math.sqrt(3)) / (Z3 + RHO20 * x) : 0; return Math.max(fn, t3) / 1000; };   // kA
+    const iccMin = (x) => 0.8 * U0 / (Zfn + 1.5 * RHO20 * 2 * x) / 1000;   // kA, guasto F-N a fondo linea
+    P.icc = { qg: iccMax(pts.qg), qac: iccMax(pts.qac), inv: iccMax(pts.inv) };
+    const ICN = [4.5, 6, 10, 15, 25];
+    const icnFor = (ka) => ICN.find(v => v >= ka - 1e-9) || 25;
+    // energia specifica passante: limiti della classe di limitazione 3, curva C (EN 60898-1 all. ZA, valori indicativi: usare le curve del costruttore)
+    const I2T = { 16: [[3, 18000], [4.5, 30000], [6, 42000], [10, 84000]], 32: [[3, 22000], [4.5, 39000], [6, 55000], [10, 110000]], 63: [[3, 33000], [4.5, 58000], [6, 82000], [10, 165000]] };
+    const i2t = (In, ka) => { const t = I2T[In <= 16 ? 16 : In <= 32 ? 32 : 63]; if (ka <= t[0][0]) return t[0][1]; for (let i = 1; i < t.length; i++) if (ka <= t[i][0]) { const [x0, y0] = t[i - 1], [x1, y1] = t[i]; return y0 + (y1 - y0) * (ka - x0) / (x1 - x0); } return t[t.length - 1][1] * ka / t[t.length - 1][0]; };
+    const line = (sig, desc, In, Sx, L, ib, xStart, xEnd, poles) => {
+      const kaLoc = iccMax(xStart), kaMin = iccMin(xEnd), im = 10 * In;   // curva C: soglia magnetica max 10·In
+      const icn = icnFor(kaLoc), e = i2t(In, kaLoc), k2s2 = K_CU * K_CU * Sx * Sx;
+      const r = { sig, desc, In, S: Sx, L, Ib: ib, poles, kaLoc, icn, kaMin, im, okMag: kaMin * 1000 >= im, e, k2s2, okI2t: k2s2 >= e, iz: null };
+      P.lines.push(r); return r;
+    };
+    const pol = fase === 3 ? '4P' : '2P';
+    const qf0 = line('QF0', 'Partenza linea FV nel quadro generale (protegge la linea QAC→QG)', d.ac2.In, d.ac2.S, S.l_ac2, I.iac, pts.qg, pts.qac, pol); qf0.iz = d.ac2.Iz;
+    const qf1 = line('QF1', 'Linea inverter nel quadro AC FV', d.ac1.In, d.ac1.S, S.l_ac1, I.iac, pts.qac, pts.inv, pol); qf1.iz = d.ac1.Iz;
+    if (d.wbc) { const w = line('QFW', 'Linea stazione di ricarica', d.wbc.In, d.wbc.S, S.wb_line_m, d.wbIb, pts.qg, pts.wb, d.wbPh === 3 ? '4P' : '2P'); w.iz = d.wbc.Iz; }
+    add(C.BOS, 'qg_fv', `Interruttore magnetotermico ${pol} curva C ${d.ac2.In} A, Icn ${String(qf0.icn).replace('.', ',')} kA, di partenza della linea FV nel quadro generale`, 1, 'pz', fase === 3 ? PR.qg_fv_3 : PR.qg_fv_1, { lk: fase === 3 ? 'pr.qg_fv_3' : 'pr.qg_fv_1', mat: true, ref: 'CEI 64-8 sez. 433-434' });
+    for (const r of P.lines) {
+      const n = (v, k = 1) => v.toFixed(k).replace('.', ',');
+      const okIb = r.Ib <= r.In && r.In <= r.iz + 1e-9;
+      if (!okIb) chk('err', `${r.sig}: coordinamento Ib ≤ In ≤ Iz non verificato`, `Ib ${n(r.Ib)} A, In ${r.In} A, Iz ${n(r.iz, 0)} A.`, 'CEI 64-8 art. 433.2');
+      if (!r.okMag) chk('warn', `${r.sig}: corrente di cortocircuito minima a fondo linea sotto la soglia magnetica`, `Icc min ${n(r.kaMin * 1000, 0)} A < 10·In = ${r.im} A (curva C): aumentare la sezione o usare curva B, oppure verificare l'impedenza reale della rete.`, 'CEI 64-8 art. 434.3');
+      if (!r.okI2t) chk('err', `${r.sig}: energia specifica passante oltre K²S²`, `I²t ≈ ${Math.round(r.e).toLocaleString('it-IT')} A²s > K²S² = ${Math.round(r.k2s2).toLocaleString('it-IT')} A²s (${r.S} mm²).`, 'CEI 64-8 art. 434.3.2');
+    }
+    const allOk = P.lines.every(r => r.okMag && r.okI2t && r.Ib <= r.In && r.In <= r.iz + 1e-9);
+    if (allOk) chk('ok', 'Protezione contro il cortocircuito', P.lines.map(r => `${r.sig} ${r.poles} C${r.In}: Icc max ${r.kaLoc.toFixed(1).replace('.', ',')} kA → Icn ≥ ${String(r.icn).replace('.', ',')} kA; Icc min fondo linea ${Math.round(r.kaMin * 1000)} A ≥ ${r.im} A; I²t ≤ K²S²`).join(' · ') + (P.iccAuto ? ` · Icc al punto di consegna convenzionale ${iccDel} kA (da confermare con il distributore)` : ''), 'CEI 64-8 sez. 434');
+    // protezione contro i contatti indiretti (TT): RA·IΔn ≤ 50 V
+    const idns = [S.inv_idn || 30]; if (d.wbc) idns.push(30); if (S.qg_rcd !== 'none' && S.qg_rcd !== 'nd') idns.push(S.qg_idn || 30);
+    const idnMax = Math.max(...idns) / 1000; P.raMax = 50 / idnMax; P.ra = S.ra_ohm || 0;
+    if (S.ra_ohm > 0) { if (S.ra_ohm * idnMax > 50) chk('err', 'Contatti indiretti (TT): RA·IΔn > 50 V', `RA ${S.ra_ohm} Ω × ${Math.round(idnMax * 1000)} mA = ${(S.ra_ohm * idnMax).toFixed(0)} V: migliorare l'impianto di terra o ridurre IΔn (RA max ${Math.floor(P.raMax)} Ω).`, 'CEI 64-8 art. 413.1.4'); else chk('ok', 'Contatti indiretti (TT)', `RA ${S.ra_ohm} Ω ≤ 50 V / ${Math.round(idnMax * 1000)} mA = ${Math.floor(P.raMax)} Ω.`, 'CEI 64-8 art. 413.1.4'); }
+    else chk('info', 'Resistenza di terra da misurare', `Con IΔn massimo ${Math.round(idnMax * 1000)} mA serve RA ≤ ${Math.floor(P.raMax)} Ω (RA·IΔn ≤ 50 V). Inserire il valore misurato.`, 'CEI 64-8 art. 413.1.4');
+    // differenziali: tipo e selettività con il generale esistente
+    const T = { AC: 0, A: 1, F: 2, B: 3 }, up = S.qg_rcd, dn = S.inv_rcd || 'A';
+    P.rcd = { up, dn, upIdn: S.qg_idn, dnIdn: S.inv_idn, sel: !!S.qg_sel };
+    if (up === 'nd') chk('warn', 'Differenziale del quadro generale non rilevato', 'Rilevare tipo (AC/A/F/B), IΔn e se selettivo: serve per la compatibilità con la linea FV e la selettività.', 'CEI 64-8 art. 531.3; sez. 712');
+    else if (up !== 'none') {
+      if (up === 'AC') chk('warn', 'Differenziale generale di tipo AC a monte della linea FV', 'Il tipo AC non è adatto a correnti di guasto con componenti continue (inverter, wallbox): sostituirlo con tipo A o superiore.', 'CEI 64-8 art. 531.3.3; sez. 712');
+      if (T[up] < T[dn] && dn === 'B') chk('err', 'Differenziale generale non compatibile con il tipo B a valle', 'A monte di un differenziale di tipo B serve un differenziale di tipo B.', 'CEI 64-8 art. 531.3.2');
+      const selOk = S.qg_sel && (S.qg_idn || 30) >= 3 * (S.inv_idn || 30);
+      P.rcd.selOk = selOk;
+      if (!selOk) chk('warn', 'Selettività differenziale non garantita', `Generale ${up} ${S.qg_idn} mA${S.qg_sel ? ' selettivo' : ' istantaneo'} e linea FV ${dn} ${S.inv_idn} mA: per la selettività il generale deve essere di tipo S con IΔn ≥ 3 volte (≥ ${3 * (S.inv_idn || 30)} mA). Altrimenti un guasto lato FV può togliere tensione a tutta la casa.`, 'CEI 64-8 art. 536; CEI EN 61008');
+      else chk('ok', 'Selettività differenziale', `Generale tipo S ${S.qg_idn} mA ≥ 3 × ${S.inv_idn} mA.`, 'CEI 64-8 art. 536');
+    } else chk('info', 'Quadro generale senza differenziale', 'La linea QG→QAC deve essere a doppio isolamento o equivalente (cavo FG16OR16 0,6/1 kV in tubo) fino al differenziale ID1.', 'CEI 64-8 art. 412.2.4');
+    if (S.qg_in > 0 && fase === 1 && I.iac > S.qg_in) chk('err', 'Interruttore generale inferiore alla corrente dell\'inverter', `In generale ${S.qg_in} A < Iac inverter ${I.iac} A.`, 'CEI 0-21');
+    // lato DC: fusibili di stringa, sezionatore, SPD
+    const VocMaxStr = Math.max(0, ...d.fs.map(z => (z.Ns || 0) * VocTmin));
+    P.dc = { vocMax: VocMaxStr, mppt: d.fs.map(z => { const np = z.split ? z.s / z.split : (z.s || 1); const need = np >= 3 || (np - 1) * M.isc * 1.25 > (M.fuse || 25); return { np, need, fMin: 1.5 * M.isc, fMax: Math.min(2.4 * M.isc, M.fuse || 25), ie: 1.25 * M.isc * np }; }) };
+    const fz = P.dc.mppt.filter(x => x.need);
+    if (fz.length) chk('warn', 'Fusibili di stringa necessari', `${fz.length} ingressi con ${fz[0].np} stringhe in parallelo: fusibili gPV da ${fz[0].fMin.toFixed(1).replace('.', ',')} a ${fz[0].fMax.toFixed(1).replace('.', ',')} A su entrambe le polarità.`, 'CEI 64-8 art. 712.433; IEC 62548');
+    else chk('ok', 'Fusibili di stringa non necessari', 'Al massimo 2 stringhe in parallelo per ingresso: la corrente inversa non supera la tenuta del modulo.', 'CEI 64-8 art. 712.433; IEC 62548');
+    P.spd = { ucpv: 1.2 * Math.max(0, ...d.fs.map(z => (z.Ns || 0) * M.voc)), ucAC: 1.1 * U0, up: 1.5 };
+    chk('ok', 'Requisiti minimi di sezionatori e SPD', `Sezionatore DC: Ue ≥ ${Math.ceil(VocMaxStr)} V, Ie ≥ ${(1.25 * M.isc * Math.max(1, ...P.dc.mppt.map(x => x.np))).toFixed(1).replace('.', ',')} A · SPD DC: Ucpv ≥ ${Math.ceil(P.spd.ucpv)} V (1,2·Voc STC) · SPD AC tipo 2 in TT: Uc ≥ 253 V (1,1·U0), Up ≤ 1,5 kV, configurazione ${fase === 3 ? '3+1' : '1+1'}.`, 'CEI EN 61643-31/-32; CEI 64-8 sez. 534');
+    // innalzamento di tensione verso la rete (soglia 59.S1 = 1,10 Un media 10 min)
+    if (d.dvTot > 1) chk(d.dvTot > 2 ? 'warn' : 'info', 'Innalzamento di tensione inverter → consegna oltre 1%', `ΔV ${d.dvTot.toFixed(2).replace('.', ',')}%: con rete già alta l'inverter può distaccarsi per la protezione 59.S1. Consigliato ≤ 1%.`, 'CEI 0-21 (59.S1); buona tecnica');
+    chk('ok', 'Conduttori di protezione', `PE con la stessa sezione dei conduttori di fase (cavi multipolari ${fase === 3 ? '5G' : '3G'}); equipotenziale strutture e collegamento SPD ≥ 6 mm² Cu.`, 'CEI 64-8 art. 543.1, sez. 534, 712.54');
   }
 
   // opere edili collegate
@@ -1742,7 +1816,17 @@ const SCHEMA_RAW = [
     { k: 'k_group_ac', l: 'Coefficiente di raggruppamento AC', t: 'n', step: 0.05, h: 'Più circuiti nello stesso tubo/canale (CEI-UNEL 35024/1).' },
     { k: 'dv_dc_max', l: 'Caduta di tensione DC massima di stringa', t: 'n', u: '%', step: 0.1, h: 'Criterio di progetto (non fissato dalla norma): tipico 1–1,5%.' },
     { k: 'k_group_dc', l: 'Coefficiente di posa DC', t: 'n', step: 0.05, h: 'Cavi solari raggruppati su copertura (EN 50618, portate a 60 °C).' },
-    { k: 'lps', l: 'Edificio con LPS (parafulmine)', t: 'c', h: 'Aggiunge SPD lato DC.' }
+    { k: 'lps', l: 'Edificio con LPS (parafulmine)', t: 'c', h: 'Aggiunge SPD lato DC.' },
+    { k: '_sop', t: 'i', wide: true, txt: () => 'Dati del quadro generale esistente e della rete (da sopralluogo): servono alle verifiche dello schema unifilare. Se mancano si usano valori convenzionali e lo segnala.' },
+    { k: 'mont_l', l: 'Montante contatore → quadro generale', t: 'n', u: 'm', step: 1 }, { k: 'mont_s', l: 'Sezione del montante', t: 'n', u: 'mm²', step: 1 },
+    { k: 'icc_ka', l: 'Icc presunta al punto di consegna', t: 'n', u: 'kA', step: 0.5, auto: (r) => r.d.prot ? String(r.d.prot.iccDel).replace('.', ',') : '', h: 'Vuoto = valore convenzionale del distributore (6 kA monofase, 10 kA trifase).' },
+    { k: 'ra_ohm', l: 'Resistenza di terra misurata (RA)', t: 'n', u: 'Ω', step: 1, h: 'Vuoto = non misurata: il tool indica il valore massimo ammesso.' },
+    { k: 'qg_in', l: 'Interruttore generale esistente', t: 'n', u: 'A', step: 1 },
+    { k: 'qg_rcd', l: 'Differenziale generale esistente', t: 'o', o: [['nd', 'Non rilevato'], ['none', 'Assente'], ['AC', 'Tipo AC'], ['A', 'Tipo A'], ['F', 'Tipo F'], ['B', 'Tipo B']] },
+    { k: 'qg_idn', l: 'IΔn differenziale generale', t: 'o', num: true, o: [[30, '30 mA'], [100, '100 mA'], [300, '300 mA'], [500, '500 mA']] },
+    { k: 'qg_sel', l: 'Differenziale generale selettivo (tipo S)', t: 'c' },
+    { k: 'inv_rcd', l: 'Differenziale linea FV (istruzioni inverter)', t: 'o', o: [['A', 'Tipo A'], ['F', 'Tipo F'], ['B', 'Tipo B']] },
+    { k: 'inv_idn', l: 'IΔn differenziale linea FV', t: 'o', num: true, o: [[30, '30 mA'], [100, '100 mA'], [300, '300 mA']] }
   ] },
   { id: 'piano', t: 'Piano di rientro', s: 'autoconsumo, prezzi dell\'energia, ipotesi economiche', f: [
     { k: 'profilo', l: 'Profilo di utilizzo', t: 'o', o: [['fuori', 'Fuori casa di giorno'], ['misto', 'Presenza mista'], ['casa', 'Presenza continua / smart working']], wide: true, h: 'Decide la quota di produzione autoconsumata (ipotesi di letteratura, modificabile sotto).' },
@@ -2827,6 +2911,7 @@ function schemaData(R, S) {
 
 function schemaSvg(R, S) {
   const D = schemaData(R, S);
+  const PL = (sig) => R.d.prot ? R.d.prot.lines.find(l => l.sig === sig) : null;
   const nM = Math.max(1, D.mppt.length);
   const W = 1120, rowH = 92, top = nM === 1 ? 110 : 76;
   const yRows = D.mppt.map((_, i) => top + 30 + i * rowH);
@@ -2902,26 +2987,26 @@ function schemaSvg(R, S) {
   if (D.spiExt) {
     g += L(xQ0, yMain, x + 6, yMain) + dev(x + 6, yMain, 34, 'DDI', 'SPI est.', '', ''); x += 46;
   } else g += L(xQ0, yMain, x, yMain);
-  g += L(x, yMain, x + 10, yMain) + dev(x + 10, yMain, 40, 'QF1', `${D.poles} C${D.ac1.In}`, 'Icn ≥ Icc', '(da verif.)'); x += 60;
-  g += L(x, yMain, x + 10, yMain) + dev(x + 10, yMain, 40, 'ID1', 'Id', 'tipo A o B', 'sec. costr.'); x += 60;
+  g += L(x, yMain, x + 10, yMain) + dev(x + 10, yMain, 40, 'QF1', `${D.poles} C${D.ac1.In}`, PL('QF1') ? `Icn ${nf(PL('QF1').icn, 1)} kA` : '', 'curva C'); x += 60;
+  g += L(x, yMain, x + 10, yMain) + dev(x + 10, yMain, 40, 'ID1', 'Id', `tipo ${S.inv_rcd || 'A'}`, `${S.inv_idn || 30} mA`); x += 60;
   g += L(x, yMain, xQ1, yMain) + node(x + 22, yMain) + spd(x + 22, yMain, 'SPD T2');
   if (D.rinc) g += T(xQ0 + 4, yMain + 80, '+ dispositivo di rincalzo (> 20 kW)', { s: 8 });
 
   /* --- linea AC2 → quadro generale --- */
-  const xG0 = 810, xBus = 850;
+  const xG0 = 800, xBus = 872;
   g += L(xQ1, yMain, xG0, yMain);
-  g += T((xQ1 + xG0) / 2, yMain - 6, `${D.nc}G${D.ac2.S}`, { a: 'middle', s: 8.5 });
-  g += T((xQ1 + xG0) / 2, yMain + 13, `${nf(D.ac2.L, 0)} m · ${nf(D.ac2.dv, 2)}%`, { a: 'middle', s: 8.5 });
+  g += T((xQ1 + xG0) / 2, yMain - 6, `${D.nc}G${D.ac2.S}`, { a: 'middle', s: 8 });
+  g += T((xQ1 + xG0) / 2, yMain + 12, `${nf(D.ac2.L, 0)} m`, { a: 'middle', s: 8 }) + T((xQ1 + xG0) / 2, yMain + 22, `${nf(D.ac2.dv, 2)}%`, { a: 'middle', s: 8 });
   // quadro generale esistente
   const yB0 = yMain - 80, yB1 = yMain + (D.wb ? 150 : 70);
-  g += `<rect x="${xG0}" y="${yB0 - 16}" width="200" height="${yB1 - yB0 + 40}" fill="none" stroke-dasharray="3 3" stroke="#6B7672"/>`;
+  g += `<rect x="${xG0}" y="${yB0 - 16}" width="236" height="${yB1 - yB0 + 40}" fill="none" stroke-dasharray="3 3" stroke="#6B7672"/>`;
   g += T(xG0 + 4, yB0 - 4, 'QG — quadro generale (esistente)', { s: 8.5, w: 700, c: '#6B7672' });
-  g += L(xG0, yMain, xBus, yMain) + node(xBus, yMain) + L(xBus, yB0 + 14, xBus, yB1, { w: 3.2 });
+  g += L(xG0, yMain, xG0 + 14, yMain) + dev(xG0 + 14, yMain, 40, 'QF0', `${D.poles} C${D.ac2.In}`, PL('QF0') ? `Icn ${nf(PL('QF0').icn, 1)} kA` : '', 'nuovo') + L(xG0 + 54, yMain, xBus, yMain) + node(xBus, yMain) + L(xBus, yB0 + 14, xBus, yB1, { w: 3.2 });
   // DG verso la consegna (in alto)
   const yDG = yB0 + 14;
   g += L(xBus, yDG, xBus + 24, yDG) + dev(xBus + 24, yDG, 40, 'DG', '', '', '') + L(xBus + 64, yDG, 1040, yDG);
-  g += T(xBus + 30, yDG + 26, 'In, Icn, Id: tipo e', { s: 8 });
-  g += T(xBus + 30, yDG + 36, 'selettività da verif.', { s: 8 });
+  g += T(xBus + 26, yDG + 26, S.qg_in > 0 ? `In ${S.qg_in} A` : 'In da rilevare', { s: 8 });
+  g += T(xBus + 26, yDG + 36, ({ nd: 'Id da rilevare', none: 'senza differenziale', AC: 'Id tipo AC', A: 'Id tipo A', F: 'Id tipo F', B: 'Id tipo B' })[S.qg_rcd || 'nd'] + (['AC', 'A', 'F', 'B'].includes(S.qg_rcd) ? ` ${S.qg_idn} mA${S.qg_sel ? ' S' : ''}` : ''), { s: 8 });
   // misuratore di scambio (TA dell'EMS)
   if (D.meter) { g += `<circle cx="${xBus + 120}" cy="${yDG}" r="7" fill="#fff"/>` + T(xBus + 120, yDG + 20, 'TA meter', { a: 'middle', s: 8 }) + T(xBus + 120, yDG + 30, 'EMS', { a: 'middle', s: 8 }); }
   // contatore M1 + rete
@@ -2933,8 +3018,8 @@ function schemaSvg(R, S) {
   // wallbox
   if (D.wb) {
     const yW = yMain + 100;
-    g += L(xBus, yW, xBus + 14, yW) + dev(xBus + 14, yW, 40, 'QFW', `${D.wb.poles} C${D.wb.In}`, 'Id 30 mA', 'A+6mA DC / B') + L(xBus + 54, yW, xBus + 120, yW);
-    g += T(xBus + 87, yW - 6, `${D.wb.ph === 3 ? 5 : 3}G${D.wb.S} · ${nf(D.wb.L, 0)} m`, { a: 'middle', s: 8 });
+    g += L(xBus, yW, xBus + 26, yW) + dev(xBus + 26, yW, 40, 'QFW', `${D.wb.poles} C${D.wb.In}`, PL('QFW') ? `Icn ${nf(PL('QFW').icn, 1)} kA` : '', 'Id 30 mA A+DC') + L(xBus + 66, yW, xBus + 120, yW);
+    g += T(xBus + 93, yW - 6, `${D.wb.ph === 3 ? 5 : 3}G${D.wb.S} · ${nf(D.wb.L, 0)} m`, { a: 'middle', s: 8 });
     g += `<rect x="${xBus + 120}" y="${yW - 14}" width="34" height="28" fill="#fff"/>` + T(xBus + 137, yW + 4, 'EV', { a: 'middle', w: 700, s: 10 });
     g += T(xBus + 137, yW + 26, `${nf(D.wb.kw, 1)} kW`, { a: 'middle', s: 8.5 }) + T(xBus + 137, yW + 37, 'CEI 64-8 sez. 722', { a: 'middle', s: 8 });
   }
@@ -2950,36 +3035,40 @@ function schemaSvg(R, S) {
 }
 
 function schemaRows(R, S) {
-  const D = schemaData(R, S), rows = [];
+  const D = schemaData(R, S), rows = [], PPd = R.d.prot ? R.d.prot.dc : null;
   D.mppt.forEach(m => rows.push(['Stringhe MPPT ' + m.i, `${m.s} × ${m.Ns} moduli ${esc(D.M.name || '')}`, `Voc(${S.t_min} °C) ${nf(m.voc, 0)} V ≤ Vmax inverter ${Math.min(D.I.vmax, D.M.vmax)} V · Isc ${nf(m.isc, 1)} A ≤ ${nf(m.iscI, 1)} A`, 'CEI 64-8 sez. 712 · IEC 62548']));
   D.mppt.forEach(m => rows.push(['Linea DC MPPT ' + m.i, `H1Z2Z2-K 2×1×${m.S} mm² · ${nf(m.L, 0)} m`, `Iz ${nf(m.Iz || 0, 0)} A ≥ 1,25·Isc ${nf(1.25 * m.isc, 1)} A · ΔV ${nf(m.dv || 0, 2)}%`, 'EN 50618 · CEI 82-25']));
-  rows.push(['QS-DC', 'Sezionatore lato DC', 'Integrato nell\'inverter: verificare scheda tecnica; altrimenti sezionatore DC esterno per MPPT', 'CEI 64-8 sez. 712']);
+  rows.push(['QS-DC', 'Sezionatore lato DC', `Integrato nell'inverter (verificare scheda); se esterno: Ue ≥ ${PPd ? Math.ceil(PPd.vocMax) : '—'} V DC, Ie ≥ ${PPd ? nf(1.25 * D.M.isc * Math.max(1, ...PPd.mppt.map(x => x.np)), 1) : '—'} A, categoria DC-PV`, 'CEI 64-8 sez. 712']);
   rows.push(['SPD DC', D.lps ? `SPD tipo 2 DC, uno per MPPT (${D.mppt.length} pz)` : 'Integrati nell\'inverter (se previsti)', D.lps ? 'Edificio con LPS: aggiuntivi lato DC' : 'Necessità e classe da valutazione del rischio di fulminazione', 'CEI EN 62305-2 · CEI EN 61643-31']);
   rows.push(['INV', esc(D.I.name), `${nf(D.d.Pac, 2)} kW AC · rapporto DC/AC ${nf(D.d.ratio, 2)} · ${D.spiExt ? 'SPI esterno' : 'SPI/DDI integrati'}`, 'CEI 0-21']);
   if (D.batt) rows.push(['BAT', `Accumulo ${D.batt.name ? D.batt.name + ' · ' : 'LFP '}${nf(D.batt.kwh, 1)} kWh / ${nf(D.batt.kw, 1)} kW`, 'Collegamento DC sull\'inverter ibrido; protezioni DC del costruttore (QB)', 'IEC 62619 · CEI 0-21']);
   rows.push(['Linea AC1', `FG16OR16 ${D.nc}G${D.ac1.S} mm² · ${nf(D.ac1.L, 0)} m`, `Ib ${nf(D.I.iac, 1)} A ≤ In ${D.ac1.In} A ≤ Iz ${nf(D.ac1.Iz, 0)} A · ΔV ${nf(D.ac1.dv, 2)}%`, 'CEI 64-8 art. 433, 525 · CEI-UNEL 35024/1']);
-  rows.push(['SPD T2', 'SPD tipo 2 AC nel quadro AC FV', 'Uc e In secondo sistema TT e costruttore', 'CEI 64-8 sez. 534']);
+  rows.push(['SPD T2', 'SPD tipo 2 AC nel quadro AC FV', `TT: configurazione ${D.tri ? '3+1' : '1+1'}, Uc ≥ 253 V (1,1·U0), Up ≤ 1,5 kV`, 'CEI 64-8 sez. 534']);
   if (D.spiExt) rows.push(['SPI + DDI', 'Protezione di interfaccia esterna e dispositivo di interfaccia', `Obbligatori oltre 11,08 kW${D.rinc ? '; oltre 20 kW anche rincalzo' : ''}`, 'CEI 0-21']);
-  rows.push(['QF1', `Magnetotermico ${D.poles} curva C ${D.ac1.In} A`, 'Potere di interruzione ≥ Icc presunta al punto (valori tipici 6 kA mono / 10 kA tri, da confermare); I²t ≤ K²S² da verificare', 'CEI 64-8 sez. 433-434']);
-  rows.push(['ID1', 'Differenziale linea FV', 'Tipo (A o B) e IΔn secondo istruzioni del costruttore dell\'inverter; selettività con il differenziale a monte nel QG', 'CEI 64-8 sez. 712, 413']);
+  const PP = R.d.prot, PLr = (sig) => PP ? PP.lines.find(l => l.sig === sig) : null, kA = v => nf(v, 1) + ' kA';
+  const lr = (r) => r ? `Icc max ${kA(r.kaLoc)} → Icn ≥ ${nf(r.icn, 1)} kA · Icc min fondo linea ${nf(r.kaMin * 1000, 0)} A ${r.okMag ? '≥' : '<'} 10·In ${r.im} A · I²t ${Math.round(r.e).toLocaleString('it-IT')} ${r.okI2t ? '≤' : '>'} K²S² ${Math.round(r.k2s2).toLocaleString('it-IT')} A²s` : '';
+  rows.push(['QF1', `Magnetotermico ${D.poles} curva C ${D.ac1.In} A`, lr(PLr('QF1')), 'CEI 64-8 sez. 433-434']);
+  rows.push(['ID1', `Differenziale tipo ${S.inv_rcd || 'A'} ${S.inv_idn || 30} mA`, 'Tipo secondo istruzioni del costruttore dell\'inverter; ' + (PP && PP.rcd ? (PP.rcd.up === 'nd' ? 'differenziale generale non rilevato' : PP.rcd.up === 'none' ? 'nessun differenziale a monte' : PP.rcd.selOk ? 'selettivo con il generale' : 'selettività con il generale NON garantita') : ''), 'CEI 64-8 sez. 712, 531, 536']);
+  rows.push(['QF0', `Magnetotermico ${D.poles} curva C ${D.ac2.In} A nel QG (nuovo)`, 'Protegge la linea QG → QAC. ' + lr(PLr('QF0')), 'CEI 64-8 sez. 433-434']);
   rows.push(['Linea AC2', `FG16OR16 ${D.nc}G${D.ac2.S} mm² · ${nf(D.ac2.L, 0)} m`, `In ${D.ac2.In} A ≤ Iz ${nf(D.ac2.Iz, 0)} A · ΔV ${nf(D.ac2.dv, 2)}% (tot. AC ${nf(D.ac1.dv + D.ac2.dv, 2)}%)`, 'CEI 64-8 art. 433, 525']);
-  rows.push(['DG / QG', 'Quadro generale esistente', 'Da rilevare: interruttore generale (In, curva, Icn), differenziale generale (tipo, IΔn), spazio disponibile', 'CEI 64-8']);
+  rows.push(['DG / QG', 'Quadro generale esistente', `${S.qg_in > 0 ? 'Generale ' + S.qg_in + ' A' : 'Generale da rilevare'} · ${({ nd: 'differenziale da rilevare', none: 'senza differenziale', AC: 'differenziale tipo AC', A: 'differenziale tipo A', F: 'differenziale tipo F', B: 'differenziale tipo B' })[S.qg_rcd || 'nd']}${['AC', 'A', 'F', 'B'].includes(S.qg_rcd) ? ' ' + S.qg_idn + ' mA' + (S.qg_sel ? ' selettivo' : '') : ''} · Icc al QG ${PP ? kA(PP.icc.qg) : '—'} (al punto di consegna ${PP ? nf(PP.iccDel, 1) + ' kA' + (PP.iccAuto ? ' convenzionale' : '') : '—'})`, 'CEI 64-8 · CEI 0-21']);
   if (D.meter) rows.push(['Meter EMS', 'Misuratore di scambio con TA (non fiscale)', 'Al punto di scambio, a valle di M1, per monitoraggio e gestione dell\'accumulo', '—']);
   rows.push(['M1 / M2', 'Contatore bidirezionale del distributore', 'Contatore di produzione M2 solo se richiesto dal distributore o dal regime di cessione', 'CEI 0-21 · TICA']);
-  if (D.wb) rows.push(['QFW + EV', `Wallbox ${nf(D.wb.kw, 1)} kW · ${D.wb.poles} C${D.wb.In} · ${D.wb.ph === 3 ? 5 : 3}G${D.wb.S} mm² ${nf(D.wb.L, 0)} m`, 'Id 30 mA tipo A con rilevazione 6 mA DC (RDC-DD) oppure tipo B; ΔV ' + nf(D.wb.dv, 2) + '%', 'CEI 64-8 sez. 722']);
-  rows.push(['PE', 'Conduttori di protezione ed equipotenziali', 'Telai e strutture 6 mm² (moduli in classe II: secondo istruzioni), SPD, masse; verifica RE·IΔn ≤ 50 V', 'CEI 64-8 sez. 413, 712.54']);
+  if (D.wb) rows.push(['QFW + EV', `Wallbox ${nf(D.wb.kw, 1)} kW · ${D.wb.poles} C${D.wb.In} · ${D.wb.ph === 3 ? 5 : 3}G${D.wb.S} mm² ${nf(D.wb.L, 0)} m`, 'Id 30 mA tipo A con rilevazione 6 mA DC (RDC-DD) oppure tipo B; ΔV ' + nf(D.wb.dv, 2) + '% · ' + lr(PLr('QFW')), 'CEI 64-8 sez. 722']);
+  rows.push(['PE', 'Conduttori di protezione ed equipotenziali', 'PE = sezione di fase; telai, strutture e SPD ≥ 6 mm² Cu; ' + (PP ? (PP.ra > 0 ? `RA ${PP.ra} Ω ${PP.ra <= PP.raMax ? '≤' : '>'} ${Math.floor(PP.raMax)} Ω ammessi` : `RA da misurare: max ${Math.floor(PP.raMax)} Ω`) : ''), 'CEI 64-8 sez. 413, 712.54']);
   return rows;
 }
 
 const SCH_CHECKS = [
-  'Quadro generale esistente: interruttore generale (In, curva, potere di interruzione) e differenziale a monte (tipo, IΔn) — in particolare selettività e compatibilità del tipo con la linea FV.',
-  'Corrente di cortocircuito presunta al punto di consegna e potere di interruzione di tutti gli apparecchi; verifica I²t ≤ K²S² delle linee (non eseguita da questo strumento).',
-  'Impianto di terra (sistema TT): misura di RE, verifica RE·IΔn ≤ 50 V, collegamenti equipotenziali.',
-  'Inverter e moduli reali (datasheet): coordinamento delle stringhe (Voc a temperatura minima, Isc, finestra MPPT), tipo di differenziale richiesto, sezionatore e SPD DC integrati, certificazione dell\'SPI secondo l\'edizione vigente della CEI 0-21.',
-  'Accumulo: modalità di collegamento (DC/AC), protezioni prescritte dal costruttore, luogo di installazione; eventuale funzionamento in isola/backup con commutazione e interblocco secondo CEI 0-21.',
-  'Necessità e classe degli SPD da valutazione del rischio di fulminazione (CEI EN 62305-2).',
-  'Prevenzione incendi: se l\'edificio ospita o serve attività soggette (DPR 151/2011) si applicano le Linee guida VVF (nota DCPREV 14030 del 01/09/2025): sezionamento di emergenza, segnaletica, distanze; negli altri casi restano un riferimento di buona tecnica.',
-  'Configurazione di misura (M1, eventuale M2) secondo le indicazioni del distributore nel preventivo di connessione.',
+  'Dati di sopralluogo usati nei calcoli: interruttore e differenziale generale esistenti (tipo, IΔn, selettività), lunghezza e sezione del montante. Se indicati come «da rilevare» o «convenzionale», le verifiche relative sono provvisorie.',
+  'Corrente di cortocircuito presunta al punto di consegna: confermarla con il distributore (nel calcolo, se non inserita, valori convenzionali 6 kA monofase / 10 kA trifase). Con il valore reale ricontrollare potere di interruzione e Icc minima a fondo linea.',
+  'Energia specifica passante: il calcolo usa i limiti della classe di limitazione 3 (EN 60898-1); verificare con le curve I²t del costruttore degli interruttori scelti, anche per il coordinamento in back-up con il generale.',
+  'Impianto di terra (TT): misura di RA e prova strumentale dei differenziali; collegamenti equipotenziali di strutture e SPD.',
+  'Datasheet reali dei componenti scelti: tensioni e correnti di stringa, tipo di differenziale richiesto dall\'inverter, sezionatore e SPD DC integrati, certificazione dell\'SPI secondo l\'edizione vigente della CEI 0-21.',
+  'Accumulo: protezioni DC del costruttore, luogo di installazione; eventuale funzionamento in isola/backup con commutazione e interblocco secondo CEI 0-21.',
+  'Necessità e classe degli SPD dalla valutazione del rischio di fulminazione (CEI EN 62305-2).',
+  'Prevenzione incendi: se l\'edificio ospita o serve attività soggette (DPR 151/2011) si applicano le Linee guida VVF (nota DCPREV 14030 del 01/09/2025): sezionamento di emergenza, segnaletica, distanze.',
+  'Configurazione di misura (M1, eventuale M2) secondo il preventivo di connessione del distributore.',
   'Progetto a firma di professionista abilitato nei casi previsti dal DM 37/08 art. 5; lo schema da allegare alla dichiarazione di conformità è quello dell\'impianto come realizzato.'
 ];
 
@@ -2997,6 +3086,9 @@ function printSchema() {
   <div class="pr-land">
   <h2>Apparecchiature e linee (valori preliminari)</h2>
   <table><thead><tr><th style="width:11%">Sigla</th><th style="width:27%">Componente</th><th>Caratteristiche e verifiche eseguite</th><th style="width:17%">Riferimento</th></tr></thead><tbody>${rows}</tbody></table>
+  <h2>Verifiche di calcolo eseguite (valori preliminari)</h2>
+  <table><thead><tr><th style="width:9%">Esito</th><th>Verifica</th><th style="width:17%">Riferimento</th></tr></thead><tbody>${(R.checks || []).filter(c => /CEI 64-8|CEI 0-21|IEC 62548|61643|EN 50618|82-25|712/.test(c.ref || '')).map(c => `<tr><td><b>${c.lvl === 'err' ? 'NON OK' : c.lvl === 'warn' ? 'ATTENZIONE' : c.lvl === 'ok' ? 'OK' : 'NOTA'}</b></td><td>${esc(c.title)}<small>${esc(c.detail)}</small></td><td><small>${esc(c.ref)}</small></td></tr>`).join('')}</tbody></table>
+  <p class="pr-note">Metodo: correnti di cortocircuito con il metodo convenzionale (impedenza di rete dall'Icc al punto di consegna, cavi in rame ρ = 0,018 Ω·mm²/m; Icc minima con 0,8·U0 e fattore 1,5 sulla resistenza dei conduttori); soglia magnetica curva C = 10·In; K = 143 (Cu/XLPE); I²t dai limiti della classe 3 EN 60898-1.</p>
   <h2>Verifiche da completare prima della realizzazione</h2>
   <table><tbody>${SCH_CHECKS.map((c, i) => `<tr><td style="width:3%"><b>${i + 1}</b></td><td>${esc(c)}</td></tr>`).join('')}</tbody></table>
   <div class="pr-foot">Schema preliminare generato dal Preventivatore FV residenziale. Uso interno: non consegnare al cliente né allegare a pratiche. Norme richiamate: CEI 0-21, CEI 64-8 (sez. 412-413, 433-434, 525, 534, 712, 722), CEI 82-25, CEI-UNEL 35024/1, EN 50618, CEI EN 61643-31, CEI EN 62305-2, DM 37/08, nota VVF DCPREV 14030/2025.</div>
