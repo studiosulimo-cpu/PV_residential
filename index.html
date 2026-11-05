@@ -319,9 +319,15 @@ table.grid.falde{min-width:620px}
 table.lt{min-width:700px}
 table.lt input{width:100%;border:1px solid var(--line);background:var(--sunk);border-radius:4px;padding:4px 6px;font-family:var(--f-mono);font-size:13px}
 table.lt input[type=text]{font-family:var(--f-body)}
+table.lt input.ldesc{margin-top:4px;font-size:12px;padding:3px 6px}
+table.lt input.ldesc:not(:placeholder-shown){background:var(--warn-bg);color:var(--ink);font-weight:600}
 table.lt input:disabled{opacity:.45}
 table.lt td:nth-child(3){width:110px} table.lt td:nth-child(5){width:150px}
 table.lt tr.edited td:nth-child(3) input{background:var(--warn-bg);color:var(--warn);font-weight:500}
+#offHome .offlock,#offBox .offlock{background:var(--warn-bg);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:8px;padding:10px 12px;margin:0 0 12px;font-size:14px}
+.offpw{display:inline-flex;gap:6px;margin-left:6px;flex-wrap:wrap}.offpw input,.offform input[type=text],.offform input[type=password]{border:1px solid var(--line);background:var(--sunk);border-radius:var(--r);padding:6px 9px;min-width:0}
+.offstat{font-size:13.5px;padding:4px 0 6px}.offpub summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--accent)}.offform{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+table.lt td.num small{display:block;font-size:10.5px;color:var(--muted)}
 @media print{#listino{display:none!important}
 .pr-land{break-after:page}
 .pr-land:last-child{break-after:auto}
@@ -359,6 +365,7 @@ table.lt tr.edited td:nth-child(3) input{background:var(--warn-bg);color:var(--w
 
   <section id="vHome">
     <div class="home-head"><h2>Offerte</h2><div class="home-tools"><input id="siteSearch" type="search" placeholder="Cerca per cliente, comune o indirizzo" aria-label="Cerca offerta"><button class="btn primary" id="btnNew" type="button">Nuova offerta</button></div></div>
+    <div id="offHome"></div>
     <div class="tablewrap"><table class="grid" id="offersTable"></table></div>
     <div class="workflow">
       <div class="card"><h3>1 · Dati del cliente e dell'immobile</h3><p>Abitazione principale e titolo di chi paga decidono l'aliquota di detrazione.</p></div>
@@ -394,12 +401,14 @@ table.lt tr.edited td:nth-child(3) input{background:var(--warn-bg);color:var(--w
   </section>
 </div>
 <aside id="listino" hidden aria-label="Listino prezzi">
-  <div class="lhead"><div><h2>Listino prezzi personale</h2><p class="muted" id="listCount"></p></div><button class="btn sm" id="listClose" type="button">Chiudi ✕</button></div>
-  <p class="help" style="padding:0 16px">Il valore che inserisci sostituisce quello di default in <b>tutte</b> le offerte. Lascia vuoto per usare il default. Annota fonte e data: dopo 6 mesi la voce è segnalata come datata. Le modifiche per singola offerta restano nel computo.</p>
+  <div class="lhead"><div><h2>Listino prezzi</h2><p class="muted" id="listCount"></p></div><button class="btn sm" id="listClose" type="button">Chiudi ✕</button></div>
+  <div id="offBox" style="padding:0 16px 8px"></div>
+  <p class="help" style="padding:0 16px">Il valore che inserisci vale <b>solo nel tuo browser</b> e sostituisce quello ufficiale (o di default) in tutte le tue offerte. Lascia vuoto per usare il valore ufficiale. Annota fonte e data: dopo 6 mesi la voce è segnalata come datata. Le modifiche per singola offerta restano nel computo.</p>
   <div class="ltools"><input id="listQ" type="search" placeholder="Cerca voce o chiave" aria-label="Cerca"><select id="listGroup" aria-label="Gruppo"></select><label class="fld chk" style="padding:0"><input type="checkbox" id="listMod"><span>Solo mie</span></label></div>
-  <div class="ltools"><span class="btn sm filebtn">Importa da Excel/CSV<input type="file" id="listImport" accept=".xlsx,.csv,.txt"></span><button class="btn sm" id="listExport" type="button">Scarica listino (Excel)</button><button class="btn sm danger" id="listReset" type="button">Ripristina default</button></div>
+  <div class="ltools"><span class="btn sm filebtn">Importa da Excel/CSV<input type="file" id="listImport" accept=".xlsx,.csv,.txt"></span><button class="btn sm" id="listExport" type="button">Scarica listino (Excel)</button><button class="btn sm danger" id="listReset" type="button">Annulla i miei valori</button></div>
+  <div class="ltools arch"><b style="font-size:13px">Archivio materiali</b><span class="help" style="margin:0">moduli, inverter e batterie reali con dati tecnici e prezzo</span><button class="btn sm" id="archExport" type="button">Scarica archivio (Excel)</button><span class="btn sm filebtn">Importa archivio<input type="file" id="archImport" accept=".xlsx"></span><span class="help" id="archCount" style="margin:0"></span></div>
   <div class="help" id="listMsg" style="padding:0 16px 6px"></div>
-  <div class="lscroll"><table class="boq lt"><thead><tr><th>Voce</th><th class="num">Default</th><th>Tuo valore</th><th>Fonte</th><th>Data</th><th></th></tr></thead><tbody id="listBody"></tbody></table></div>
+  <div class="lscroll"><table class="boq lt"><thead><tr><th>Voce</th><th class="num">Ufficiale / default</th><th>Tuo valore</th><th>Fonte</th><th>Data</th><th></th></tr></thead><tbody id="listBody"></tbody></table></div>
 </aside>
 <div id="printArea" aria-hidden="true"></div>
 <div id="printMenu" hidden><button class="btn sm primary" id="pmClient" type="button">PDF offerta per il cliente</button><button class="btn sm" id="pmInt" type="button">PDF analisi interna (costi e margini)</button><button class="btn sm" id="pmSch" type="button">Schema unifilare preliminare (interno)</button><button class="btn sm" id="pmXc" type="button">Excel per il cliente (solo prezzi)</button><button class="btn sm" id="pmQes" type="button">QES (quadro economico di spesa, formato aziendale)</button><button class="btn sm" id="pmXi" type="button">Excel interno (formule attive)</button></div>
@@ -494,6 +503,71 @@ const INVS = {
   ht12: mk('Ibrido trifase 12 kW · 2 MPPT', 3, true, 12, 2, 2, 2650),
   ht15: mk('Ibrido trifase 15 kW · 3 MPPT', 3, true, 15, 3, 2, 3200)
 };
+
+/* ---------- Archivio materiali (modelli reali) ----------
+   Dati da datasheet/rivenditori (ricerca nov. 2026): vedere il campo src di ogni voce. Prezzi = listino fornitore caricato dall'utente.
+   Gli utenti possono aggiungere o modificare voci (Excel «Archivio materiali»): stesse chiavi, la versione dell'utente prevale. */
+const ARCH0 = {
+  mod: {
+    tri420lwbb: { brand: 'TRIENERGIA', model: 'TRI420LW-BB', desc: 'full black, 108 mezze celle N-type', p: 420, voc: 38.46, vmp: 31.97, isc: 14.09, imp: 13.14, bvoc: -0.28, gp: -0.36, L: 1.720, W: 1.132, kg: 21, fuse: 25, vmax: 1500, snowPa: 3600, price: 110.66,
+      src: 'Datasheet Trienergia TRIxxxLW-BB 2026. Peso: il datasheet riporta 10,80 kg (probabile refuso), usato 21 kg prudenziale.' },
+    tw455: { brand: 'TW Solar', model: 'TWMNH-48HW455', desc: 'TNC 2.0 monofacciale vetro-vetro, 96 mezze celle', p: 455, voc: 36.10, vmp: 30.44, isc: 15.89, imp: 14.95, bvoc: -0.24, gp: -0.28, L: 1.762, W: 1.134, kg: 23.7, fuse: 30, vmax: 1500, snowPa: 5400, price: 55.78,
+      src: 'Sigla confermata dal fornitore. Dati elettrici da rivenditore (tienda-solar.es); coeff. Voc della serie 48HW (solar-stack).' },
+    gcl495: { brand: 'GCL', model: 'GCL-NR10R/54BGDF 495', desc: 'back contact (xBC) bifacciale full black', p: 495, voc: 40.77, vmp: 34.50, isc: 15.20, imp: 14.35, bvoc: -0.22, gp: -0.26, L: 1.800, W: 1.134, kg: 24.8, fuse: 30, vmax: 1500, snowPa: 5400, price: 82.39,
+      src: 'Dati serie NR10R/54BGDF (Synapsun, sun.store). Sigla confermata dal fornitore (nov. 2026).' },
+    tw505: { brand: 'TW Solar', model: 'TWMNH-54HD505', desc: 'TNC bifacciale vetro-vetro, 108 mezze celle', p: 505, voc: 39.12, vmp: 32.46, isc: 16.42, imp: 15.56, bvoc: -0.28, gp: -0.28, L: 1.961, W: 1.134, kg: 26.5, fuse: 30, vmax: 1500, snowPa: 5400, price: 65.27,
+      src: 'Sigla confermata dal fornitore. Dati elettrici da rivenditore (tienda-solar.es); coefficienti dalla serie 54HD (globalsunhub); carico neve non indicato, 5400 Pa ipotesi.' }
+  },
+  inv: {
+    zcs1p3000: { brand: 'ZCS', model: '1PH 3000TLM-V3', ph: 1, hyb: false, pac: 3, mppt: 2, inp: 1, vmax: 600, vmin: 80, vmaxm: 550, imax: 15, isc: 22.5, iac: 15, price: 452.62, src: 'Datasheet ZCS 1PH 3000-6000TLM-V3' },
+    zcs1p3680: { brand: 'ZCS', model: '1PH 3680TLM-V3', ph: 1, hyb: false, pac: 3.68, mppt: 2, inp: 1, vmax: 600, vmin: 80, vmaxm: 550, imax: 15, isc: 22.5, iac: 16, price: 479.45, src: 'Datasheet ZCS 1PH 3000-6000TLM-V3' },
+    zcs1p5000: { brand: 'ZCS', model: '1PH 5000TLM-V3', ph: 1, hyb: false, pac: 5, mppt: 2, inp: 1, vmax: 600, vmin: 80, vmaxm: 550, imax: 15, isc: 22.5, iac: 25, price: 526.11, src: 'Datasheet ZCS 1PH 3000-6000TLM-V3' },
+    zcs1p6000: { brand: 'ZCS', model: '1PH 6000TLM-V3', ph: 1, hyb: false, pac: 6, mppt: 2, inp: 1, vmax: 600, vmin: 80, vmaxm: 550, imax: 15, isc: 22.5, iac: 29, price: 558.78, src: 'Datasheet ZCS 1PH 3000-6000TLM-V3' },
+    zcs3p55: { brand: 'ZCS', model: '3PH 5.5KTL-V3', ph: 3, hyb: false, pac: 5, mppt: 2, inp: [2, 1], vmax: 1100, vmin: 140, vmaxm: 1000, imax: [30, 15], isc: [45, 22.5], iac: 8.3, price: 795.69, src: 'Scheda tecnica ZCS 3PH 3.3-12KTL-V3 (5 kW nominali, 5,5 kVA max)' },
+    zcs3p66: { brand: 'ZCS', model: '3PH 6.6KTL-V3', ph: 3, hyb: false, pac: 6, mppt: 2, inp: [2, 1], vmax: 1100, vmin: 140, vmaxm: 1000, imax: [30, 15], isc: [45, 22.5], iac: 10, price: 827.08, src: 'Scheda tecnica ZCS 3PH 3.3-12KTL-V3 (6 kW nominali, 6,6 kVA max)' },
+    zcs3p88: { brand: 'ZCS', model: '3PH 8.8KTL-V3', ph: 3, hyb: false, pac: 8, mppt: 2, inp: [2, 1], vmax: 1100, vmin: 140, vmaxm: 1000, imax: [30, 15], isc: [45, 22.5], iac: 13.3, price: 848.08, src: 'Scheda tecnica ZCS 3PH 3.3-12KTL-V3 (8 kW nominali, 8,8 kVA max)' },
+    zcs3p11: { brand: 'ZCS', model: '3PH 11KTL-V3', ph: 3, hyb: false, pac: 10, mppt: 2, inp: [2, 1], vmax: 1100, vmin: 140, vmaxm: 1000, imax: [30, 15], isc: [45, 22.5], iac: 16.7, price: 904.08, src: 'Scheda tecnica ZCS 3PH 3.3-12KTL-V3 (10 kW nominali, 11 kVA max)' },
+    zcs3p12: { brand: 'ZCS', model: '3PH 12KTL-V3', ph: 3, hyb: false, pac: 12, mppt: 2, inp: [2, 1], vmax: 1100, vmin: 140, vmaxm: 1000, imax: [30, 15], isc: [45, 22.5], iac: 20, price: 955.4, src: 'Scheda tecnica ZCS 3PH 3.3-12KTL-V3 (12 kW nominali, 13,2 kVA max)' },
+    zcs3p15: { brand: 'ZCS', model: '3PH 15000TL-V3', ph: 3, hyb: false, pac: 15, mppt: 2, inp: 2, vmax: 1100, vmin: 140, vmaxm: 1000, imax: 26, isc: 36, iac: 23.9, price: 1179.38, src: 'Scheda tecnica ZCS 3PH 15-24KTL-V3 (2 MPPT, non 3)' },
+    zcs3p20: { brand: 'ZCS', model: '3PH 20000TL-V3', ph: 3, hyb: false, pac: 20, mppt: 2, inp: 2, vmax: 1100, vmin: 140, vmaxm: 1000, imax: 26, isc: 36, iac: 31.9, price: 1389.36, src: 'Scheda tecnica ZCS 3PH 15-24KTL-V3 (2 MPPT, non 3)' },
+    zcsh1p3680: { brand: 'ZCS', model: '1PH HYD 3680 ZP1', ph: 1, hyb: true, pac: 3.68, mppt: 2, inp: 1, vmax: 550, vmin: 85, vmaxm: 520, imax: 16, isc: 22.5, iac: 16.7, pbatt: 3.68, bmod: 'zbt5k', bmax: 4, price: 1019.56, src: 'Datasheet ZCS 1PH HYD 3000-6000 ZP1 (serie confermata: batterie ZBT 5K, max 4 moduli)' },
+    zcsh1p5000: { brand: 'ZCS', model: '1PH HYD 5000 ZP1', ph: 1, hyb: true, pac: 5, mppt: 2, inp: 1, vmax: 550, vmin: 85, vmaxm: 520, imax: 16, isc: 22.5, iac: 25, pbatt: 5, bmod: 'zbt5k', bmax: 4, price: 1101.22, src: 'Datasheet ZCS 1PH HYD 3000-6000 ZP1 (serie confermata)' },
+    zcsh1p6000: { brand: 'ZCS', model: '1PH HYD 6000 ZP1', ph: 1, hyb: true, pac: 6, mppt: 2, inp: 1, vmax: 550, vmin: 85, vmaxm: 520, imax: 16, isc: 22.5, iac: 30, pbatt: 6, bmod: 'zbt5k', bmax: 4, price: 1123.39, src: 'Datasheet ZCS 1PH HYD 3000-6000 ZP1 (serie confermata)' },
+    zcsh3p5: { brand: 'ZCS', model: '3PH HYD 5000 ZP3', ph: 3, hyb: true, pac: 5, mppt: 3, inp: 1, vmax: 1100, vmin: 160, vmaxm: 950, imax: 20, isc: 25, iac: 8, pbatt: 5, bmod: 'zbt5k', bmax: 6, price: 1380, src: 'Datasheet ZCS 3PH HYD 5000-12000 ZP3 (serie confermata: batterie ZBT 5K, max 6 moduli)' },
+    zcsh3p6: { brand: 'ZCS', model: '3PH HYD 6000 ZP3', ph: 3, hyb: true, pac: 6, mppt: 3, inp: 1, vmax: 1100, vmin: 160, vmaxm: 950, imax: 20, isc: 25, iac: 9.6, pbatt: 6, bmod: 'zbt5k', bmax: 6, price: 1537.51, src: 'Datasheet ZCS 3PH HYD 5000-12000 ZP3 (serie confermata)' },
+    zcsh3p8: { brand: 'ZCS', model: '3PH HYD 8000 ZP3', ph: 3, hyb: true, pac: 8, mppt: 3, inp: 1, vmax: 1100, vmin: 160, vmaxm: 950, imax: 20, isc: 25, iac: 12.8, pbatt: 8, bmod: 'zbt5k', bmax: 6, price: 1646, src: 'Datasheet ZCS 3PH HYD 5000-12000 ZP3 (serie confermata)' },
+    zcsh3p10: { brand: 'ZCS', model: '3PH HYD 10000 ZP3', ph: 3, hyb: true, pac: 10, mppt: 3, inp: 1, vmax: 1100, vmin: 160, vmaxm: 950, imax: 20, isc: 25, iac: 15.9, pbatt: 10, bmod: 'zbt5k', bmax: 6, price: 1695, src: 'Datasheet ZCS 3PH HYD 5000-12000 ZP3 (serie confermata)' },
+    zcsh3p12: { brand: 'ZCS', model: '3PH HYD 12000 ZP3', ph: 3, hyb: true, pac: 12, mppt: 3, inp: 1, vmax: 1100, vmin: 160, vmaxm: 950, imax: 20, isc: 25, iac: 19.1, pbatt: 10, bmod: 'zbt5k', bmax: 6, price: 1734.66, src: 'Datasheet ZCS 3PH HYD 5000-12000 ZP3 (serie confermata)' },
+    zcsh3p15: { brand: 'ZCS', model: '3PH HYD15000 ZSS', ph: 3, hyb: true, pac: 15, mppt: 2, inp: 2, vmax: 1000, vmin: 180, vmaxm: 960, imax: 25, isc: 30, iac: 24, pbatt: 15, bmod: 'weco5k3hv', bmax: 0, price: 2333.1, src: 'Datasheet ZCS 3PH HYD 10000-20000 ZSS (modello confermato: batterie HV WeCo 5k3 con HV Box, NON ZBT 5K; aggiungere la batteria in archivio con il suo prezzo)' }
+  },
+  batt: {
+    zbt5k: { brand: 'ZCS', model: 'HV ZBT 5K', kwh: 5.1, nmin: 1, nmax: 6, price: 1236.54, src: 'Datasheet ZCS ZP1/ZP3: modulo 5,1 kWh, 1-4 moduli in monofase (ZP1), 1-6 in trifase (ZP3). Capacità nominale: l\'utile può essere inferiore.' }
+  }
+};
+let ARCH = { mod: {}, inv: {}, batt: {} };
+const archName = (e) => [e.brand, e.model].filter(Boolean).join(' ');
+function setArchive(user) {
+  // rimuove le voci d'archivio precedenti
+  for (const k of Object.keys(MODS)) if (k.startsWith('x_')) delete MODS[k];
+  for (const k of Object.keys(INVS)) if (k.startsWith('x_')) delete INVS[k];
+  ARCH = { mod: {}, inv: {}, batt: {} };
+  for (const t of ['mod', 'inv', 'batt']) {
+    Object.assign(ARCH[t], JSON.parse(JSON.stringify(ARCH0[t])));
+    for (const [id, e] of Object.entries((user && user[t]) || {})) { if (e && e.deleted) delete ARCH[t][id]; else if (e) ARCH[t][id] = Object.assign({}, ARCH[t][id] || {}, e); }
+  }
+  for (const [id, e] of Object.entries(ARCH.mod)) {
+    MODS['x_' + id] = { name: archName(e) + (e.desc ? ' · ' + e.desc : ''), brand: e.brand, src: e.src || '', arch: true, p: +e.p, voc: +e.voc, vmp: +e.vmp, isc: +e.isc, imp: +e.imp, bvoc: +e.bvoc, gp: +e.gp, L: +e.L, W: +e.W, kg: +e.kg, fuse: +e.fuse || 25, vmax: +e.vmax || 1500, snowPa: +e.snowPa || 5400, price: +e.price || 0 };
+  }
+  for (const [id, e] of Object.entries(ARCH.inv)) {
+    const arr = (v) => Array.isArray(v) ? v.map(Number) : +v;
+    INVS['x_' + id] = { name: archName(e), brand: e.brand, src: e.src || '', arch: true, ph: +e.ph, hyb: !!e.hyb, pac: +e.pac, mppt: +e.mppt, inp: arr(e.inp), vmax: +e.vmax, vmin: +e.vmin, vmaxm: +e.vmaxm, imax: arr(e.imax), isc: arr(e.isc),
+      iac: +e.iac || +(e.ph === 1 ? e.pac * 1000 / 230 : e.pac * 1000 / (Math.sqrt(3) * 400)).toFixed(1), vac: +e.ph === 1 ? 230 : 400, pbatt: +e.pbatt || 0, bmod: e.bmod || '', bmax: +e.bmax || 0, price: +e.price || 0 };
+  }
+}
+const brands = () => [...new Set(Object.values(INVS).filter(i => i.arch).map(i => i.brand))];
+const atM = (v, j) => Array.isArray(v) ? (v[j] != null ? v[j] : v[v.length - 1]) : v;   // valore per l'MPPT j (ingressi asimmetrici)
+
+setArchive(null);
 
 /* ---------- Coperture ---------- */
 const KIT_LABEL = { hook: 'ganci su coppi/tegole', rail_screw: 'binari su arcarecci', minirail: 'mini-rail su lamiera', ballast: 'zavorrato su tetto piano' };
@@ -646,7 +720,7 @@ function variants(S, R) {
   const clone = () => JSON.parse(JSON.stringify(S));
   const mk = (batt) => {
     const s = clone(); s.price_mode = 'markup'; s.markup = R.tot.markup; s.inv_sel = 'auto'; s.batt_on = batt;
-    if (batt) { s.batt_kwh = Math.max(2, Math.round(R.d.Pdc)); s.batt_kw = 0; }
+    if (batt) { s.batt_kwh = Math.max(2, Math.round(R.d.Pdc)); s.batt_kw = 0; s.batt_n = 0; }
     const r = compute(s); const pl = r.plan;
     return { batt, kwh: batt ? r.d.battKwh : 0, inv: r.d.I.name, prod: r.d.prod, cost: r.tot.cost, net: r.tot.net, gross: r.tot.gross, margin: r.tot.margin, profit: r.tot.profit, netto: r.fisc.netto, detr: r.fisc.detr,
       pb: pl ? pl.central.pb : null, pbp: pl ? pl.prudent.pb : null, van: pl ? pl.central.van : 0, tir: pl ? pl.central.tir : null, sh: pl ? pl.central.sh : 0, y1: pl ? pl.central.y1.sav + pl.central.y1.rid : 0 };
@@ -672,7 +746,7 @@ function market(S, R) {
 
 /* ---------- Potenza obiettivo: proposta di configurazione e verifica di fattibilità ---------- */
 function propose(S) {
-  const M = S.mod, Am = M.L * M.W, fill = S.fill || 0.8, target = +S.target_kwp || 0;
+  const M = (S.mod_preset && S.mod_preset.startsWith('x_') && MODS[S.mod_preset]) ? MODS[S.mod_preset] : S.mod, Am = M.L * M.W, fill = S.fill || 0.8, target = +S.target_kwp || 0;
   if (!(target > 0) || !(M.p > 0)) return null;
   const fal = (S.falde || []).map((f, i) => ({ i, yf: orientFactor(f.az, f.tilt) * (1 - (f.shade || 0) / 100), cap: f.area > 0 ? Math.floor(f.area * fill / Am) : null }));
   if (!fal.length) return null;
@@ -752,7 +826,8 @@ function battPrice(E) {
 /* ---------- Prezzi di riferimento (costo per l'installatore, ipotesi 2026: sostituire con listini) ---------- */
 /* ---------- Listino utente: chiave → valore. Sostituisce i prezzi di default in tutte le offerte ---------- */
 let LIST = {};
-function setListino(m) { LIST = {}; for (const [k, v] of Object.entries(m || {})) { const n = (v && typeof v === 'object') ? v.v : v; if (n !== '' && n != null && isFinite(+n)) LIST[k] = +n; } }
+let LDESC = {};   // descrizioni commerciali del listino (marca/modello), per chiave
+function setListino(m) { LIST = {}; LDESC = {}; for (const [k, v] of Object.entries(m || {})) { const n = (v && typeof v === 'object') ? v.v : v; if (n !== '' && n != null && isFinite(+n)) LIST[k] = +n; if (v && typeof v === 'object' && v.d && String(v.d).trim()) LDESC[k] = String(v.d).trim(); } }
 const LP = (k, def) => (LIST[k] !== undefined ? LIST[k] : def);
 const PR0 = {
   opt: 55, opt_ctrl: 175,
@@ -806,6 +881,7 @@ function catalog() {
   out.push({ key: 'par.e_rid', group: 'Parametri energia', label: 'Prezzo di ritiro dedicato GSE (energia immessa)', um: '€/kWh', def: E_RID });
   out.push({ key: 'par.cost_h', group: 'Manodopera', label: 'Costo orario manodopera (default delle offerte)', um: '€/h', def: 32 });
   for (const [k, I] of Object.entries(INVS)) out.push({ key: 'inv.' + k, group: 'Inverter e accessori', label: 'Inverter ' + I.name, um: '€/pz', def: I.price });
+  for (const [id, b] of Object.entries(ARCH.batt)) out.push({ key: 'bm.' + id, group: 'Accumulo', label: 'Modulo batteria ' + archName(b) + ' (' + String(b.kwh).replace('.', ',') + ' kWh)', um: '€/modulo', def: +b.price || 0 });
   for (const [x, y] of BATT_CURVE) out.push({ key: 'batt.' + x, group: 'Accumulo', label: `Batteria LFP: prezzo a ${x} kWh`, um: '€/kWh', def: y });
   for (const [k, v] of Object.entries(PR0)) if (CAT_LABELS[k]) out.push({ key: 'pr.' + k, group: CAT_LABELS[k][0], label: CAT_LABELS[k][1], um: CAT_LABELS[k][2], def: v });
   for (const sct of DC_SECTIONS) out.push({ key: 'cab.dc' + (sct === 4 ? '' : '.' + sct), group: 'Cavi e quadri', label: `Cavo solare H1Z2Z2-K 1×${sct} mm²`, um: '€/m', def: DC_PRICES[sct] });
@@ -830,7 +906,7 @@ function defaults() {
     mod_preset: 'g430', mod: Object.assign({}, MODS.g430),
     opt_pct: 0,
     inv_sel: 'auto', dcac_max: 1.3, dcac_min: 0.85,
-    batt_on: false, batt_kwh: 10, batt_kw: 0,
+    batt_on: false, batt_kwh: 10, batt_kw: 0, batt_model: '', batt_n: 0, inv_brand: 'ZCS',
     wb_on: false, wb_kw: 7.4, wb_line_m: 15, wb_det: false,
     l_ac1: 8, l_ac2: 15, dv_ac_max: 1.0, k_group_ac: 0.8, posa_ac: 'tubo', t_amb: 30, dv_dc_max: 1.0, k_group_dc: 0.8, posa_wb: 'tubo', dv_wb_max: 2.0,
     str_kit: 'auto', str_orient: 'v', hook_per_mod: 0, ballast_kg: 0, days_man: 0, target_on: false, target_kwp: 0, fv_esistente: false, conc_name: '', conc_price: 0, conc_kwp: 0, conc_batt: 0, conc_note: '',
@@ -859,10 +935,13 @@ function compute(S) {
   const chk = (lvl, title, detail, ref) => checks.push({ lvl, title, detail, ref: ref || '' });
   const add = (cat, id, desc, qty, um, unit, o = {}) => {
     if (!(qty > 0)) return;
+    const lk = o.lk || (PR0[id] !== undefined ? 'pr.' + id : null), cd = lk && LDESC[lk];
+    if (cd) desc = o.rep ? o.rep(cd) : desc + ' — ' + cd;
     const u = (ov[id] !== undefined && ov[id] !== '' && !isNaN(+ov[id])) ? +ov[id] : unit;
     items.push({ cat, id, desc, qty, um, unit: u, def: unit, edited: u !== unit, mat: !!o.mat, pass: !!o.pass, nomk: !!o.pass || cat === C.SIC, vcat: o.vcat || 'imp', det: o.det !== false, ref: o.ref || '', tot: qty * u });
   };
-  const M = S.mod, Am = M.L * M.W;
+  const M = (S.mod_preset && S.mod_preset.startsWith('x_') && MODS[S.mod_preset]) ? MODS[S.mod_preset] : S.mod, Am = M.L * M.W;   // modello d'archivio: dati sempre aggiornati
+  d.M = M;
   const roof = ROOFS[S.roof_type] || ROOFS.coppi;
   d.roof = roof;
   const falde = (S.falde || []).filter(f => f.n > 0);
@@ -880,23 +959,47 @@ function compute(S) {
   d.VocTmin = VocTmin; d.VmpTmax = VmpTmax;
 
   /* ---- stringhe di una falda su un dato inverter ---- */
-  const sizeFalda = (N, I) => {
+  const sizeFalda = (N, I, j = 0) => {
+    const inp = atM(I.inp, j), isc = atM(I.isc, j), imax = atM(I.imax, j);
     const NsMax = Math.floor(Math.min(I.vmax, M.vmax) / VocTmin);
     const NsMaxM = Math.floor(I.vmaxm / VmpTmin);
     const NsMin = Math.ceil(I.vmin / VmpTmax);
-    for (let s = 1; s <= I.inp; s++) {
+    let iscFail = false;
+    for (let s = 1; s <= inp; s++) {
       if (N % s) continue;
       const Ns = N / s;
       if (Ns < NsMin || Ns > NsMax) continue;
-      if (s * M.isc > I.isc) continue;
-      return { ok: true, s, Ns, NsMin, NsMax, NsMaxM, clip: s * M.imp > I.imax, highV: Ns > NsMaxM };
+      if (s * M.isc > isc) { iscFail = true; continue; }
+      return { ok: true, s, Ns, NsMin, NsMax, NsMaxM, mppt: j, imax, iscI: isc, clip: s * M.imp > imax, highV: Ns > NsMaxM };
     }
-    return { ok: false, NsMin, NsMax, NsMaxM };
+    return { ok: false, NsMin, NsMax, NsMaxM, mppt: j, iscFail, imax, iscI: isc };
+  };
+  // assegnazione falde → MPPT: la falda più grande all'MPPT con più capacità (ingressi asimmetrici, es. 30 A + 15 A)
+  const assign = (I) => {
+    const cap = j => atM(I.inp, j) * atM(I.imax, j);
+    const mp = [...Array(I.mppt).keys()].sort((a, b) => cap(b) - cap(a) || a - b);
+    const fo = falde.map((f, i) => i).sort((a, b) => falde[b].n - falde[a].n || a - b);
+    const out = []; fo.forEach((fi, k) => out[fi] = mp[k]); return out;
   };
   const evalInv = (I) => {
     const r = { I, ok: true, why: '', fs: [] };
     if (d.nF > I.mppt) { r.ok = false; r.why = `servono ${d.nF} MPPT, l'inverter ne ha ${I.mppt}`; return r; }
-    for (const f of falde) { const z = sizeFalda(f.n, I); r.fs.push(z); if (!z.ok) { r.ok = false; r.why = `falda da ${f.n} moduli non compatibile con la finestra di stringa (${z.NsMin}–${z.NsMax} moduli)`; } }
+    const asg = assign(I);
+    const used = new Set(asg);
+    falde.forEach((f, i) => { let z = sizeFalda(f.n, I, asg[i]);
+      // falda troppo lunga per un solo MPPT: se ci sono MPPT liberi la si divide in stringhe uguali su più ingressi
+      if (!z.ok) {
+        const free = [...Array(I.mppt).keys()].filter(j => !used.has(j));
+        for (let k = 2; k <= 1 + free.length && !z.ok; k++) {
+          if (f.n % k) continue;
+          const js = [asg[i]].concat(free.slice(0, k - 1)), parts = js.map(j => sizeFalda(f.n / k, I, j));
+          if (parts.every(x => x.ok && x.s === parts[0].s && x.Ns === parts[0].Ns)) {
+            js.slice(1).forEach(j => used.add(j));
+            z = Object.assign({}, parts[0], { s: parts[0].s * k, split: k, mpptList: js, clip: parts.some(x => x.clip), highV: parts.some(x => x.highV) });
+          }
+        }
+      }
+      r.fs.push(z); if (!z.ok && r.ok) { r.ok = false; r.why = z.iscFail ? `falda da ${f.n} moduli: corrente di cortocircuito oltre il limite dell'MPPT (${z.iscI} A)` : `falda da ${f.n} moduli non compatibile con la finestra di stringa (${z.NsMin}–${z.NsMax} moduli)`; } });
     r.Pac = I.pac; r.ratio = d.Pdc / I.pac;
     r.stringsTot = r.fs.reduce((a, z) => a + (z.s || 0), 0);
     return r;
@@ -906,9 +1009,12 @@ function compute(S) {
   const wantHyb = !!S.batt_on;
   d.invAuto = S.inv_sel === 'auto';
   let pick = null; const tried = [];
-  const candidates = d.invAuto
-    ? Object.entries(INVS).filter(([k, I]) => I.hyb === wantHyb && (fase === 3 ? true : I.ph === 1) && !(fase === 3 && I.ph === 1 && I.pac > 6))
-    : [[S.inv_sel, INVS[S.inv_sel]]].filter(x => x[1]);
+  const brandOk = (I) => !S.inv_brand || S.inv_brand === 'gen' ? !I.arch : (I.arch && I.brand === S.inv_brand);
+  const fitOk = (I) => I.hyb === wantHyb && (fase === 3 ? true : I.ph === 1) && !(fase === 3 && I.ph === 1 && I.pac > 6) && !(S.batt_on && S.batt_model && I.arch && I.bmod && I.bmod !== S.batt_model);
+  let candidates = d.invAuto ? Object.entries(INVS).filter(([k, I]) => fitOk(I) && brandOk(I)) : [[S.inv_sel, INVS[S.inv_sel]]].filter(x => x[1]);
+  d.brandFallback = false;
+  if (d.invAuto && !candidates.length) { candidates = Object.entries(INVS).filter(([k, I]) => fitOk(I) && !I.arch); d.brandFallback = true; }
+  if (!d.invAuto && !candidates.length) { candidates = Object.entries(INVS).filter(([k, I]) => fitOk(I) && brandOk(I)); d.invMissing = true; }
   for (const [k, I] of candidates) {
     const r = evalInv(I); r.key = k; tried.push(r);
     if (!r.ok) continue;
@@ -921,8 +1027,9 @@ function compute(S) {
   d.I = I; d.invKey = pick ? pick.key : 'm5'; d.pick = pick;
   d.Pac = I.pac; d.ratio = d.Pdc > 0 ? d.Pdc / I.pac : 0;
   d.hyb = I.hyb;
-  d.fs = falde.map((f, i) => Object.assign({ f }, pick && pick.fs[i] ? pick.fs[i] : sizeFalda(f.n, I)));
+  d.fs = falde.map((f, i) => Object.assign({ f }, pick && pick.fs[i] ? pick.fs[i] : sizeFalda(f.n, I, i)));
   d.nStr = d.fs.reduce((a, z) => a + (z.ok ? z.s : 1), 0);
+  d.fs.forEach((z, i) => { z.mlab = z.mpptList ? z.mpptList.map(j => j + 1).join('+') : String((z.mppt != null ? z.mppt : i) + 1); });
   d.Am = Am; d.Atot = d.Ntot * Am;
 
   /* ---- produzione ---- */
@@ -938,10 +1045,12 @@ function compute(S) {
 
   /* ---- verifiche tecniche ---- */
   if (!d.Ntot) chk('err', 'Nessun modulo', 'Inserisci almeno una falda con il numero di moduli.');
+  if (d.brandFallback) chk('warn', 'Nessun inverter ' + S.inv_brand + ' adatto', `In archivio non c'è un inverter ${S.inv_brand} ${wantHyb ? 'ibrido ' : ''}${fase === 3 ? 'trifase' : 'monofase'} compatibile: la scelta automatica usa i modelli generici.`);
+  if (d.invMissing) chk('warn', 'Inverter dell\'offerta non presente in archivio', `Il modello salvato nell'offerta (${S.inv_sel}) non è nel tuo archivio: scelto in automatico. Importa l'archivio del collega o scegli un altro modello.`);
   if (pick && !pick.ok) chk('err', 'Nessun inverter compatibile', `${pick.why}. Cambia il numero di moduli per falda (es. stringhe da ${d.fs[0] ? d.fs[0].NsMin : '?'} a ${d.fs[0] ? d.fs[0].NsMax : '?'} moduli) o scegli un altro inverter.`, 'CEI 82-25 · IEC 62548');
   else if (pick) {
     if (!d.invAuto) chk('info', 'Inverter scelto a mano', `${I.name}.`);
-    chk('ok', 'Stringhe compatibili con l\'inverter', d.fs.map(z => `${z.f.n} mod. → ${z.s}×${z.Ns}`).join(' · '), 'CEI 64-8/7 sez. 712 · IEC 62548');
+    chk('ok', 'Stringhe compatibili con l\'inverter', d.fs.map(z => `${z.f.n} mod. → ${z.s}×${z.Ns}` + (I.mppt > 1 ? ` (MPPT ${z.mlab}${z.split ? ', una stringa per ingresso' : ''})` : '')).join(' · ') + (I.arch ? ` · Isc stringa ${M.isc} A ≤ ${d.fs.map(z => z.iscI).filter((v, i, a) => a.indexOf(v) === i).join('/')} A` : ''), 'CEI 64-8/7 sez. 712 · IEC 62548');
     chk('ok', 'Voc a Tmin entro il limite di tensione', `Voc modulo a ${S.t_min} °C = ${VocTmin.toFixed(1).replace('.', ',')} V; max ${Math.min(I.vmax, M.vmax)} V.`, 'CEI 64-8/7 712');
     if (d.fs.some(z => z.highV)) chk('warn', 'Vmpp a Tmin sopra la finestra MPPT', 'Con il freddo intenso possibile perdita di produzione.');
     if (d.fs.some(z => z.clip)) chk('warn', 'Corrente di MPPT oltre la massima di funzionamento', 'L\'inverter limiterà la corrente nelle ore di picco (clipping): verificare datasheet.');
@@ -996,18 +1105,41 @@ function compute(S) {
   const lenOf = (f) => (S.str_orient === 'o' ? M.L : M.W) + 0.02;   // lunghezza di binario per modulo: moduli in verticale = larghezza, in orizzontale = lunghezza
   const impVat = d.Pdc > F.kwpMax ? 'imp22' : 'imp';
 
-  add(C.MOD, 'mod', `Modulo FV ${M.name}`, N, 'pz', modPrice, { mat: true });
+  add(C.MOD, 'mod', `Modulo FV ${M.name}`, N, 'pz', modPrice, { mat: true, lk: 'mod.' + S.mod_preset, rep: c => 'Modulo FV ' + c });
+  if (S.mod_preset !== 'custom' && LDESC['mod.' + S.mod_preset]) chk('info', 'Modulo con descrizione commerciale su dati generici', `In offerta compare «${LDESC['mod.' + S.mod_preset]}», ma stringhe e potenza sono calcolate con i dati del modulo generico (${M.p} Wp). Per un modulo reale usare «Modulo a scelta» con i dati del datasheet.`);
   if (!(modPrice > 0)) chk('err', 'Prezzo del modulo mancante', 'Per il modulo scelto non c\'è un prezzo in listino: inseriscilo nel campo «Costo modulo» o nel Listino prezzi.');
   d.Nopt = Math.round(N * (S.opt_pct || 0) / 100);
   add(C.MOD, 'opt', 'Ottimizzatore di potenza', d.Nopt, 'pz', PR.opt, { mat: true });
   add(C.MOD, 'opt_ctrl', 'Gateway gestione ottimizzatori', d.Nopt > 0 ? 1 : 0, 'pz', PR.opt_ctrl, { mat: true });
-  add(C.INV, 'inv', I.name, 1, 'pz', LP('inv.' + d.invKey, I.price), { mat: true });
-  add(C.INV, 'meter', 'Misuratore di scambio per monitoraggio e gestione autoconsumo', S.meter ? 1 : 0, 'pz', fase === 3 ? PR.meter_3 : PR.meter_1, { mat: true });
+  add(C.INV, 'inv', I.name, 1, 'pz', LP('inv.' + d.invKey, I.price), { mat: true, lk: 'inv.' + d.invKey, rep: c => 'Inverter ' + c });
+  if (LDESC['inv.' + d.invKey]) chk('info', 'Inverter con descrizione commerciale su dati generici', `In offerta compare «${LDESC['inv.' + d.invKey]}»; la verifica delle stringhe usa i dati generici (${I.name}): controllare il datasheet.`);
+  add(C.INV, 'meter', 'Misuratore di scambio per monitoraggio e gestione autoconsumo', S.meter ? 1 : 0, 'pz', fase === 3 ? PR.meter_3 : PR.meter_1, { mat: true, lk: fase === 3 ? 'pr.meter_3' : 'pr.meter_1' });
 
-  // accumulo
-  d.battKwh = S.batt_on ? S.batt_kwh : 0;
-  d.battKw = S.batt_on ? (S.batt_kw > 0 ? S.batt_kw : Math.round(S.batt_kwh * 0.5 * 10) / 10) : 0;
+  // accumulo: generico (curva €/kWh) oppure modello d'archivio a moduli
+  const BM = S.batt_on && S.batt_model ? ARCH.batt[S.batt_model] : null;
+  d.battModel = BM ? Object.assign({ id: S.batt_model, name: archName(BM) }, BM) : null;
+  if (BM) {
+    const nmin = Math.max(1, +BM.nmin || 1), nmax = +BM.nmax || 99;
+    const nReq = S.batt_n > 0 ? Math.round(S.batt_n) : Math.max(nmin, Math.ceil((S.batt_kwh || BM.kwh) / BM.kwh - 1e-9));
+    d.battN = nReq; d.battKwh = +(nReq * BM.kwh).toFixed(2);
+    d.battKw = S.batt_kw > 0 ? S.batt_kw : (I.pbatt > 0 ? I.pbatt : Math.round(d.battKwh * 0.5 * 10) / 10);
+  } else {
+    d.battN = 0;
+    d.battKwh = S.batt_on ? S.batt_kwh : 0;
+    d.battKw = S.batt_on ? (S.batt_kw > 0 ? S.batt_kw : (I.pbatt > 0 ? I.pbatt : Math.round(S.batt_kwh * 0.5 * 10) / 10)) : 0;
+  }
+  if (S.batt_on && S.batt_model && !BM) chk('warn', 'Batteria dell\'offerta non presente in archivio', `Il modello «${S.batt_model}» non è nel tuo archivio: usato il prezzo generico a kWh.`);
   if (S.batt_on) {
+    if (BM) {
+      const nm = archName(BM);
+      add(C.BATT, 'batt', `Batteria ${nm}: ${d.battN} moduli × ${String(BM.kwh).replace('.', ',')} kWh = ${String(d.battKwh).replace('.', ',')} kWh (IEC 62619)`, d.battN, 'pz', LP('bm.' + S.batt_model, +BM.price || 0), { mat: true, lk: 'bm.' + S.batt_model, ref: 'IEC 62619 · CEI 0-21' });
+      if (d.battN < (+BM.nmin || 1)) chk('err', 'Moduli batteria sotto il minimo', `${nm}: minimo ${BM.nmin} moduli.`);
+      if (+BM.nmax && d.battN > +BM.nmax) chk('err', 'Moduli batteria oltre il massimo', `${nm}: massimo ${BM.nmax} moduli.`);
+      if (I.arch && I.bmax && d.battN > I.bmax) chk('err', 'Troppi moduli per l\'inverter', `${I.name} gestisce al massimo ${I.bmax} moduli ${nm} (${String(+(I.bmax * BM.kwh).toFixed(1)).replace('.', ',')} kWh).`, 'datasheet inverter');
+      if (I.arch && I.bmod && I.bmod !== S.batt_model) chk('err', 'Batteria non compatibile con l\'inverter', `${I.name} è abbinato alle batterie ${ARCH.batt[I.bmod] ? archName(ARCH.batt[I.bmod]) : I.bmod === 'weco5k3hv' ? 'ZCS WeCo 5k3 HV (con HV Box), non presenti in archivio' : I.bmod}.`, 'datasheet inverter');
+      if (I.arch && I.hyb && !I.bmod) chk('warn', 'Compatibilità batteria da verificare', `Per ${I.name} l'archivio non indica la batteria compatibile: verificare il datasheet.`);
+      if (!(+BM.price > 0) && !(LP('bm.' + S.batt_model, 0) > 0)) chk('err', 'Prezzo batteria mancante', `Inserisci il prezzo del modulo ${nm} nel Listino o nell'archivio.`);
+    } else
     add(C.BATT, 'batt', `Batteria LFP ${S.batt_kwh} kWh utili con BMS (IEC 62619)`, S.batt_kwh, 'kWh', battPrice(S.batt_kwh), { mat: true, ref: 'IEC 62619 · CEI 0-21' });
     add(C.BATT, 'batt_kit', 'Kit di collegamento batteria: cavi di potenza, protezioni DC, staffe o basamento', 1, 'a corpo', PR.batt_kit, { mat: true });
     if (S.meter === false) chk('warn', 'Accumulo senza misuratore di scambio', 'Senza misuratore l\'EMS non gestisce correttamente carica e scarica.');
@@ -1057,7 +1189,7 @@ function compute(S) {
     if (r.fail) dcFail = true; dcMaxDv = Math.max(dcMaxDv, r.dv);
     const m = (z.ok ? z.s : 1) * (2 * l + 4) * 1.05; dcLenBy[r.S] = (dcLenBy[r.S] || 0) + m; return r;
   });
-  for (const sct of DC_SECTIONS) if (dcLenBy[sct]) add(C.BOS, 'dc_cab' + (sct === 4 ? '' : sct), `Cavo solare H1Z2Z2-K 1×${sct} mm² (rosso + nero, sfrido 5%)`, Math.round(dcLenBy[sct]), 'm', LP('cab.dc' + (sct === 4 ? '' : '.' + sct), DC_PRICES[sct]), { mat: true, ref: 'EN 50618 · CEI 82-25' });
+  for (const sct of DC_SECTIONS) if (dcLenBy[sct]) add(C.BOS, 'dc_cab' + (sct === 4 ? '' : sct), `Cavo solare H1Z2Z2-K 1×${sct} mm² (rosso + nero, sfrido 5%)`, Math.round(dcLenBy[sct]), 'm', LP('cab.dc' + (sct === 4 ? '' : '.' + sct), DC_PRICES[sct]), { lk: 'cab.dc' + (sct === 4 ? '' : '.' + sct), mat: true, ref: 'EN 50618 · CEI 82-25' });
   if (dcFail) chk('warn', 'Caduta di tensione DC oltre il limite', `ΔV ${dcMaxDv.toFixed(2).replace('.', ',')}% anche con 10 mm²: accorciare le calate o aumentare la tensione di stringa.`, 'CEI 82-25');
   else chk('ok', 'Linee DC di stringa', `Sezioni ${[...new Set(d.dcSec.map(x => x.S))].join(' / ')} mm² · Iz ≥ 1,25·Isc (${(1.25 * M.isc).toFixed(1).replace('.', ',')} A) · ΔV max ${dcMaxDv.toFixed(2).replace('.', ',')}% (limite ${String(S.dv_dc_max || 1).replace('.', ',')}%)`, 'CEI 82-25 · CEI EN 62548 · EN 50618');
   add(C.BOS, 'mc4', 'Connettori MC4 compatibili (coppie, 3 per stringa)', d.nStr * 3, 'coppie', PR.mc4, { mat: true });
@@ -1067,18 +1199,18 @@ function compute(S) {
   d.ac2 = pickAC(I.iac, S.l_ac2, I.vac, fase === 1 ? 1 : 3, kAC, S.dv_ac_max, S.posa_ac, S.t_amb, 1);
   d.dvTot = d.ac1.dv + d.ac2.dv;
   const nc = fase === 1 ? 3 : 5;   // conduttori
-  add(C.BOS, 'ac1', `Cavo FG16OR16 ${nc}G${d.ac1.S} mm² inverter → quadro AC`, Math.round(S.l_ac1 * 1.05), 'm', +(LP('cab.ac.' + d.ac1.S, AC_PRICE[d.ac1.S]) * (fase === 3 ? 1.5 : 1)).toFixed(2), { mat: true, ref: 'CEI 64-8 · IEC 60364-5-52' });
-  add(C.BOS, 'ac2', `Cavo FG16OR16 ${nc}G${d.ac2.S} mm² quadro AC → quadro generale/punto di consegna`, Math.round(S.l_ac2 * 1.05), 'm', +(LP('cab.ac.' + d.ac2.S, AC_PRICE[d.ac2.S]) * (fase === 3 ? 1.5 : 1)).toFixed(2), { mat: true });
+  add(C.BOS, 'ac1', `Cavo FG16OR16 ${nc}G${d.ac1.S} mm² inverter → quadro AC`, Math.round(S.l_ac1 * 1.05), 'm', +(LP('cab.ac.' + d.ac1.S, AC_PRICE[d.ac1.S]) * (fase === 3 ? 1.5 : 1)).toFixed(2), { lk: 'cab.ac.' + d.ac1.S, mat: true, ref: 'CEI 64-8 · IEC 60364-5-52' });
+  add(C.BOS, 'ac2', `Cavo FG16OR16 ${nc}G${d.ac2.S} mm² quadro AC → quadro generale/punto di consegna`, Math.round(S.l_ac2 * 1.05), 'm', +(LP('cab.ac.' + d.ac2.S, AC_PRICE[d.ac2.S]) * (fase === 3 ? 1.5 : 1)).toFixed(2), { lk: 'cab.ac.' + d.ac2.S, mat: true });
   if (d.ac1.fail || d.ac2.fail) chk('warn', 'Caduta di tensione AC oltre il limite', `ΔV ${(Math.max(d.ac1.dv, d.ac2.dv)).toFixed(2).replace('.', ',')}% anche con 50 mm²: avvicinare l'inverter al quadro.`, 'CEI 64-8');
   else chk('ok', 'Linee AC', `FG16OR16 ${d.ac1.S} / ${d.ac2.S} mm² ${POSA_LABEL[d.ac1.posa] || ''} · Ib ${String(I.iac).replace('.', ',')} A ≤ In ${d.ac1.In} A ≤ Iz ${d.ac1.Iz.toFixed(0)} A (coeff. ${(kAC * d.ac1.kt).toFixed(2).replace('.', ',')}) · ΔV totale ${d.dvTot.toFixed(2).replace('.', ',')}%`, 'CEI 64-8 art. 433, 525 · CEI-UNEL 35024/1 · IEC 60364-5-52');
-  add(C.BOS, 'qac', `Quadro AC FV: magnetotermico ${fase === 1 ? '2P' : '4P'} ${d.ac1.In} A, differenziale (tipo secondo istruzioni inverter), SPD tipo 2, sezionatore`, 1, 'a corpo', fase === 3 ? PR.qac_3 : PR.qac_1, { mat: true, ref: 'CEI 64-8 · CEI EN 61439' });
+  add(C.BOS, 'qac', `Quadro AC FV: magnetotermico ${fase === 1 ? '2P' : '4P'} ${d.ac1.In} A, differenziale (tipo secondo istruzioni inverter), SPD tipo 2, sezionatore`, 1, 'a corpo', fase === 3 ? PR.qac_3 : PR.qac_1, { lk: fase === 3 ? 'pr.qac_3' : 'pr.qac_1', mat: true, ref: 'CEI 64-8 · CEI EN 61439' });
   add(C.BOS, 'spd_dc', 'SPD lato DC tipo 2 aggiuntivi (cavi lunghi o edificio con LPS)', S.lps ? d.nF : 0, 'pz', PR.spd_dc, { mat: true, ref: 'CEI EN 62305 · CEI EN 61643-31' });
   add(C.BOS, 'earth', 'Conduttore di terra/equipotenziale 6 mm² per telai e strutture', Math.round(N * 0.8 + 6), 'm', PR.earth, { mat: true, ref: 'CEI 64-8/7 712.54' });
 
   // wallbox
   if (S.wb_on) {
     const wbk = S.wb_kw > 11.1 ? 'wb_22' : S.wb_kw > 7.5 ? 'wb_11' : 'wb_74';
-    add(C.WB, 'wb', `Stazione di ricarica EV ${S.wb_kw} kW (Modo 3, IEC 61851)`, 1, 'pz', PR[wbk], { mat: true, vcat: 'wb', det: !!S.wb_det, ref: 'CEI 64-8 sez. 722' });
+    add(C.WB, 'wb', `Stazione di ricarica EV ${S.wb_kw} kW (Modo 3, IEC 61851)`, 1, 'pz', PR[wbk], { lk: 'pr.' + wbk, mat: true, vcat: 'wb', det: !!S.wb_det, ref: 'CEI 64-8 sez. 722' });
     const wbPh = S.wb_kw > 7.5 ? 3 : (fase === 3 && S.wb_kw > 3.7 ? 3 : 1);
     const wbIb = wbPh === 1 ? S.wb_kw * 1000 / 230 : S.wb_kw * 1000 / (Math.sqrt(3) * 400);
     d.wbc = pickAC(wbIb, S.wb_line_m, wbPh === 1 ? 230 : 400, wbPh, 1, S.dv_wb_max || 2, S.posa_wb, S.t_amb, 0.95);
@@ -1290,7 +1422,7 @@ function compute(S) {
   return { d, items, checks, byCat, byCatPrice, tot, fisc: fi, plan, S };
 }
 
-const api = { propose, variants, market, BENCH, MODS, INVS, ROOFS, REGIONS, FISC_DEFAULT, PR: PR0, setListino, catalog, defaults, compute, orientFactor, qsk, battPrice, pickAC };
+const api = { setArchive, ARCH0, archive: () => ARCH, brands, propose, variants, market, BENCH, MODS, INVS, ROOFS, REGIONS, FISC_DEFAULT, PR: PR0, setListino, catalog, defaults, compute, orientFactor, qsk, battPrice, pickAC };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.PVRes = api;
 })(this);
 </script>
@@ -1498,12 +1630,14 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 /* ---------- archivio locale ---------- */
 let DB = { v: SCHEMA, offers: {}, cur: null, listino: {} };
 let storeOk = true;
+function legacy(S) { if (S && S.inv_brand === undefined) S.inv_brand = 'gen'; return S; }   // offerte create prima dell'archivio: restano sugli inverter generici
 function load() {
   try { const t = localStorage.getItem(KEY); if (t) { const d = JSON.parse(t); if (d && d.offers) DB = d; } } catch (e) { storeOk = false; }
   if (!DB.listino) DB.listino = {};
   for (const o of Object.values(DB.offers)) { if (o.S && o.S.cost_h === 32) o.S.cost_h = 0; }
-  for (const id of Object.keys(DB.offers)) DB.offers[id].S = merge(newState(), DB.offers[id].S);
-  E.setListino(DB.listino);
+  if (!DB.archivio) DB.archivio = { mod: {}, inv: {}, batt: {} };
+  for (const id of Object.keys(DB.offers)) DB.offers[id].S = merge(newState(), legacy(DB.offers[id].S));
+  applyLayers();
 }
 let saveT = null;
 function save() {
@@ -1525,7 +1659,15 @@ const offerName = S => [S.cliente, S.comune].filter(Boolean).join(' · ') || 'Of
 /* ---------- schema del form ---------- */
 const opt = (a) => a.map(x => Array.isArray(x) ? x : [x, x]);
 const REG = Object.keys(E.REGIONS).sort().map(r => [r, r]);
-const INV_OPTS = [['auto', 'Automatico (il più economico compatibile)']].concat(Object.entries(E.INVS).map(([k, v]) => [k, v.name]));
+const INV_OPTS = [], MOD_OPTS = [], BRAND_OPTS = [], BATT_OPTS = [];
+function refreshArchOpts() {
+  const fill = (arr, items) => { arr.length = 0; items.forEach(x => arr.push(x)); };
+  const I = Object.entries(E.INVS), M = Object.entries(E.MODS), A = E.archive();
+  fill(MOD_OPTS, M.filter(([k, v]) => v.arch).map(([k, v]) => [k, v.name]).concat(M.filter(([k, v]) => !v.arch).map(([k, v]) => [k, v.name])));
+  fill(INV_OPTS, [['auto', 'Automatico (il più economico compatibile della gamma scelta)']].concat(I.filter(([k, v]) => v.arch).map(([k, v]) => [k, v.name + ' · ' + nf(v.pac, 2) + ' kW' + (v.hyb ? ' · ibrido' : '')]), I.filter(([k, v]) => !v.arch).map(([k, v]) => [k, v.name])));
+  fill(BRAND_OPTS, E.brands().map(b => [b, b + ' (archivio)']).concat([['gen', 'Generici (valori tipici)']]));
+  fill(BATT_OPTS, [['', 'Generica (prezzo a kWh dal listino)']].concat(Object.entries(A.batt).map(([k, b]) => [k, [b.brand, b.model].filter(Boolean).join(' ') + ' · moduli da ' + nf(b.kwh, 1) + ' kWh'])));
+}
 const SCHEMA_RAW = [
   { id: 'cli', t: 'Cliente e immobile', s: 'dati della pratica e requisiti per la detrazione', open: true, f: [
     { k: 'cliente', l: 'Cliente', t: 's', wide: true },
@@ -1560,15 +1702,17 @@ const SCHEMA_RAW = [
     { k: 'fill', l: 'Fattore di riempimento falda', t: 'n', step: 0.05, h: 'Quota di area utile occupabile dai moduli.' }
   ] },
   { id: 'falde', custom: 'falde', t: 'Falde e disposizione', s: 'moduli, orientamento, inclinazione, ombre' },
-  { id: 'mod', t: 'Moduli e inverter', s: 'scelta componenti e verifica di stringa', f: [
-    { k: 'mod_preset', l: 'Modulo', t: 'o', o: Object.entries(E.MODS).map(([k, v]) => [k, v.name]), wide: true, preset: true },
+  { id: 'mod', t: 'Moduli e inverter', s: 'scelta componenti e verifica di stringa', box: 'archBox', f: [
+    { k: 'mod_preset', l: 'Modulo', t: 'o', o: MOD_OPTS, wide: true, preset: true },
+    { k: '_modinfo', t: 'i', wide: true, show: S => isArchMod(S), txt: S => { const m = E.MODS[S.mod_preset]; return m ? `Dati da archivio: ${m.p} Wp · Voc ${nf(m.voc, 2)} V · Vmpp ${nf(m.vmp, 2)} V · Isc ${nf(m.isc, 2)} A · Impp ${nf(m.imp, 2)} A · coeff. Voc ${nf(m.bvoc, 2)} %/°C · ${nf(m.L * 1000, 0)}×${nf(m.W * 1000, 0)} mm · ${nf(m.kg, 1)} kg.${m.src ? ' Fonte: ' + m.src : ''}` : ''; } },
     { k: 'mod_price', l: 'Costo modulo', t: 'n', u: '€/pz', step: 1, auto: (r) => r.d.modAuto > 0 ? nf(r.d.modAuto, 0) : '—', h: 'Vuoto = prezzo da listino (auto). Se per il modulo scelto non c\'è un prezzo, inseriscilo qui.' },
-    { k: 'mod.p', l: 'Potenza', t: 'n', u: 'Wp' }, 
-    { k: 'mod.voc', l: 'Voc', t: 'n', u: 'V', step: 0.1 }, { k: 'mod.vmp', l: 'Vmpp', t: 'n', u: 'V', step: 0.1 },
-    { k: 'mod.isc', l: 'Isc', t: 'n', u: 'A', step: 0.01 }, { k: 'mod.imp', l: 'Impp', t: 'n', u: 'A', step: 0.01 },
-    { k: 'mod.bvoc', l: 'Coeff. Voc', t: 'n', u: '%/°C', step: 0.01 }, { k: 'mod.gp', l: 'Coeff. potenza', t: 'n', u: '%/°C', step: 0.01 },
-    { k: 'mod.L', l: 'Lunghezza', t: 'n', u: 'm', step: 0.001 }, { k: 'mod.W', l: 'Larghezza', t: 'n', u: 'm', step: 0.001 },
-    { k: 'mod.vmax', l: 'Tensione max sistema', t: 'n', u: 'V' }, { k: 'mod.snowPa', l: 'Carico neve max modulo', t: 'n', u: 'Pa' },
+    { k: 'mod.p', show: S => !isArchMod(S), l: 'Potenza', t: 'n', u: 'Wp' }, 
+    { k: 'mod.voc', show: S => !isArchMod(S), l: 'Voc', t: 'n', u: 'V', step: 0.1 }, { k: 'mod.vmp', show: S => !isArchMod(S), l: 'Vmpp', t: 'n', u: 'V', step: 0.1 },
+    { k: 'mod.isc', show: S => !isArchMod(S), l: 'Isc', t: 'n', u: 'A', step: 0.01 }, { k: 'mod.imp', show: S => !isArchMod(S), l: 'Impp', t: 'n', u: 'A', step: 0.01 },
+    { k: 'mod.bvoc', show: S => !isArchMod(S), l: 'Coeff. Voc', t: 'n', u: '%/°C', step: 0.01 }, { k: 'mod.gp', show: S => !isArchMod(S), l: 'Coeff. potenza', t: 'n', u: '%/°C', step: 0.01 },
+    { k: 'mod.L', show: S => !isArchMod(S), l: 'Lunghezza', t: 'n', u: 'm', step: 0.001 }, { k: 'mod.W', show: S => !isArchMod(S), l: 'Larghezza', t: 'n', u: 'm', step: 0.001 },
+    { k: 'mod.vmax', show: S => !isArchMod(S), l: 'Tensione max sistema', t: 'n', u: 'V' }, { k: 'mod.snowPa', show: S => !isArchMod(S), l: 'Carico neve max modulo', t: 'n', u: 'Pa' },
+    { k: 'inv_brand', l: 'Gamma inverter per la scelta automatica', t: 'o', o: BRAND_OPTS, wide: true },
     { k: 'inv_sel', l: 'Inverter', t: 'o', o: INV_OPTS, wide: true },
     { k: 'dcac_max', l: 'DC/AC massimo', t: 'n', step: 0.05 }, { k: 'dcac_min', l: 'DC/AC minimo', t: 'n', step: 0.05 },
     { k: 'opt_pct', l: 'Ottimizzatori sul', t: 'n', u: '% moduli', step: 10, h: 'Utili con ombre o falde miste.' },
@@ -1577,7 +1721,9 @@ const SCHEMA_RAW = [
   { id: 'acc', t: 'Accumulo e ricarica EV', s: 'batteria domestica e wallbox', f: [
     { k: 'batt_on', l: 'Aggiungi accumulo (inverter ibrido)', t: 'c', wide: true },
     { k: 'fv_esistente', l: 'Accumulo su impianto FV già esistente', t: 'c', wide: true, h: 'La batteria aggiunta a un impianto in esercizio ha IVA 22%.' },
-    { k: 'batt_kwh', l: 'Capacità utile', t: 'n', u: 'kWh', step: 1 }, { k: 'batt_kw', l: 'Potenza batteria (0 = auto)', t: 'n', u: 'kW', step: 0.5 },
+    { k: 'batt_model', l: 'Batteria', t: 'o', o: BATT_OPTS, wide: true },
+    { k: 'batt_n', l: 'Numero di moduli', t: 'n', step: 1, show: S => !!S.batt_model, auto: (r) => r.d.battN || '—', h: 'Vuoto = moduli necessari per la capacità indicata.' },
+    { k: 'batt_kwh', l: 'Capacità', t: 'n', u: 'kWh', step: 1, h: 'Con una batteria d\'archivio è la capacità desiderata: il numero di moduli si arrotonda per eccesso.' }, { k: 'batt_kw', l: 'Potenza batteria (0 = auto)', t: 'n', u: 'kW', step: 0.5 },
     { k: 'wb_on', l: 'Aggiungi stazione di ricarica EV', t: 'c', wide: true },
     { k: 'wb_kw', l: 'Potenza wallbox', t: 'o', o: [[3.7, '3,7 kW'], [7.4, '7,4 kW'], [11, '11 kW'], [22, '22 kW']], num: true },
     { k: 'wb_line_m', l: 'Linea dedicata', t: 'n', u: 'm', step: 1 },
@@ -1678,7 +1824,10 @@ function recompute() { const o = cur(); if (!o) return; try { R = E.compute(o.S)
 /* ============================================================
    FORM
    ============================================================ */
+const isArchMod = S => String(S.mod_preset || '').startsWith('x_') && !!E.MODS[S.mod_preset];
 function fieldHtml(f, S) {
+  if (f.show && !f.show(S)) return '';
+  if (f.t === 'i') { const t = f.txt(S); return t ? `<div class="fld wide"><span class="help" style="margin:0">${esc(t)}</span></div>` : ''; }
   const v = getp(S, f.k);
   const id = 'f_' + f.k.replace('.', '_');
   const w = f.wide ? ' wide' : '';
@@ -1859,7 +2008,7 @@ function renderLower() {
   const important = checks.filter(c => c.lvl === 'err' || c.lvl === 'warn');
   const rest = checks.filter(c => c.lvl === 'info'), oks = checks.filter(c => c.lvl === 'ok');
   const dims = [
-    ['Moduli', `${d.Ntot} × ${S.mod.p} Wp = ${nf(d.Pdc, 2)} kWp`],
+    ['Moduli', `${d.Ntot} × ${d.M.p} Wp = ${nf(d.Pdc, 2)} kWp`],
     ['Inverter', `${d.I.name} · DC/AC ${nf(d.ratio, 2)}`],
     ['Stringhe', d.fs.map(z => z.ok ? `${z.s} × ${z.Ns} moduli` : 'non valida').join(' · ') + ` (finestra ${d.fs[0] ? d.fs[0].NsMin : '–'}–${d.fs[0] ? d.fs[0].NsMax : '–'} moduli)`],
     ['Voc a Tmin', nf(d.VocTmin, 1) + ' V per modulo'],
@@ -1901,7 +2050,7 @@ function renderLower() {
     <tr><td colspan="5">IVA</td><td class="num">${eur(tot.vat)}</td></tr><tr class="tot"><td colspan="5">Totale IVA inclusa</td><td class="num">${eur(tot.gross)}</td></tr></tbody></table></div></section>`);
 }
 function updatePlaceholders() {
-  if (!R) return; const S = cur().S;
+  if (!R) return; const S = cur().S; renderArchBox();
   for (const sec of SCHEMA_F) for (const f of (sec.f || [])) {
     if (!f.auto) continue; const el = document.getElementById('f_' + f.k.replace('.', '_')); if (!el) continue;
     try { const a = f.auto(R, S); el.placeholder = a === '' ? '' : 'auto ' + a; } catch (e) { }
@@ -1913,7 +2062,7 @@ function renderTarget() {
   let P = null; try { P = E.propose(S); } catch (e) { console.error(e); }
   if (!P) { box.innerHTML = '<p class="help">Inserisci la potenza obiettivo.</p>'; return; }
   const cl = { ok: 'ok', cond: 'warn', no: 'err' }[P.verdict], lab = { ok: 'Fattibile', cond: 'Fattibile con condizioni', no: 'Non fattibile così' }[P.verdict];
-  const cur_ = (S.falde || []).reduce((a, f) => a + (f.n || 0), 0) * S.mod.p / 1000;
+  const cur_ = (S.falde || []).reduce((a, f) => a + (f.n || 0), 0) * (R && R.d.M ? R.d.M.p : S.mod.p) / 1000;
   const same = P.alloc.every((n, i) => n === S.falde[i].n);
   box.innerHTML = `<div style="background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:12px 14px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="pill ${cl}">${lab}</span><b>Proposta: ${P.N} moduli = ${nf(P.kwp, 2)} kWp</b><span class="muted">(obiettivo ${nf(P.target, 2)} kWp, ${P.delta >= 0 ? '+' : ''}${nf(P.delta, 2)})</span></div>
     <p style="margin:8px 0 0;font-size:13px">Ripartizione: ${P.alloc.map((n, i) => `falda ${i + 1}: <b>${n}</b>${P.fal[i].cap !== null ? ` (max ${P.fal[i].cap})` : ''} · resa relativa ${Math.round(P.fal[i].yf * 100)}%`).join(' · ')}</p>
@@ -1936,10 +2085,18 @@ function renderStructBox() {
     <div class="tablewrap" style="margin-top:8px"><table class="boq" style="min-width:520px"><thead><tr><th>Componente</th><th class="num">Quantità</th><th class="num">Unitario</th><th class="num">Costo</th></tr></thead><tbody>${rows}<tr class="tot"><td colspan="3">Totale struttura (costo / prezzo netto ${eur(pr)})</td><td class="num">${eur(tot)}</td></tr></tbody></table></div>
     <p class="help" style="margin:6px 0 0">${nf(d.Pdc > 0 ? tot / d.Pdc : 0, 0)} €/kWp. I prezzi unitari si aggiornano dal <b>Listino prezzi</b> (gruppo «Strutture») o riga per riga nel computo.</p></div>`;
 }
+function renderArchBox() {
+  const box = $('#archBox'); if (!box || !R) return;
+  const I = R.d.I, M = R.d.M || null, a = (v) => Array.isArray(v) ? v.join('/') : v;
+  const rows = R.d.fs.map((z, i) => `<tr><td>Falda ${i + 1}</td><td class="num">${z.f.n}</td><td>${z.ok ? `${z.s} × ${z.Ns}` : '—'}</td><td class="num">${I.mppt > 1 ? 'MPPT ' + z.mlab : '—'}</td><td class="num">${z.ok ? nf(z.Ns * R.d.VocTmin, 0) + ' V' : '—'}</td><td class="num">${z.iscI != null ? nf(z.iscI, 1) + ' A' : '—'}</td></tr>`).join('');
+  box.innerHTML = `<div style="background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:12px 14px"><div><b>Inverter: ${esc(I.name)}</b> · ${nf(I.pac, 2)} kW${I.hyb ? ' · ibrido' : ''}${I.arch ? '' : ' <span class="muted">(valori tipici di categoria)</span>'}</div>
+    <p class="help" style="margin:4px 0 8px">${I.mppt} MPPT · ${a(I.inp)} stringhe per MPPT · finestra MPPT ${I.vmin}–${I.vmaxm} V · Vmax ${I.vmax} V · Imax ${a(I.imax)} A · Isc max ${a(I.isc)} A${I.hyb && I.bmax ? ' · max ' + I.bmax + ' moduli batteria' : ''}${I.src ? '<br>Fonte: ' + esc(I.src) : ''}</p>
+    <div class="tablewrap"><table class="boq" style="min-width:520px"><thead><tr><th>Falda</th><th class="num">Moduli</th><th>Stringhe</th><th class="num">Ingresso</th><th class="num">Voc a Tmin</th><th class="num">Isc max MPPT</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
 function renderAll(withForm) {
   const o = cur(); if (!o) return;
   if (withForm) buildForm();
-  renderAside(); renderLower(); updatePlaceholders(); renderTarget(); renderStructBox();
+  renderAside(); renderLower(); updatePlaceholders(); renderTarget(); renderStructBox(); renderArchBox();
   $('#crumb').innerHTML = `<span class="muted">Offerta</span><span class="sep">/</span><span class="crumbsite">${esc(offerName(o.S))}</span>`;
 }
 
@@ -2003,9 +2160,9 @@ function printClient() {
     return `<tr><td>${esc(c)}</td><td class="n">${eur(net)}</td><td class="n">${eur(vat)}</td><td class="n">${eur(net + vat)}</td></tr>`;
   }).join('');
   const comp = [
-    ['Moduli', `${d.Ntot} × ${S.mod.name.replace(/ · .*/, '')} da ${S.mod.p} Wp`],
+    ['Moduli', `${d.Ntot} × ${d.M.name.replace(/ · .*/, '')} da ${d.M.p} Wp`],
     ['Inverter', d.I.name],
-    d.battKwh ? ['Accumulo', `Batteria al litio ferro fosfato da ${d.battKwh} kWh utili`] : null,
+    d.battKwh ? ['Accumulo', d.battModel ? `Batteria al litio ferro fosfato ${d.battModel.name}: ${d.battN} moduli, ${nf(d.battKwh, 1)} kWh` : `Batteria al litio ferro fosfato da ${nf(d.battKwh, 1)} kWh utili`] : null,
     S.wb_on ? ['Ricarica EV', `Stazione di ricarica ${S.wb_kw} kW`] : null,
     ['Copertura', E.ROOFS[S.roof_type].name],
     ['Fornitura', S.fase === 'tri' ? 'Trifase 400 V' : 'Monofase 230 V'],
@@ -2184,7 +2341,13 @@ function exportOne(id) {
   const o = DB.offers[id]; if (!o) return;
   const used = {};   // voci di listino personali presenti al momento dell'esportazione (per riprodurre gli stessi prezzi)
   for (const [k, e] of Object.entries(DB.listino || {})) used[k] = e;
-  const pack = { app: 'fv-residenziale', type: 'offerta', exported: new Date().toISOString(), offers: { [id]: o }, listino: used };
+  const A = E.archive(), ar = { mod: {}, inv: {}, batt: {} };   // modelli d'archivio usati dall'offerta, per il collega
+  const xs = (v) => String(v || '').startsWith('x_') ? String(v).slice(2) : '';
+  if (xs(o.S.mod_preset) && A.mod[xs(o.S.mod_preset)]) ar.mod[xs(o.S.mod_preset)] = A.mod[xs(o.S.mod_preset)];
+  const invK = xs(o.S.inv_sel) || (() => { try { const r = E.compute(o.S); return xs(r.d.invKey); } catch (e) { return ''; } })();
+  if (invK && A.inv[invK]) ar.inv[invK] = A.inv[invK];
+  if (o.S.batt_model && A.batt[o.S.batt_model]) ar.batt[o.S.batt_model] = A.batt[o.S.batt_model];
+  const pack = { app: 'fv-residenziale', type: 'offerta', exported: new Date().toISOString(), offers: { [id]: o }, listino: used, archivio: ar };
   const nm = offerName(o.S).replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'offerta';
   download('offerta-' + nm + '-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(pack, null, 1));
   toast('Offerta esportata: ' + offerName(o.S));
@@ -2194,11 +2357,19 @@ function importText(t) {
   const single = d && d.type === 'offerta';
   const offers = d && d.offers ? d.offers : {};
   let n = 0;
-  for (const [id, o] of Object.entries(offers)) { const mine = DB.offers[id]; if (!mine || (o.updated || 0) > (mine.updated || 0)) { o.S = merge(newState(), o.S); DB.offers[id] = o; n++; } }
+  for (const [id, o] of Object.entries(offers)) { const mine = DB.offers[id]; if (!mine || (o.updated || 0) > (mine.updated || 0)) { o.S = merge(newState(), legacy(o.S)); DB.offers[id] = o; n++; } }
   let nl = 0;
+  // archivio materiali: singola offerta = aggiunge solo i modelli che mancano; backup completo = tiene la versione più recente
+  let na = 0; const U = DB.archivio = DB.archivio || { mod: {}, inv: {}, batt: {} }, A0 = E.archive();
+  for (const t of ['mod', 'inv', 'batt']) for (const [id, e] of Object.entries((d.archivio && d.archivio[t]) || {})) {
+    if (!e) continue;
+    if (single) { if (!A0[t][id]) { U[t][id] = e; na++; } }
+    else if (!U[t][id] || (e.date || '') > (U[t][id].date || '')) { U[t][id] = e; na++; }
+  }
+  if (na) applyLayers();
   const withList = !single || ($('#impListino') && $('#impListino').checked);
   for (const [k, e] of Object.entries(withList ? (d.listino || {}) : {})) { const m = DB.listino[k]; if (e && e.v != null && (!m || (e.date || '') > (m.date || ''))) { DB.listino[k] = e; nl++; } }
-  E.setListino(DB.listino); save(); renderHome(); renderListinoCount(); toast(single ? (n ? 'Offerta importata' : 'Offerta già presente in versione più recente') + (withList ? ' · ' + nl + ' voci di listino aggiornate' : ' · prezzi calcolati con il tuo listino') : n + ' offerte e ' + nl + ' voci di listino importate o aggiornate (si tiene la versione più recente)');
+  applyLayers(); save(); renderHome(); renderListinoCount(); toast((na ? na + ' modelli aggiunti all\'archivio · ' : '') + (single ? (n ? 'Offerta importata' : 'Offerta già presente in versione più recente') + (withList ? ' · ' + nl + ' voci di listino aggiornate' : ' · prezzi calcolati con il tuo listino') : n + ' offerte e ' + nl + ' voci di listino importate o aggiornate (si tiene la versione più recente)'));
 }
 
 
@@ -2210,7 +2381,7 @@ const catalog = () => CAT || (CAT = E.catalog());
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const ageDays = d => d ? Math.floor((Date.now() - new Date(d).getTime()) / 864e5) : null;
 function applyListino(reRender) {
-  E.setListino(DB.listino); save();
+  applyLayers(); save();
   if (view === 'offer') { recompute(); renderAside(); renderLower(); updatePlaceholders(); } else renderHome();
   if (reRender !== false) renderListinoCount();
 }
@@ -2228,13 +2399,14 @@ function renderListino() {
   let last = '';
   $('#listBody').innerHTML = rows.map(i => {
     const e = DB.listino[i.key] || {}, age = ageDays(e.date), stale = e.v != null && age != null && age > 180;
+    const o = offL()[i.key] || {}, base = o.v != null ? o.v : i.def, isOff = o.v != null, diff = e.v != null && Math.abs(e.v - base) > 1e-9;
     const head = i.group !== last ? `<tr class="grp"><th colspan="6">${esc(i.group)}</th></tr>` : ''; last = i.group;
-    return head + `<tr class="${e.v != null ? 'edited' : ''}"><td class="desc">${esc(i.label)}<small>${esc(i.key)} · ${esc(i.um)}</small></td>
-      <td class="num">${nf(i.def, i.def < 10 ? 2 : 0)}</td>
-      <td><input type="number" step="any" data-lk="${i.key}" data-lf="v" value="${e.v != null ? e.v : ''}" placeholder="${nf(i.def, i.def < 10 ? 2 : 0)}" aria-label="Valore personale"></td>
+    return head + `<tr class="${e.v != null ? 'edited' : ''}"><td class="desc">${esc(i.label)}<small>${esc(i.key)} · ${esc(i.um)}</small><input type="text" class="ldesc" data-lk="${i.key}" data-lf="d" value="${esc(e.d || '')}" placeholder="${esc(o.d || 'descrizione commerciale (marca/modello) — facoltativa')}" aria-label="Descrizione commerciale"></td>
+      <td class="num">${nf(base, base < 10 ? 2 : 0)}<small>${isOff ? 'ufficiale' : 'default'}</small>${diff && isOff ? '<span class="pill warn" title="Il tuo valore è diverso da quello ufficiale">≠ uff.</span>' : ''}</td>
+      <td><input type="number" step="any" data-lk="${i.key}" data-lf="v" value="${e.v != null ? e.v : ''}" placeholder="${nf(base, base < 10 ? 2 : 0)}" aria-label="Valore personale"></td>
       <td><input type="text" data-lk="${i.key}" data-lf="src" value="${esc(e.src || '')}" placeholder="fornitore / preventivo" ${e.v == null ? 'disabled' : ''}></td>
       <td><input type="date" data-lk="${i.key}" data-lf="date" value="${esc(e.date || '')}" ${e.v == null ? 'disabled' : ''}>${stale ? `<span class="pill warn" title="Valore non aggiornato da ${age} giorni">${Math.round(age / 30)} mesi</span>` : ''}</td>
-      <td>${e.v != null ? `<button class="rst" type="button" data-lrst="${i.key}" title="Torna al valore di default">↺</button>` : ''}</td></tr>`;
+      <td>${e.v != null ? `<button class="rst" type="button" data-lrst="${i.key}" title="Torna al valore ufficiale/di default">↺</button>` : ''}</td></tr>`;
   }).join('') || '<tr><td colspan="6" class="empty">Nessuna voce.</td></tr>';
   renderListinoCount();
 }
@@ -2242,10 +2414,16 @@ function onListino(e) {
   const t = e.target, k = t.dataset.lk; if (!k) return;
   const fld = t.dataset.lf; let en = DB.listino[k];
   if (fld === 'v') {
-    if (t.value === '' || isNaN(parseFloat(t.value))) { delete DB.listino[k]; }
+    if (t.value === '' || isNaN(parseFloat(t.value))) { if (en && en.d) delete en.v; else delete DB.listino[k]; }
     else { en = en || {}; en.v = parseFloat(t.value); if (!en.date) en.date = todayISO(); DB.listino[k] = en; }
     applyListino();
     if (e.type === 'change') renderListino();
+    return;
+  }
+  if (fld === 'd') {
+    const v = t.value.trim();
+    if (v) { en = en || { date: todayISO() }; en.d = v; DB.listino[k] = en; } else if (en) { delete en.d; if (en.v == null) delete DB.listino[k]; }
+    if (e.type === 'change') { applyListino(); renderListino(); }
     return;
   }
   if (en) { en[fld] = t.value; save(); if (e.type === 'change') { renderListino(); } }
@@ -2291,35 +2469,215 @@ async function importListino(file) {
   if (hi < 0) return toast('Intestazione non trovata: servono le colonne Chiave (o Voce) e Valore.');
   const H = rows[hi].map(c => String(c || '').toLowerCase());
   const col = re => H.findIndex(h => re.test(h));
-  const cK = col(/chiave/), cL = col(/^voce|descrizione/), cV = H.findIndex((h, i) => /valore|prezzo|costo/.test(h) && !/default|listino base/.test(h)), cS = col(/fonte|fornitore/), cD = col(/^data/);
+  const cK = col(/chiave/), cL = col(/^voce|descrizione/), cV = H.findIndex((h, i) => /valore|prezzo|costo/.test(h) && !/default|listino base|ufficiale/.test(h)), cS = col(/fonte|fornitore/), cD = col(/^data/);
   const byKey = new Map(catalog().map(i => [i.key, i])), byLabel = new Map(catalog().map(i => [norm(i.label), i]));
-  let ok = 0, skipped = 0; const unk = [];
+  let ok = 0, skipped = 0, nd = 0; const unk = [];
   for (const r of rows.slice(hi + 1)) {
     if (!r || !r.some(c => c != null && c !== '')) continue;
-    const raw = cV >= 0 ? r[cV] : ''; if (raw === '' || raw == null) { skipped++; continue; }
-    const v = parseNum(raw); if (isNaN(v)) { unk.push(String(r[cK] || r[cL] || '?') + ' (valore non numerico)'); continue; }
     const item = (cK >= 0 && byKey.get(String(r[cK] || '').trim())) || (cL >= 0 && byLabel.get(norm(r[cL])));
+    // descrizione commerciale: la colonna Voce, se diversa dalla descrizione standard (solo con la colonna Chiave)
+    const lab = cK >= 0 && cL >= 0 && item ? String(r[cL] || '').trim() : '';
+    const od = item ? (offL()[item.key] || {}).d : ''; const dsc = lab && norm(lab) !== norm(item.label) && norm(lab) !== norm(od || '') ? lab : '';
+    const raw = cV >= 0 ? r[cV] : '';
+    if (raw === '' || raw == null) {
+      if (item && cK >= 0) { const e = DB.listino[item.key]; if (dsc) { DB.listino[item.key] = Object.assign({}, e || { src: file.name, date: todayISO() }, { d: dsc }); nd++; } else if (e && e.d) { delete e.d; if (e.v == null) delete DB.listino[item.key]; } }
+      skipped++; continue;
+    }
+    const v = parseNum(raw); if (isNaN(v)) { unk.push(String(r[cK] || r[cL] || '?') + ' (valore non numerico)'); continue; }
     if (!item) { unk.push(String(r[cK] || r[cL] || '?')); continue; }
     DB.listino[item.key] = { v, src: cS >= 0 ? String(r[cS] || '').trim() : file.name, date: (cD >= 0 && parseDate(r[cD])) || todayISO() };
+    if (dsc) { DB.listino[item.key].d = dsc; nd++; }
     ok++;
   }
   applyListino(); renderListino();
-  $('#listMsg').innerHTML = `<b>${ok}</b> voci importate da <i>${esc(file.name)}</i>` + (skipped ? `, ${skipped} senza valore` : '') + (unk.length ? `.<br><span style="color:var(--err)">Non riconosciute (${unk.length}):</span> ${esc(unk.slice(0, 12).join(' · '))}${unk.length > 12 ? '…' : ''}` : '.');
+  $('#listMsg').innerHTML = `<b>${ok}</b> voci importate da <i>${esc(file.name)}</i>` + (nd ? `, <b>${nd}</b> descrizioni commerciali` : '') + (skipped ? `, ${skipped} senza valore` : '') + (unk.length ? `.<br><span style="color:var(--err)">Non riconosciute (${unk.length}):</span> ${esc(unk.slice(0, 12).join(' · '))}${unk.length > 12 ? '…' : ''}` : '.');
 }
 async function exportListino() {
   if (!window.ExcelJS) return toast('ExcelJS non disponibile');
   const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet('Listino');
-  ws.addRow(['Chiave', 'Gruppo', 'Voce', 'UM', 'Valore di default', 'Valore (tuo)', 'Fonte', 'Data']).font = { bold: true };
-  for (const i of catalog()) { const e = DB.listino[i.key] || {}; ws.addRow([i.key, i.group, i.label, i.um, i.def, e.v != null ? e.v : null, e.src || '', e.date || '']); }
-  [28, 22, 62, 12, 16, 16, 34, 14].forEach((w, k) => ws.getColumn(k + 1).width = w);
+  ws.addRow(['Chiave', 'Gruppo', 'Voce', 'UM', 'Valore di default', 'Valore (tuo)', 'Fonte', 'Data', 'Ufficiale (sola lettura)']).font = { bold: true };
+  for (const i of catalog()) { const e = DB.listino[i.key] || {}, o = offL()[i.key] || {}; ws.addRow([i.key, i.group, e.d || o.d || i.label, i.um, i.def, e.v != null ? e.v : null, e.src || '', e.date || '', o.v != null ? o.v : null]); }
+  [28, 22, 62, 12, 16, 16, 34, 14, 18].forEach((w, k) => ws.getColumn(k + 1).width = w);
   ws.getColumn(6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
   ws.views = [{ state: 'frozen', ySplit: 1 }];
   await saveXlsx(wb, 'listino-prezzi-fv-residenziale-' + todayISO() + '.xlsx');
-  toast('Listino scaricato: compila «Valore (tuo)», «Fonte» e «Data» e reimportalo.');
+  toast('Listino scaricato: compila «Valore (tuo)», «Fonte» e «Data» (e, se vuoi, la descrizione commerciale in «Voce») e reimportalo.');
+}
+
+/* ============================================================
+   LISTINO UFFICIALE (file pubblicato accanto a index.html, cifrato con password aziendale)
+   Livelli: default del tool < listino ufficiale < valori personali (solo in questo browser)
+   ============================================================ */
+const OFF_FILE = 'listino-ufficiale.json', PW_KEY = 'fvres.lpw';
+let OFF_LOCKED = null;   // file trovato ma password mancante o errata
+const offL = () => (DB.official && DB.official.listino) || {};
+function applyLayers() {
+  const L = {}; for (const [k, e] of Object.entries(offL())) L[k] = Object.assign({}, e);
+  for (const [k, e] of Object.entries(DB.listino || {})) { L[k] = Object.assign({}, L[k] || {}); if (e.v != null) L[k].v = e.v; if (e.d) L[k].d = e.d; }
+  E.setListino(L);
+  const oa = (DB.official && DB.official.archivio) || {}, pa = DB.archivio || {}, A = {};
+  for (const t of ['mod', 'inv', 'batt']) A[t] = Object.assign({}, oa[t] || {}, pa[t] || {});
+  E.setArchive(A); refreshArchOpts();
+}
+const b64 = { enc: u8 => btoa(String.fromCharCode(...u8)), dec: s => Uint8Array.from(atob(s), c => c.charCodeAt(0)) };
+async function pwKey(pw, salt) {
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function encryptObj(obj, pw) {
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await pwKey(pw, salt), new TextEncoder().encode(JSON.stringify(obj))));
+  return { salt: b64.enc(salt), iv: b64.enc(iv), data: b64.enc(ct) };
+}
+async function decryptObj(enc, pw) {
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64.dec(enc.iv) }, await pwKey(pw, b64.dec(enc.salt)), b64.dec(enc.data));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function getPw() { try { return localStorage.getItem(PW_KEY) || ''; } catch (e) { return ''; } }
+function setPw(v) { try { if (v) localStorage.setItem(PW_KEY, v); else localStorage.removeItem(PW_KEY); } catch (e) { } }
+function installOfficial(j, body) {
+  const prev = DB.official && DB.official.version;
+  DB.official = { version: j.version, date: j.date, note: j.note || '', by: j.by || '', listino: body.listino || {}, archivio: body.archivio || { mod: {}, inv: {}, batt: {} }, loaded: new Date().toISOString() };
+  OFF_LOCKED = null; applyLayers(); save();
+  const diff = Object.entries(DB.listino || {}).filter(([k, e]) => e.v != null && offL()[k] && offL()[k].v != null && Math.abs(offL()[k].v - e.v) > 1e-9).length;
+  if (prev !== j.version) toast(`Listino ufficiale ${prev ? 'aggiornato' : 'caricato'} (versione del ${fmtD(j.date)})` + (diff ? ` · ${diff} voci con un tuo valore diverso: vedi Listino → Solo mie` : ''));
+  if (view === 'offer') { recompute(); renderAll(true); } else renderHome();
+  renderOff();
+}
+const fmtD = (iso) => { try { return new Date(iso).toLocaleDateString('it-IT'); } catch (e) { return iso || ''; } };
+async function openOfficial(j, pw) {
+  if (!j || j.type !== 'listino-ufficiale') throw new Error('Il file non è un listino ufficiale');
+  if (!j.enc) return installOfficial(j, j);
+  if (!pw) { OFF_LOCKED = j; renderOff(); return false; }
+  try { const body = await decryptObj(j.enc, pw); setPw(pw); installOfficial(j, body); return true; }
+  catch (e) { OFF_LOCKED = j; renderOff(); return false; }
+}
+async function loadOfficial() {
+  if (!/^https?:/.test(location.protocol)) { renderOff(); return; }   // aperto da file: si usa l'ultima versione salvata o il caricamento manuale
+  try {
+    const r = await fetch(OFF_FILE + '?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) { renderOff(); return; }
+    const j = await r.json();
+    if (DB.official && DB.official.version === j.version) { renderOff(); return; }
+    await openOfficial(j, getPw());
+  } catch (e) { renderOff(); }
+}
+function renderOff() {
+  const O = DB.official, box = $('#offBox'), home = $('#offHome');
+  const nL = O ? Object.keys(O.listino || {}).length : 0, nA = O ? ['mod', 'inv', 'batt'].reduce((a, t) => a + Object.keys((O.archivio || {})[t] || {}).length, 0) : 0;
+  const nMine = Object.values(DB.listino || {}).filter(e => e.v != null || e.d).length;
+  const lock = OFF_LOCKED ? `<div class="offlock"><b>È disponibile ${O ? 'una nuova versione del' : 'il'} listino ufficiale aziendale${OFF_LOCKED.date ? ' (del ' + fmtD(OFF_LOCKED.date) + ')' : ''}.</b> Inserisci la password che ti ha dato il referente (si chiede una volta sola).
+    <span class="offpw"><input type="password" class="offPwIn" placeholder="password del listino" aria-label="Password del listino"><button class="btn sm primary offPwBtn" type="button">Sblocca</button></span><span class="offErr" style="color:var(--err)"></span></div>` : '';
+  if (home) home.innerHTML = lock;
+  if (!box) return;
+  box.innerHTML = lock + `<div class="offstat">${O ? `<b>Listino ufficiale</b> versione del ${fmtD(O.date)}${O.note ? ' · «' + esc(O.note) + '»' : ''} · ${nL} prezzi, ${nA} modelli d'archivio` : '<b>Nessun listino ufficiale</b> caricato: valgono i prezzi di default del tool.'}${nMine ? ` · <span class="pill warn">${nMine} tuoi valori personali</span>` : ''}</div>
+    <details class="offpub"><summary>Gestione listino ufficiale (referente)</summary>
+      <p class="help">Pubblica come ufficiale il listino che vedi ora (ufficiale + tuoi valori + tuo archivio). Il tool scarica <code>${OFF_FILE}</code>: caricalo nel repository GitHub, nella stessa cartella di <code>index.html</code>, sostituendo il precedente. I colleghi lo ricevono alla prossima apertura; le loro modifiche restano solo nel loro browser e non toccano il file.</p>
+      <div class="offform"><input type="text" id="offNote" placeholder="nota di versione (es. listino ZCS novembre)"><button class="btn sm primary" id="offPub" type="button">Pubblica listino ufficiale</button></div>
+      <p class="help">Attenzione: il file è in chiaro. Chi conosce l'indirizzo del sito può leggere i prezzi.</p>
+      <div class="offform"><span class="btn sm filebtn">Carica listino ufficiale da file<input type="file" id="offFile" accept=".json"></span>${O ? '<button class="btn sm ghost" id="offDrop" type="button">Rimuovi listino ufficiale da questo browser</button>' : ''}</div>
+    </details>`;
+}
+async function publishOfficial() {
+  const note = $('#offNote').value.trim(), p1 = '';
+  const L = {};
+  for (const [k, e] of Object.entries(offL())) L[k] = Object.assign({}, e);
+  for (const [k, e] of Object.entries(DB.listino || {})) { L[k] = Object.assign({}, L[k] || {}, e); }
+  const oa = (DB.official && DB.official.archivio) || {}, pa = DB.archivio || {}, A = {};
+  for (const t of ['mod', 'inv', 'batt']) A[t] = Object.assign({}, oa[t] || {}, pa[t] || {});
+  const body = { listino: L, archivio: A };
+  const now = new Date().toISOString();
+  const j = { app: 'fv-residenziale', type: 'listino-ufficiale', version: now, date: now, note };
+  if (p1) j.enc = await encryptObj(body, p1); else Object.assign(j, body);
+  download(OFF_FILE, JSON.stringify(j));
+  if (p1) setPw(p1);
+  DB.listino = {}; DB.archivio = { mod: {}, inv: {}, batt: {} };   // ora sono nel listino ufficiale: i valori personali ripartono da zero
+  installOfficial(j, body); renderListino();
+  toast('File scaricato: caricalo su GitHub accanto a index.html (sostituisci il precedente).');
+}
+async function onOffClick(e) {
+  const t = e.target;
+  if (t.classList.contains('offPwBtn')) {
+    const wrap = t.closest('.offlock'), pw = wrap.querySelector('.offPwIn').value;
+    const ok = await openOfficial(OFF_LOCKED, pw);
+    if (ok === false) { const er = document.querySelectorAll('.offErr'); er.forEach(x => x.textContent = ' Password errata.'); }
+  }
+  if (t.id === 'offPub') publishOfficial();
+  if (t.id === 'offDrop' && confirm('Rimuovere il listino ufficiale da questo browser? Restano i tuoi valori personali e i default.')) { DB.official = null; setPw(''); applyLayers(); save(); renderOff(); if (view === 'offer') { recompute(); renderAll(true); } }
+}
+/* ---------- ARCHIVIO MATERIALI (Excel a fogli) ---------- */
+const ARCH_COLS = {
+  mod: { sheet: 'Moduli', cols: [['id', 'ID'], ['brand', 'Marca'], ['model', 'Modello'], ['desc', 'Descrizione'], ['p', 'Pmax (W)', 1], ['voc', 'Voc (V)', 1], ['vmp', 'Vmpp (V)', 1], ['isc', 'Isc (A)', 1], ['imp', 'Impp (A)', 1], ['bvoc', 'Coeff. Voc (%/°C)', 1], ['gp', 'Coeff. Pmax (%/°C)', 1], ['L', 'Lunghezza (mm)', 1, 1000], ['W', 'Larghezza (mm)', 1, 1000], ['kg', 'Peso (kg)', 1], ['fuse', 'Fusibile max serie (A)'], ['vmax', 'Tensione max sistema (V)'], ['snowPa', 'Carico neve (Pa)'], ['price', 'Prezzo (€/pz)'], ['src', 'Fonte dati']] },
+  inv: { sheet: 'Inverter', cols: [['id', 'ID'], ['brand', 'Marca'], ['model', 'Modello'], ['ph', 'Fasi (1/3)', 1], ['hyb', 'Ibrido (SI/NO)', 1], ['pac', 'Potenza AC nominale (kW)', 1], ['mppt', 'N. MPPT', 1], ['inp', 'Stringhe per MPPT (es. 2/1)', 1], ['vmax', 'Tensione DC max (V)', 1], ['vmin', 'MPPT min (V)', 1], ['vmaxm', 'MPPT max (V)', 1], ['imax', 'Imax per MPPT (A) (es. 30/15)', 1], ['isc', 'Isc max per MPPT (A)', 1], ['iac', 'Corrente AC max (A)'], ['pbatt', 'Potenza batteria (kW)'], ['bmod', 'Batteria compatibile (ID)'], ['bmax', 'Max moduli batteria'], ['price', 'Prezzo (€/pz)'], ['src', 'Fonte dati']] },
+  batt: { sheet: 'Batterie', cols: [['id', 'ID'], ['brand', 'Marca'], ['model', 'Modello'], ['kwh', 'kWh per modulo', 1], ['nmin', 'Moduli min'], ['nmax', 'Moduli max'], ['price', 'Prezzo (€/modulo)'], ['src', 'Fonte dati']] }
+};
+const ARCH_TEXT = ['id', 'brand', 'model', 'desc', 'src', 'bmod', 'hyb'], ARCH_MULTI = ['inp', 'imax', 'isc'];
+function archCount() { const A = E.archive(), u = DB.archivio || {}; const n = t => Object.keys(A[t]).length, m = t => Object.keys(u[t] || {}).length; const el = $('#archCount'); if (el) el.textContent = `${n('mod')} moduli · ${n('inv')} inverter · ${n('batt')} batterie${m('mod') + m('inv') + m('batt') ? ' (di cui ' + (m('mod') + m('inv') + m('batt')) + ' tuoi)' : ''}`; }
+async function exportArchive() {
+  if (!window.ExcelJS) return toast('ExcelJS non disponibile');
+  const wb = new ExcelJS.Workbook(), A = E.archive(), U = DB.archivio || {};
+  const info = wb.addWorksheet('Istruzioni');
+  ['ARCHIVIO MATERIALI · Preventivatore FV residenziale', '', 'Un foglio per tipo: Moduli, Inverter, Batterie. Una riga = un modello. Le colonne con * sono obbligatorie.',
+   'ID: codice breve senza spazi (es. tw455). Righe con lo stesso ID di una voce esistente la sostituiscono; ID nuovo = modello nuovo. Se vuoto viene creato da Marca + Modello.',
+   'MPPT asimmetrici: scrivi i valori separati da / nell\'ordine degli ingressi (es. stringhe 2/1, Imax 30/15, Isc 45/22,5).',
+   'Ibrido: SI o NO. Batteria compatibile: ID della batteria nel foglio Batterie (es. zbt5k).',
+   'Per eliminare un modello che hai aggiunto: scrivi ELIMINA nella colonna Origine.',
+   'Prezzo: è il prezzo base del modello. Se nel Listino hai inserito un valore per la stessa voce, prevale quello del Listino.',
+   'I dati del costruttore vanno presi dal datasheet: tensioni e correnti servono alla verifica delle stringhe (CEI 64-8 sez. 712).'].forEach(t => info.addRow([t]));
+  info.getColumn(1).width = 130; info.getRow(1).font = { bold: true, size: 13 };
+  for (const [t, def] of Object.entries(ARCH_COLS)) {
+    const ws = wb.addWorksheet(def.sheet);
+    ws.addRow(def.cols.map(c => c[1] + (c[2] ? ' *' : '')).concat(['Origine'])).font = { bold: true };
+    for (const [id, e] of Object.entries(A[t])) {
+      ws.addRow(def.cols.map(([k, , , mul]) => { if (k === 'id') return id; let v = e[k]; if (k === 'hyb') return v ? 'SI' : 'NO'; if (Array.isArray(v)) return v.join('/'); if (mul && v != null && v !== '') return Math.round(+v * mul); return v == null ? '' : v; }).concat([U[t] && U[t][id] ? 'tuo' : 'base']));
+    }
+    ws.columns.forEach((c, i) => c.width = i === 0 ? 14 : i < 4 ? 22 : 13); ws.getColumn(def.cols.length).width = 60;
+    ws.views = [{ state: 'frozen', ySplit: 1, xSplit: 3 }];
+  }
+  await saveXlsx(wb, 'archivio-materiali-fv-' + todayISO() + '.xlsx');
+  toast('Archivio scaricato: aggiungi o correggi le righe e reimportalo.');
+}
+async function importArchive(file) {
+  let wb; try { wb = new ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer()); } catch (e) { return toast('File non leggibile: ' + e.message); }
+  const cell = c => c && c.richText ? c.richText.map(x => x.text).join('') : c && c.result != null ? c.result : c;
+  const slug = x => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '').slice(0, 24);
+  const U = DB.archivio = DB.archivio || { mod: {}, inv: {}, batt: {} };
+  let ok = 0, del = 0; const bad = [];
+  for (const [t, def] of Object.entries(ARCH_COLS)) {
+    const ws = wb.worksheets.find(w => norm(w.name) === norm(def.sheet)); if (!ws) continue;
+    const rows = []; ws.eachRow({ includeEmpty: false }, r => { const a = []; r.eachCell({ includeEmpty: true }, (c, i) => a[i - 1] = cell(c.value)); rows.push(a); });
+    if (rows.length < 2) continue;
+    const H = rows[0].map(h => norm(String(h || '').replace('*', '')));
+    const ix = def.cols.map(([k, lab]) => H.indexOf(norm(lab))), io = H.indexOf('origine');
+    for (const r of rows.slice(1)) {
+      if (!r.some(v => v != null && v !== '')) continue;
+      const g = (k) => { const n = def.cols.findIndex(c => c[0] === k); return n >= 0 && ix[n] >= 0 ? r[ix[n]] : undefined; };
+      let id = String(g('id') || '').trim() || slug((g('brand') || '') + (g('model') || ''));
+      id = slug(id); if (!id) { bad.push('riga senza ID né modello'); continue; }
+      if (io >= 0 && /elimina/i.test(String(r[io] || ''))) { if (U[t][id]) { delete U[t][id]; del++; } else if (E.ARCH0[t][id]) { U[t][id] = { deleted: true }; del++; } continue; }
+      const e = {}; let miss = [];
+      def.cols.forEach(([k, lab, req, mul]) => {
+        if (k === 'id') return; let v = g(k);
+        if (v == null || v === '') { if (req) miss.push(lab); return; }
+        if (ARCH_TEXT.includes(k)) { e[k] = k === 'hyb' ? /^(si|sì|s|1|true|yes|x)$/i.test(String(v).trim()) : String(v).trim(); return; }
+        if (ARCH_MULTI.includes(k) && /\//.test(String(v))) { const a = String(v).split('/').map(parseNum); if (a.some(isNaN)) { miss.push(lab); return; } e[k] = a; return; }
+        const n = parseNum(v); if (isNaN(n)) { miss.push(lab); return; } e[k] = mul ? n / mul : n;
+      });
+      if (miss.length) { bad.push(`${def.sheet} ${g('model') || id}: ${miss.join(', ')}`); continue; }
+      if (t === 'mod' && (e.bvoc > 0 || e.voc <= e.vmp || e.isc < e.imp)) { bad.push(`${def.sheet} ${e.model || id}: dati incoerenti (Voc ≤ Vmpp, Isc < Impp o coeff. Voc positivo)`); continue; }
+      if (t === 'inv' && ![1, 3].includes(e.ph)) { bad.push(`${def.sheet} ${e.model || id}: fasi 1 o 3`); continue; }
+      const base = E.ARCH0[t][id];
+      const same = (a, b) => Array.isArray(a) || Array.isArray(b) ? JSON.stringify([].concat(a)) === JSON.stringify([].concat(b)) : typeof a === 'number' || typeof b === 'number' ? Math.abs((+a || 0) - (+b || 0)) < 1e-6 : String(a == null ? '' : a) === String(b == null ? '' : b);
+      if (base && def.cols.every(([k]) => k === 'id' || same(e[k], base[k]))) { if (U[t][id]) { delete U[t][id]; } continue; }   // identica alla voce di base: non serve salvarla
+      e.date = todayISO(); U[t][id] = e; ok++;
+    }
+  }
+  applyLayers(); save(); archCount(); renderListino();
+  if (view === 'offer') { recompute(); renderAll(true); }
+  $('#listMsg').innerHTML = `Archivio: <b>${ok}</b> modelli importati o aggiornati${del ? `, ${del} eliminati` : ''} da <i>${esc(file.name)}</i>` + (bad.length ? `.<br><span style="color:var(--err)">Scartati (${bad.length}):</span> ${esc(bad.slice(0, 10).join(' · '))}${bad.length > 10 ? '…' : ''}` : '.');
 }
 function openListino(on) {
   const d = $('#listino'); d.hidden = on === undefined ? !d.hidden : !on;
-  if (!d.hidden) { listFilter = { q: '', g: '', mod: false }; $('#listQ').value = ''; $('#listMod').checked = false; $('#listMsg').textContent = ''; renderListino(); }
+  if (!d.hidden) { archCount(); renderOff(); listFilter = { q: '', g: '', mod: false }; $('#listQ').value = ''; $('#listMod').checked = false; $('#listMsg').textContent = ''; renderListino(); }
 }
 
 /* ============================================================
@@ -2327,6 +2685,10 @@ function openListino(on) {
    ============================================================ */
 function init() {
   load(); renderSave();
+  document.addEventListener('click', e => { if (e.target.closest('#offBox,#offHome')) onOffClick(e); });
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('offPwIn')) { const b = e.target.closest('.offlock').querySelector('.offPwBtn'); b && b.click(); } });
+  document.addEventListener('change', e => { if (e.target.id === 'offFile') { const f0 = e.target.files[0]; if (!f0) return; f0.text().then(t => openOfficial(JSON.parse(t), getPw()).then(r => { if (r === false) toast('Inserisci la password del listino per sbloccarlo'); })).catch(er => toast('File non valido: ' + er.message)); e.target.value = ''; } });
+  loadOfficial();
   const f = $('#form');
   f.addEventListener('input', e => { if (e.target.type === 'number' || e.target.type === 'text') onForm(e); });
   f.addEventListener('change', e => { if (e.target.tagName === 'SELECT' || e.target.type === 'checkbox') onForm(e); });
@@ -2376,7 +2738,9 @@ function init() {
   $('#listBody').addEventListener('click', e => { const k = e.target.dataset.lrst; if (k) { delete DB.listino[k]; applyListino(); renderListino(); } });
   $('#listImport').onchange = e => { const f0 = e.target.files[0]; if (f0) importListino(f0); e.target.value = ''; };
   $('#listExport').onclick = () => exportListino();
-  $('#listReset').onclick = () => { if (Object.keys(DB.listino).length && confirm('Ripristinare tutti i prezzi di default? Le offerte verranno ricalcolate.')) { DB.listino = {}; applyListino(); renderListino(); } };
+  $('#archExport').onclick = () => exportArchive();
+  $('#archImport').onchange = e => { const f0 = e.target.files[0]; if (f0) importArchive(f0); e.target.value = ''; };
+  $('#listReset').onclick = () => { if (Object.keys(DB.listino).length && confirm('Annullare tutti i tuoi valori personali? Tornano i prezzi del listino ufficiale (o di default) e le offerte vengono ricalcolate.')) { DB.listino = {}; applyListino(); renderListino(); } };
   renderListinoCount();
   $('#btnBackup').onclick = () => { const b = $('#backup'); b.hidden = !b.hidden; };
   $('#bkDownload').onclick = () => download('backup-fv-residenziale-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(DB));
@@ -2401,15 +2765,15 @@ const SCH = {
 };
 
 function schemaData(R, S) {
-  const d = R.d, I = d.I, M = S.mod, fase = d.fase, tri = fase === 3;
+  const d = R.d, I = d.I, M = d.M || S.mod, fase = d.fase, tri = fase === 3;
   const spiExt = d.Pac > 11.08, rinc = d.Pac > 20;
   const mppt = d.fs.map((z, i) => {
     const sec = d.dcSec[i] || {};
     const Ns = z.Ns || z.f.n, s = z.s || 1;
     return {
-      i: i + 1, falda: `Falda ${i + 1} · ${SCH.az(z.f.az)} (az ${nf(z.f.az || 0, 0)}°, tilt ${nf(z.f.tilt || 0, 0)}°)`,
+      i: z.mlab || (i + 1), iscI: z.iscI != null ? z.iscI : I.isc, falda: `Falda ${i + 1} · ${SCH.az(z.f.az)} (az ${nf(z.f.az || 0, 0)}°, tilt ${nf(z.f.tilt || 0, 0)}°)`,
       n: z.f.n, s, Ns, kwp: z.f.n * M.p / 1000, ok: !!z.ok,
-      voc: Ns * d.VocTmin, vmp: Ns * M.vmp, isc: s * M.isc,
+      voc: Ns * d.VocTmin, vmp: Ns * M.vmp, isc: (z.split ? s / z.split : s) * M.isc, split: z.split || 0,
       S: sec.S, L: z.f.l_dc || 15, dv: sec.dv, Iz: sec.Iz
     };
   });
@@ -2419,7 +2783,7 @@ function schemaData(R, S) {
     d, I, M, tri, fase, spiExt, rinc, mppt,
     ac1: ac(d.ac1, S.l_ac1), ac2: ac(d.ac2, S.l_ac2),
     nc: tri ? 5 : 3, poles: tri ? '4P' : '2P', V: tri ? '400/230 V 3F+N' : '230 V F+N',
-    batt: S.batt_on ? { kwh: d.battKwh, kw: d.battKw } : null,
+    batt: S.batt_on ? { kwh: d.battKwh, kw: d.battKw, name: d.battModel ? d.battModel.name + ' · ' + d.battN + ' moduli' : '' } : null,
     wb: S.wb_on && d.wbc ? { kw: S.wb_kw, ph: wbPh, S: d.wbc.S, In: d.wbc.In, Iz: d.wbc.Iz, dv: d.wbc.dv, L: S.wb_line_m, poles: wbPh === 3 ? '4P' : '2P' } : null,
     meter: !!S.meter, lps: !!S.lps
   };
@@ -2455,7 +2819,7 @@ function schemaSvg(R, S) {
     // simbolo stringa: due moduli + puntini
     g += `<rect x="24" y="${y - 16}" width="26" height="32" fill="#fff"/>${L(24, y + 16, 50, y - 16)}<rect x="58" y="${y - 16}" width="26" height="32" fill="#fff"/>${L(58, y + 16, 84, y - 16)}`;
     g += T(92, y + 4, '···', { s: 11 });
-    g += T(24, y - 22, `MPPT ${m.i} — ${m.s} × ${m.Ns} moduli (${nf(m.kwp, 2)} kWp)`, { w: 700, s: 9.5 });
+    g += T(24, y - 22, `MPPT ${m.i} — ${m.s} × ${m.Ns} moduli${m.split ? ' (1 stringa per ingresso)' : ''} (${nf(m.kwp, 2)} kWp)`, { w: 700, s: 9.5 });
     g += T(24, y + 30, m.falda, { s: 8.5 });
     g += T(24, y + 41, `Voc(${S.t_min} °C) ${nf(m.voc, 0)} V · Vmp ${nf(m.vmp, 0)} V · Isc ${nf(m.isc, 1)} A`, { s: 8.5 });
     // cavo DC
@@ -2486,7 +2850,7 @@ function schemaSvg(R, S) {
     g += L(xb, yI0 + hI + 60, xb, yb - 4);
     g += `<rect x="${xb - 40}" y="${yb - 4}" width="80" height="38" fill="#fff"/>`;
     for (let k = 0; k < 4; k++) g += L(xb - 22 + k * 14, yb + (k % 2 ? 9 : 4), xb - 22 + k * 14, yb + (k % 2 ? 25 : 30), { w: k % 2 ? 1.4 : 2.6 });
-    g += T(xb + 46, yb + 10, `BAT — LFP ${nf(D.batt.kwh, 0)} kWh / ${nf(D.batt.kw, 1)} kW`, { s: 8.5, w: 700 });
+    g += T(xb + 46, yb + 10, `BAT — ${D.batt.name ? D.batt.name + ' · ' : 'LFP '}${nf(D.batt.kwh, 1)} kWh / ${nf(D.batt.kw, 1)} kW`, { s: 8.5, w: 700 });
     g += T(xb + 46, yb + 21, 'BMS (IEC 62619) · protezioni DC del costruttore', { s: 8.5 });
     g += T(xb + 46, yb + 32, D.I.hyb ? 'collegamento DC sull\'ibrido (verif. scheda)' : 'inverter non ibrido: accumulo lato AC da definire', { s: 8 });
   }
@@ -2551,12 +2915,12 @@ function schemaSvg(R, S) {
 
 function schemaRows(R, S) {
   const D = schemaData(R, S), rows = [];
-  D.mppt.forEach(m => rows.push(['Stringhe MPPT ' + m.i, `${m.s} × ${m.Ns} moduli ${esc(S.mod.name || '')}`, `Voc(${S.t_min} °C) ${nf(m.voc, 0)} V ≤ Vmax inverter ${Math.min(D.I.vmax, S.mod.vmax)} V · Isc ${nf(m.isc, 1)} A ≤ ${D.I.isc} A`, 'CEI 64-8 sez. 712 · IEC 62548']));
+  D.mppt.forEach(m => rows.push(['Stringhe MPPT ' + m.i, `${m.s} × ${m.Ns} moduli ${esc(D.M.name || '')}`, `Voc(${S.t_min} °C) ${nf(m.voc, 0)} V ≤ Vmax inverter ${Math.min(D.I.vmax, D.M.vmax)} V · Isc ${nf(m.isc, 1)} A ≤ ${nf(m.iscI, 1)} A`, 'CEI 64-8 sez. 712 · IEC 62548']));
   D.mppt.forEach(m => rows.push(['Linea DC MPPT ' + m.i, `H1Z2Z2-K 2×1×${m.S} mm² · ${nf(m.L, 0)} m`, `Iz ${nf(m.Iz || 0, 0)} A ≥ 1,25·Isc ${nf(1.25 * m.isc, 1)} A · ΔV ${nf(m.dv || 0, 2)}%`, 'EN 50618 · CEI 82-25']));
   rows.push(['QS-DC', 'Sezionatore lato DC', 'Integrato nell\'inverter: verificare scheda tecnica; altrimenti sezionatore DC esterno per MPPT', 'CEI 64-8 sez. 712']);
   rows.push(['SPD DC', D.lps ? `SPD tipo 2 DC, uno per MPPT (${D.mppt.length} pz)` : 'Integrati nell\'inverter (se previsti)', D.lps ? 'Edificio con LPS: aggiuntivi lato DC' : 'Necessità e classe da valutazione del rischio di fulminazione', 'CEI EN 62305-2 · CEI EN 61643-31']);
   rows.push(['INV', esc(D.I.name), `${nf(D.d.Pac, 2)} kW AC · rapporto DC/AC ${nf(D.d.ratio, 2)} · ${D.spiExt ? 'SPI esterno' : 'SPI/DDI integrati'}`, 'CEI 0-21']);
-  if (D.batt) rows.push(['BAT', `Accumulo LFP ${nf(D.batt.kwh, 0)} kWh / ${nf(D.batt.kw, 1)} kW`, 'Collegamento DC sull\'inverter ibrido; protezioni DC del costruttore (QB)', 'IEC 62619 · CEI 0-21']);
+  if (D.batt) rows.push(['BAT', `Accumulo ${D.batt.name ? D.batt.name + ' · ' : 'LFP '}${nf(D.batt.kwh, 1)} kWh / ${nf(D.batt.kw, 1)} kW`, 'Collegamento DC sull\'inverter ibrido; protezioni DC del costruttore (QB)', 'IEC 62619 · CEI 0-21']);
   rows.push(['Linea AC1', `FG16OR16 ${D.nc}G${D.ac1.S} mm² · ${nf(D.ac1.L, 0)} m`, `Ib ${nf(D.I.iac, 1)} A ≤ In ${D.ac1.In} A ≤ Iz ${nf(D.ac1.Iz, 0)} A · ΔV ${nf(D.ac1.dv, 2)}%`, 'CEI 64-8 art. 433, 525 · CEI-UNEL 35024/1']);
   rows.push(['SPD T2', 'SPD tipo 2 AC nel quadro AC FV', 'Uc e In secondo sistema TT e costruttore', 'CEI 64-8 sez. 534']);
   if (D.spiExt) rows.push(['SPI + DDI', 'Protezione di interfaccia esterna e dispositivo di interfaccia', `Obbligatori oltre 11,08 kW${D.rinc ? '; oltre 20 kW anche rincalzo' : ''}`, 'CEI 0-21']);
