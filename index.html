@@ -329,6 +329,7 @@ table.lt tr.edited td:nth-child(3) input{background:var(--warn-bg);color:var(--w
 .offstat{font-size:13.5px;padding:4px 0 6px}.offpub summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--accent)}.offform{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 #priceRef .pref{background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);padding:8px 12px;margin:0 0 12px;font-size:13.5px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}#priceRef .pref.frozen{border-left:4px solid var(--accent)}#priceRef .pref.warn{border-left:4px solid var(--warn);background:var(--warn-bg)}#priceRef .pref-acts{margin-left:auto;display:flex;gap:6px}
 @media print{#priceRef{display:none}}
+.warntxt{color:var(--warn)}
 table.lt td.num small{display:block;font-size:10.5px;color:var(--muted)}
 @media print{#listino{display:none!important}
 .pr-land{break-after:page}
@@ -512,13 +513,13 @@ const INVS = {
 const ARCH0 = {
   mod: {
     tri420lwbb: { brand: 'TRIENERGIA', model: 'TRI420LW-BB', desc: 'full black, 108 mezze celle N-type', p: 420, voc: 38.46, vmp: 31.97, isc: 14.09, imp: 13.14, bvoc: -0.28, gp: -0.36, L: 1.720, W: 1.132, kg: 21, fuse: 25, vmax: 1500, snowPa: 3600, price: 110.66,
-      src: 'Datasheet Trienergia TRIxxxLW-BB 2026. Peso: il datasheet riporta 10,80 kg (probabile refuso), usato 21 kg prudenziale.' },
+      src: 'Datasheet Trienergia TRIxxxLW-BB 2026; peso 21 kg confermato dal fornitore (nov. 2026).' },
     tw455: { brand: 'TW Solar', model: 'TWMNH-48HW455', desc: 'TNC 2.0 monofacciale vetro-vetro, 96 mezze celle', p: 455, voc: 36.10, vmp: 30.44, isc: 15.89, imp: 14.95, bvoc: -0.24, gp: -0.28, L: 1.762, W: 1.134, kg: 23.7, fuse: 30, vmax: 1500, snowPa: 5400, price: 55.78,
-      src: 'Sigla confermata dal fornitore. Dati elettrici da rivenditore (tienda-solar.es); coeff. Voc della serie 48HW (solar-stack).' },
+      src: 'Sigla confermata dal fornitore. Dati elettrici da rivenditore (tienda-solar.es); coefficienti e peso confermati dal fornitore (nov. 2026).' },
     gcl495: { brand: 'GCL', model: 'GCL-NR10R/54BGDF 495', desc: 'back contact (xBC) bifacciale full black', p: 495, voc: 40.77, vmp: 34.50, isc: 15.20, imp: 14.35, bvoc: -0.22, gp: -0.26, L: 1.800, W: 1.134, kg: 24.8, fuse: 30, vmax: 1500, snowPa: 5400, price: 82.39,
       src: 'Dati serie NR10R/54BGDF (Synapsun, sun.store). Sigla confermata dal fornitore (nov. 2026).' },
     tw505: { brand: 'TW Solar', model: 'TWMNH-54HD505', desc: 'TNC bifacciale vetro-vetro, 108 mezze celle', p: 505, voc: 39.12, vmp: 32.46, isc: 16.42, imp: 15.56, bvoc: -0.28, gp: -0.28, L: 1.961, W: 1.134, kg: 26.5, fuse: 30, vmax: 1500, snowPa: 5400, price: 65.27,
-      src: 'Sigla confermata dal fornitore. Dati elettrici da rivenditore (tienda-solar.es); coefficienti dalla serie 54HD (globalsunhub); carico neve non indicato, 5400 Pa ipotesi.' }
+      src: 'Sigla confermata dal fornitore. Dati elettrici da rivenditore (tienda-solar.es); coefficienti e peso confermati dal fornitore (nov. 2026); carico neve 5400 Pa ipotesi.' }
   },
   inv: {
     zcs1p3000: { brand: 'ZCS', model: '1PH 3000TLM-V3', ph: 1, hyb: false, pac: 3, mppt: 2, inp: 1, vmax: 600, vmin: 80, vmaxm: 550, imax: 15, isc: 22.5, iac: 15, price: 452.62, src: 'Datasheet ZCS 1PH 3000-6000TLM-V3' },
@@ -622,10 +623,17 @@ const mu1 = (tilt) => tilt <= 30 ? 0.8 : tilt >= 60 ? 0 : 0.8 * (60 - tilt) / 30
 /* ---------- Cavi ---------- */
 const AC_SECTIONS = [2.5, 4, 6, 10, 16, 25, 35, 50];
 // Portate FG16OR16 0,6/1 kV, 3 conduttori caricati, 30 °C (scheda tecnica Prysmian; coerenti con CEI-UNEL 35024/1). Per 2 conduttori caricati (mono) si usano gli stessi valori: scelta prudente.
+// Portate Cu/XLPE 90 °C, cavo multipolare (IEC 60364-5-52 / CEI-UNEL 35024/1): 2 conduttori caricati (monofase)
 const AC_IZ_POSA = {
-  tubo:      { 2.5: 30, 4: 40, 6: 51, 10: 69, 16: 91, 25: 119, 35: 146, 50: 175 },   // in tubo/canale chiuso in aria
-  aria:      { 2.5: 36, 4: 49, 6: 63, 10: 86, 16: 115, 25: 149, 35: 185, 50: 225 },  // in aria libera / passerella
-  interrato: { 2.5: 47, 4: 61, 6: 77, 10: 105, 16: 136, 25: 177, 35: 212, 50: 252 }  // in tubo interrato 0,8 m, 20 °C, ρ 1 K·m/W
+  tubo:      { 2.5: 30, 4: 40, 6: 51, 10: 69, 16: 91, 25: 119, 35: 146, 50: 175 },   // metodo B2, in tubo/canale chiuso in aria
+  aria:      { 2.5: 36, 4: 49, 6: 63, 10: 86, 16: 115, 25: 149, 35: 185, 50: 225 },  // metodo E, in aria libera / passerella
+  interrato: { 2.5: 47, 4: 61, 6: 77, 10: 105, 16: 136, 25: 177, 35: 212, 50: 252 }  // metodo D, in tubo interrato 0,8 m, 20 °C, ρ 1 K·m/W
+};
+// 3 conduttori caricati (trifase)
+const AC_IZ_POSA3 = {
+  tubo:      { 2.5: 26, 4: 35, 6: 44, 10: 60, 16: 80, 25: 105, 35: 128, 50: 154 },
+  aria:      { 2.5: 32, 4: 42, 6: 54, 10: 75, 16: 100, 25: 127, 35: 158, 50: 192 },
+  interrato: { 2.5: 40, 4: 52, 6: 66, 10: 90, 16: 116, 25: 151, 35: 181, 50: 214 }
 };
 const POSA_LABEL = { tubo: 'in tubo/canale', aria: 'in aria libera/passerella', interrato: 'in tubo interrato' };
 const AC_PRICE = { 2.5: 2.2, 4: 3.0, 6: 4.2, 10: 6.8, 16: 10.5, 25: 16, 35: 22, 50: 30 };
@@ -645,7 +653,7 @@ function kTemp(t) {   // fattore di correzione temperatura ambiente, isolante XL
 function pickAC(Ib, L, V, ph, k, dvMax, posa, tAmb, cosf) {
   const STD = [10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100];
   const In = STD.find(v => v >= Ib) || Math.ceil(Ib / 10) * 10;
-  const tab = AC_IZ_POSA[posa] || AC_IZ_POSA.tubo, kt = posa === 'interrato' ? 1 : kTemp(tAmb == null ? 30 : tAmb), cf = cosf || 1, sf = Math.sqrt(1 - cf * cf);
+  const TB = ph === 3 ? AC_IZ_POSA3 : AC_IZ_POSA, tab = TB[posa] || TB.tubo, kt = posa === 'interrato' ? 1 : kTemp(tAmb == null ? 30 : tAmb), cf = cosf || 1, sf = Math.sqrt(1 - cf * cf);
   const dvOf = (S) => (ph === 1 ? 2 : Math.sqrt(3)) * L * Ib * ((RHO / S) * cf + 0.00008 * sf) / V * 100;
   for (const S of AC_SECTIONS) {
     const Iz = tab[S] * k * kt, dv = dvOf(S);
@@ -716,7 +724,7 @@ function paybackPlan(S, d, tot, fi, items, prodK, escPct) {
 
 
 /* ---------- Confronti interni: varianti batteria / senza batteria e concorrenza ---------- */
-const BENCH = { fv: [1667, 2167], batt: [1833, 2500], note: 'Riferimenti 6 kWp IVA incl.: solo FV 10.000-13.000 €, FV + accumulo 11.000-15.000 € (Enpal, Reonic, One4Green, AssoSolare 2026): scalati linearmente sui kWp, indicativi' };
+const BENCH = { fv: [2000, 2200], batt: [1833, 2500], note: 'Solo FV: mercato Valle d\'Aosta 2.000-2.200 €/kWp installato (dato aziendale, nov. 2026). FV + accumulo: FV + accumulo 11.000-15.000 € (Enpal, Reonic, One4Green, AssoSolare 2026): scalati linearmente sui kWp, indicativi' };
 function variants(S, R) {
   const clone = () => JSON.parse(JSON.stringify(S));
   const mk = (batt) => {
@@ -726,7 +734,8 @@ function variants(S, R) {
     return { batt, kwh: batt ? r.d.battKwh : 0, inv: r.d.I.name, prod: r.d.prod, cost: r.tot.cost, net: r.tot.net, gross: r.tot.gross, margin: r.tot.margin, profit: r.tot.profit, netto: r.fisc.netto, detr: r.fisc.detr,
       pb: pl ? pl.central.pb : null, pbp: pl ? pl.prudent.pb : null, van: pl ? pl.central.van : 0, tir: pl ? pl.central.tir : null, sh: pl ? pl.central.sh : 0, y1: pl ? pl.central.y1.sav + pl.central.y1.rid : 0 };
   };
-  return { a: mk(false), b: mk(true), kwh: Math.max(2, Math.round(R.d.Pdc)) };
+  const b = mk(true);
+  return { a: mk(false), b, kwh: +(b.kwh || Math.max(2, Math.round(R.d.Pdc))).toFixed(1) };
 }
 function market(S, R) {
   const kwp = R.d.Pdc, band = R.d.battKwh > 0 ? BENCH.batt : BENCH.fv;
@@ -834,9 +843,9 @@ const PR0 = {
   opt: 55, opt_ctrl: 175,
   clamp: 1.6, minirail: 3.3, screw: 0.30, rail: 6.0, splice: 2.5, hook: 4.0, kit_ballast: 26, ballast: 0.06, prot: 2.0, deckscrew: 0.6,
   mc4: 6.0, corr: 0.6, earth: 1.2,
-  qac_1: 220, qac_3: 340, qg_fv_1: 45, qg_fv_3: 85, spd_dc: 120, meter_1: 180, meter_3: 260, batt_kit: 250,
+  qac_1: 220, qac_3: 340, qg_fv_1: 45, qg_fv_3: 85, spi_ext: 700, spd_dc: 120, meter_1: 180, meter_3: 260, batt_kit: 250,
   wb_74: 1100, wb_11: 1300, wb_22: 1900, wb_line: 14, wb_prot: 150,
-  ple: 220, ple_tr: 300, scaf_ms: 24, scaf_nolo: 2.8, parap_ms: 23, parap_nolo: 2.0, fall_kit: 1028, dpi: 150, lifeline: 55, lifeline_doc: 600, coord: 700, fence: 3.7,
+  ple: 220, ple_tr: 300, scaf_ms: 24, scaf_nolo: 2.8, scaf_h_m2: 0.2, scaf_tr: 250, scaf_wear: 1.5, parap_ms: 23, parap_nolo: 2.0, fall_kit: 1028, dpi: 150, lifeline: 55, lifeline_doc: 600, coord: 700, fence: 3.7,
   asb_rem: 16, asb_plan: 900, asb_mon: 280, sandwich: 42, flashing: 25, guaina_new: 26, demo_guaina: 5, asb_test: 250,
   prog_base: 300, prog_kwp: 35, struct: 350, paes: 600, pratica: 350, enea: 80, smalt: 60, cond: 120,
   lps_doc: 0
@@ -865,10 +874,10 @@ const CAT_LABELS = {
   rail: ['Strutture', 'Binario in alluminio', 'm'], splice: ['Strutture', 'Giunto per binari', 'pz'], hook: ['Strutture', 'Gancio inox per coppi/tegole', 'pz'],
   kit_ballast: ['Strutture', 'Supporto zavorrato (tetto piano)', 'pz mod'], ballast: ['Strutture', 'Zavorra in cls', 'kg'], prot: ['Strutture', 'Tappetino protezione guaina', 'pz'], deckscrew: ['Strutture', 'Staffa/vite su arcareccio (base)', 'pz'],
   mc4: ['Cavi e quadri', 'Connettori MC4 (coppia)', 'coppia'], corr: ['Cavi e quadri', 'Corrugato per calate DC', 'm'], earth: ['Cavi e quadri', 'Conduttore di terra 6 mm²', 'm'],
-  qac_1: ['Cavi e quadri', 'Quadro AC FV monofase', 'a corpo'], qg_fv_1: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 2P', 'pz'], qg_fv_3: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 4P', 'pz'], qac_3: ['Cavi e quadri', 'Quadro AC FV trifase', 'a corpo'], spd_dc: ['Cavi e quadri', 'SPD lato DC', 'pz'],
+  qac_1: ['Cavi e quadri', 'Quadro AC FV monofase', 'a corpo'], qg_fv_1: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 2P', 'pz'], spi_ext: ['Cavi e quadri', 'SPI esterno CEI 0-21 con dispositivo di interfaccia (oltre 11,08 kW)', 'a corpo'], qg_fv_3: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 4P', 'pz'], qac_3: ['Cavi e quadri', 'Quadro AC FV trifase', 'a corpo'], spd_dc: ['Cavi e quadri', 'SPD lato DC', 'pz'],
   meter_1: ['Inverter e accessori', 'Misuratore di scambio monofase', 'pz'], meter_3: ['Inverter e accessori', 'Misuratore di scambio trifase', 'pz'], batt_kit: ['Accumulo', 'Kit collegamento batteria (cavi, protezioni, staffe)', 'a corpo'],
   wb_74: ['Wallbox', 'Wallbox 7,4 kW', 'pz'], wb_11: ['Wallbox', 'Wallbox 11 kW', 'pz'], wb_22: ['Wallbox', 'Wallbox 22 kW', 'pz'], wb_line: ['Wallbox', 'Linea dedicata wallbox', 'm'], wb_prot: ['Wallbox', 'Protezioni dedicate wallbox', 'a corpo'],
-  ple: ['Sicurezza e mezzi', 'Nolo PLE (piattaforma elevabile)', '€/gg'], ple_tr: ['Sicurezza e mezzi', 'Trasporto PLE A/R', 'a corpo'], scaf_ms: ['Sicurezza e mezzi', 'Ponteggio: montaggio, smontaggio e 1° mese', '€/m²'], scaf_nolo: ['Sicurezza e mezzi', 'Ponteggio: nolo mesi successivi', '€/m²·mese'],
+  ple: ['Sicurezza e mezzi', 'Nolo PLE (piattaforma elevabile)', '€/gg'], ple_tr: ['Sicurezza e mezzi', 'Trasporto PLE A/R', 'a corpo'], scaf_ms: ['Sicurezza e mezzi', 'Ponteggio: montaggio, smontaggio e 1° mese', '€/m²'], scaf_h_m2: ['Sicurezza e mezzi', 'Ponteggio di proprietà: ore di montaggio + smontaggio', 'h/m²'], scaf_tr: ['Sicurezza e mezzi', 'Ponteggio di proprietà: trasporto A/R', 'a corpo'], scaf_wear: ['Sicurezza e mezzi', 'Ponteggio di proprietà: usura, manutenzione e verifiche', '€/m²'], scaf_nolo: ['Sicurezza e mezzi', 'Ponteggio: nolo mesi successivi', '€/m²·mese'],
   parap_ms: ['Sicurezza e mezzi', 'Parapetto provvisorio: montaggio/smontaggio e 1° mese', '€/m'], parap_nolo: ['Sicurezza e mezzi', 'Parapetto: nolo mesi successivi', '€/m·mese'], fall_kit: ['Sicurezza e mezzi', 'Kit anticaduta e linea vita temporanea (acquisto)', 'squadra'],
   dpi: ['Sicurezza e mezzi', 'Segnaletica, delimitazione, estintori', 'a corpo'], lifeline: ['Sicurezza e mezzi', 'Linea vita permanente EN 795', 'm'], lifeline_doc: ['Sicurezza e mezzi', 'Elaborato tecnico della copertura', 'a corpo'],
   asb_rem: ['Opere edili', 'Bonifica amianto (rimozione, trasporto, smaltimento)', '€/m²'], asb_plan: ['Opere edili', 'Piano di lavoro ASL e certificato smaltimento', 'a corpo'], asb_mon: ['Opere edili', 'Monitoraggio fibre aerodisperse', '€/gg'], asb_test: ['Opere edili', 'Analisi campione amianto', 'cad'],
@@ -907,6 +916,7 @@ function defaults() {
     mod_preset: 'g430', mod: Object.assign({}, MODS.g430),
     opt_pct: 0,
     inv_sel: 'auto', dcac_max: 1.3, dcac_min: 0.85,
+    cal_base: 4, cal_kwp: 0.6,
     batt_on: false, batt_kwh: 10, batt_kw: 0, batt_model: '', batt_n: 0, inv_brand: 'ZCS',
     wb_on: false, wb_kw: 7.4, wb_line_m: 15, wb_det: false,
     l_ac1: 8, l_ac2: 15, mont_l: 10, mont_s: 10, icc_ka: 0, ra_ohm: 0, qg_rcd: 'nd', qg_idn: 30, qg_sel: false, qg_in: 0, inv_rcd: 'A', inv_idn: 30, dv_ac_max: 1.0, k_group_ac: 0.8, posa_ac: 'tubo', t_amb: 30, dv_dc_max: 1.0, k_group_dc: 0.8, posa_wb: 'tubo', dv_wb_max: 2.0,
@@ -914,9 +924,9 @@ function defaults() {
     profilo: 'misto', autoc_pct: 0, e_buy: 0, e_rid: 0, e_esc: 2, degr: 0.5, om_kwp: 12, inv_repl_year: 13, horizon: 20, disc: 3, lps: false, meter: true,
     redo: 'nessuno', redo_m2: 0,
     team: 2, h_day: 8, cost_h: 0, km: 25, eur_km: 0.5,
-    mod_price: 0, fall_amort: 5, prod_eff: 0.8, safe_mode: 'auto', scaf_len: 12, multi_imp: false, lifeline_m: 0,
-    prof_on: true, prof_pct: 10, prof_split: 60, paes_on: false,
-    transport: 3, contingency: 3, markup: 40, price_mode: 'markup', price_gross: 0,
+    mod_price: 0, fall_amort: 5, prod_eff: 0.8, safe_mode: 'ponteggio', scaf_own: true, scaf_len: 12, multi_imp: false, lifeline_m: 0,
+    prof_on: true, prof_pct: 10, prof_fix: 400, prof_fix_kwp: 6, prof_split: 60, paes_on: false,
+    transport: 3, contingency: 3, sic_mk: 15, markup: 40, price_mode: 'markup', price_gross: 0,
     fisc: JSON.parse(JSON.stringify(FISC_DEFAULT)),
     ov: {}
   };
@@ -988,17 +998,25 @@ function compute(S) {
     const asg = assign(I);
     const used = new Set(asg);
     falde.forEach((f, i) => { let z = sizeFalda(f.n, I, asg[i]);
-      // falda troppo lunga per un solo MPPT: se ci sono MPPT liberi la si divide in stringhe uguali su più ingressi
-      if (!z.ok) {
-        const free = [...Array(I.mppt).keys()].filter(j => !used.has(j));
-        for (let k = 2; k <= 1 + free.length && !z.ok; k++) {
+      // falda troppo lunga per un solo MPPT, oppure stringhe in parallelo che saturano l'ingresso (clipping) con MPPT liberi:
+      // la falda si divide su più ingressi (parti uguali, oppure due parti diverse su MPPT indipendenti)
+      const free = () => [...Array(I.mppt).keys()].filter(j => !used.has(j));
+      const trySplit = () => {
+        const fr = free();
+        for (let k = 2; k <= 1 + fr.length; k++) {
           if (f.n % k) continue;
-          const js = [asg[i]].concat(free.slice(0, k - 1)), parts = js.map(j => sizeFalda(f.n / k, I, j));
-          if (parts.every(x => x.ok && x.s === parts[0].s && x.Ns === parts[0].Ns)) {
-            js.slice(1).forEach(j => used.add(j));
-            z = Object.assign({}, parts[0], { s: parts[0].s * k, split: k, mpptList: js, clip: parts.some(x => x.clip), highV: parts.some(x => x.highV) });
-          }
+          const js = [asg[i]].concat(fr.slice(0, k - 1)), parts = js.map(j => sizeFalda(f.n / k, I, j));
+          if (parts.every(x => x.ok && x.s === parts[0].s && x.Ns === parts[0].Ns)) return { js, z: Object.assign({}, parts[0], { s: parts[0].s * k, split: k, mpptList: js, clip: parts.some(x => x.clip), highV: parts.some(x => x.highV) }) };
         }
+        if (fr.length >= 1) {
+          const a = Math.ceil(f.n / 2), b = f.n - a, js = [asg[i], fr[0]], pa = sizeFalda(a, I, js[0]), pb = sizeFalda(b, I, js[1]);
+          if (b > 0 && pa.ok && pb.ok) return { js, z: Object.assign({}, pa, { s: pa.s + pb.s, Ns: Math.max(pa.Ns, pb.Ns), NsMinPart: Math.min(pa.Ns, pb.Ns), NsList: [a, b], split: 2, mpptList: js, clip: pa.clip || pb.clip, highV: pa.highV || pb.highV }) };
+        }
+        return null;
+      };
+      if (!z.ok || (z.s > 1 && z.clip)) {
+        const sp = trySplit();
+        if (sp && (!z.ok || !sp.z.clip)) { sp.js.slice(1).forEach(j => used.add(j)); z = sp.z; }
       }
       r.fs.push(z); if (!z.ok && r.ok) { r.ok = false; r.why = z.iscFail ? `falda da ${f.n} moduli: corrente di cortocircuito oltre il limite dell'MPPT (${z.iscI} A)` : `falda da ${f.n} moduli non compatibile con la finestra di stringa (${z.NsMin}–${z.NsMax} moduli)`; } });
     r.Pac = I.pac; r.ratio = d.Pdc / I.pac;
@@ -1051,8 +1069,8 @@ function compute(S) {
   if (pick && !pick.ok) chk('err', 'Nessun inverter compatibile', `${pick.why}. Cambia il numero di moduli per falda (es. stringhe da ${d.fs[0] ? d.fs[0].NsMin : '?'} a ${d.fs[0] ? d.fs[0].NsMax : '?'} moduli) o scegli un altro inverter.`, 'CEI 82-25 · IEC 62548');
   else if (pick) {
     if (!d.invAuto) chk('info', 'Inverter scelto a mano', `${I.name}.`);
-    chk('ok', 'Stringhe compatibili con l\'inverter', d.fs.map(z => `${z.f.n} mod. → ${z.s}×${z.Ns}` + (I.mppt > 1 ? ` (MPPT ${z.mlab}${z.split ? ', una stringa per ingresso' : ''})` : '')).join(' · ') + (I.arch ? ` · Isc stringa ${M.isc} A ≤ ${d.fs.map(z => z.iscI).filter((v, i, a) => a.indexOf(v) === i).join('/')} A` : ''), 'CEI 64-8/7 sez. 712 · IEC 62548');
-    chk('ok', 'Voc a Tmin entro il limite di tensione', `Voc modulo a ${S.t_min} °C = ${VocTmin.toFixed(1).replace('.', ',')} V; max ${Math.min(I.vmax, M.vmax)} V.`, 'CEI 64-8/7 712');
+    chk('ok', 'Stringhe compatibili con l\'inverter', d.fs.map(z => `${z.f.n} mod. → ${z.NsList ? z.NsList.join(' + ') : z.s + '×' + z.Ns}` + (I.mppt > 1 ? ` (MPPT ${z.mlab}${z.split ? ', una stringa per ingresso' : ''})` : '')).join(' · ') + (I.arch ? ` · Isc stringa ${M.isc} A ≤ ${d.fs.map(z => z.iscI).filter((v, i, a) => a.indexOf(v) === i).join('/')} A` : ''), 'CEI 64-8/7 sez. 712 · IEC 62548');
+    chk('ok', 'Voc a Tmin entro il limite di tensione', `Voc di stringa a ${S.t_min} °C fino a ${Math.round(Math.max(0, ...d.fs.map(z => (z.Ns || 0) * VocTmin)))} V (${VocTmin.toFixed(1).replace('.', ',')} V per modulo) ≤ ${Math.min(I.vmax, M.vmax)} V.`, 'CEI 64-8/7 712');
     if (d.fs.some(z => z.highV)) chk('warn', 'Vmpp a Tmin sopra la finestra MPPT', 'Con il freddo intenso possibile perdita di produzione.');
     if (d.fs.some(z => z.clip)) chk('warn', 'Corrente di MPPT oltre la massima di funzionamento', 'L\'inverter limiterà la corrente nelle ore di picco (clipping): verificare datasheet.');
     if (d.ratio > S.dcac_max + 1e-9) chk('warn', 'Rapporto DC/AC elevato', `${d.ratio.toFixed(2).replace('.', ',')}: perdite per clipping.`);
@@ -1117,8 +1135,11 @@ function compute(S) {
   add(C.INV, 'meter', 'Misuratore di scambio per monitoraggio e gestione autoconsumo', S.meter ? 1 : 0, 'pz', fase === 3 ? PR.meter_3 : PR.meter_1, { mat: true, lk: fase === 3 ? 'pr.meter_3' : 'pr.meter_1' });
 
   // accumulo: generico (curva €/kWh) oppure modello d'archivio a moduli
-  const BM = S.batt_on && S.batt_model ? ARCH.batt[S.batt_model] : null;
-  d.battModel = BM ? Object.assign({ id: S.batt_model, name: archName(BM) }, BM) : null;
+  // ibrido d'archivio con batteria generica: si usa in automatico la batteria abbinata all'inverter
+  const bmId = S.batt_model || (S.batt_on && I.arch && I.hyb && I.bmod && ARCH.batt[I.bmod] ? I.bmod : '');
+  const BM = S.batt_on && bmId ? ARCH.batt[bmId] : null;
+  d.battModel = BM ? Object.assign({ id: bmId, name: archName(BM), auto: !S.batt_model }, BM) : null;
+  if (BM && !S.batt_model) chk('info', 'Batteria abbinata all\'inverter', `${I.name} usa le batterie ${archName(BM)}: scelte in automatico al posto della batteria generica (moduli in base alla capacità indicata).`);
   if (BM) {
     const nmin = Math.max(1, +BM.nmin || 1), nmax = +BM.nmax || 99;
     const nReq = S.batt_n > 0 ? Math.round(S.batt_n) : Math.max(nmin, Math.ceil((S.batt_kwh || BM.kwh) / BM.kwh - 1e-9));
@@ -1133,13 +1154,13 @@ function compute(S) {
   if (S.batt_on) {
     if (BM) {
       const nm = archName(BM);
-      add(C.BATT, 'batt', `Batteria ${nm}: ${d.battN} moduli × ${String(BM.kwh).replace('.', ',')} kWh = ${String(d.battKwh).replace('.', ',')} kWh (IEC 62619)`, d.battN, 'pz', LP('bm.' + S.batt_model, +BM.price || 0), { mat: true, lk: 'bm.' + S.batt_model, ref: 'IEC 62619 · CEI 0-21' });
+      add(C.BATT, 'batt', `Batteria ${nm}: ${d.battN} moduli × ${String(BM.kwh).replace('.', ',')} kWh = ${String(d.battKwh).replace('.', ',')} kWh (IEC 62619)`, d.battN, 'pz', LP('bm.' + bmId, +BM.price || 0), { mat: true, lk: 'bm.' + bmId, ref: 'IEC 62619 · CEI 0-21' });
       if (d.battN < (+BM.nmin || 1)) chk('err', 'Moduli batteria sotto il minimo', `${nm}: minimo ${BM.nmin} moduli.`);
       if (+BM.nmax && d.battN > +BM.nmax) chk('err', 'Moduli batteria oltre il massimo', `${nm}: massimo ${BM.nmax} moduli.`);
       if (I.arch && I.bmax && d.battN > I.bmax) chk('err', 'Troppi moduli per l\'inverter', `${I.name} gestisce al massimo ${I.bmax} moduli ${nm} (${String(+(I.bmax * BM.kwh).toFixed(1)).replace('.', ',')} kWh).`, 'datasheet inverter');
-      if (I.arch && I.bmod && I.bmod !== S.batt_model) chk('err', 'Batteria non compatibile con l\'inverter', `${I.name} è abbinato alle batterie ${ARCH.batt[I.bmod] ? archName(ARCH.batt[I.bmod]) : I.bmod === 'weco5k3hv' ? 'ZCS WeCo 5k3 HV (con HV Box), non presenti in archivio' : I.bmod}.`, 'datasheet inverter');
+      if (I.arch && I.bmod && I.bmod !== bmId) chk('err', 'Batteria non compatibile con l\'inverter', `${I.name} è abbinato alle batterie ${ARCH.batt[I.bmod] ? archName(ARCH.batt[I.bmod]) : I.bmod === 'weco5k3hv' ? 'ZCS WeCo 5k3 HV (con HV Box), non presenti in archivio' : I.bmod}.`, 'datasheet inverter');
       if (I.arch && I.hyb && !I.bmod) chk('warn', 'Compatibilità batteria da verificare', `Per ${I.name} l'archivio non indica la batteria compatibile: verificare il datasheet.`);
-      if (!(+BM.price > 0) && !(LP('bm.' + S.batt_model, 0) > 0)) chk('err', 'Prezzo batteria mancante', `Inserisci il prezzo del modulo ${nm} nel Listino o nell'archivio.`);
+      if (!(+BM.price > 0) && !(LP('bm.' + bmId, 0) > 0)) chk('err', 'Prezzo batteria mancante', `Inserisci il prezzo del modulo ${nm} nel Listino o nell'archivio.`);
     } else
     add(C.BATT, 'batt', `Batteria LFP ${S.batt_kwh} kWh utili con BMS (IEC 62619)`, S.batt_kwh, 'kWh', battPrice(S.batt_kwh), { mat: true, ref: 'IEC 62619 · CEI 0-21' });
     add(C.BATT, 'batt_kit', 'Kit di collegamento batteria: cavi di potenza, protezioni DC, staffe o basamento', 1, 'a corpo', PR.batt_kit, { mat: true });
@@ -1196,8 +1217,8 @@ function compute(S) {
   add(C.BOS, 'mc4', 'Connettori MC4 compatibili (coppie, 3 per stringa)', d.nStr * 3, 'coppie', PR.mc4, { mat: true });
   add(C.BOS, 'corr', 'Guaina/corrugato per calate e passaggi DC', Math.round(d.fs.reduce((a, z) => a + (z.f.l_dc || 15), 0)), 'm', PR.corr, { mat: true });
   const kAC = S.k_group_ac || 0.8;
-  d.ac1 = pickAC(I.iac, S.l_ac1, I.vac, fase === 1 ? 1 : 3, kAC, S.dv_ac_max, S.posa_ac, S.t_amb, 1);
-  d.ac2 = pickAC(I.iac, S.l_ac2, I.vac, fase === 1 ? 1 : 3, kAC, S.dv_ac_max, S.posa_ac, S.t_amb, 1);
+  d.ac1 = pickAC(I.iac, S.l_ac1, I.vac, I.ph === 1 ? 1 : 3, kAC, S.dv_ac_max, S.posa_ac, S.t_amb, 1);
+  d.ac2 = pickAC(I.iac, S.l_ac2, I.vac, I.ph === 1 ? 1 : 3, kAC, S.dv_ac_max, S.posa_ac, S.t_amb, 1);
   d.dvTot = d.ac1.dv + d.ac2.dv;
   const nc = fase === 1 ? 3 : 5;   // conduttori
   add(C.BOS, 'ac1', `Cavo FG16OR16 ${nc}G${d.ac1.S} mm² inverter → quadro AC`, Math.round(S.l_ac1 * 1.05), 'm', +(LP('cab.ac.' + d.ac1.S, AC_PRICE[d.ac1.S]) * (fase === 3 ? 1.5 : 1)).toFixed(2), { lk: 'cab.ac.' + d.ac1.S, mat: true, ref: 'CEI 64-8 · IEC 60364-5-52' });
@@ -1213,7 +1234,7 @@ function compute(S) {
     const wbk = S.wb_kw > 11.1 ? 'wb_22' : S.wb_kw > 7.5 ? 'wb_11' : 'wb_74';
     add(C.WB, 'wb', `Stazione di ricarica EV ${S.wb_kw} kW (Modo 3, IEC 61851)`, 1, 'pz', PR[wbk], { lk: 'pr.' + wbk, mat: true, vcat: 'wb', det: !!S.wb_det, ref: 'CEI 64-8 sez. 722' });
     const wbPh = S.wb_kw > 7.5 ? 3 : (fase === 3 && S.wb_kw > 3.7 ? 3 : 1);
-    const wbIb = wbPh === 1 ? S.wb_kw * 1000 / 230 : S.wb_kw * 1000 / (Math.sqrt(3) * 400);
+    const wbIb = Math.min(wbPh === 1 ? S.wb_kw * 1000 / 230 : S.wb_kw * 1000 / (Math.sqrt(3) * 400), wbPh === 1 ? 32 : 32);   // le stazioni sono da 16/32 A per fase (7,4 kW = 32 A)
     d.wbPh = wbPh; d.wbIb = wbIb;
     d.wbc = pickAC(wbIb, S.wb_line_m, wbPh === 1 ? 230 : 400, wbPh, 1, S.dv_wb_max || 2, S.posa_wb, S.t_amb, 0.95);
     const wbPrice = +(PR.wb_line + (LP('cab.ac.' + d.wbc.S, AC_PRICE[d.wbc.S]) - LP('cab.ac.6', AC_PRICE[6])) * (wbPh === 3 ? 1.5 : 1)).toFixed(2);
@@ -1260,6 +1281,7 @@ function compute(S) {
     const qf0 = line('QF0', 'Partenza linea FV nel quadro generale (protegge la linea QAC→QG)', d.ac2.In, d.ac2.S, S.l_ac2, I.iac, pts.qg, pts.qac, pol); qf0.iz = d.ac2.Iz;
     const qf1 = line('QF1', 'Linea inverter nel quadro AC FV', d.ac1.In, d.ac1.S, S.l_ac1, I.iac, pts.qac, pts.inv, pol); qf1.iz = d.ac1.Iz;
     if (d.wbc) { const w = line('QFW', 'Linea stazione di ricarica', d.wbc.In, d.wbc.S, S.wb_line_m, d.wbIb, pts.qg, pts.wb, d.wbPh === 3 ? '4P' : '2P'); w.iz = d.wbc.Iz; }
+    if (d.Pac > 11.08) add(C.BOS, 'spi_ext', 'Sistema di protezione di interfaccia esterno (SPI) certificato CEI 0-21 con dispositivo di interfaccia, alimentazione ausiliaria e cablaggio', 1, 'a corpo', PR.spi_ext, { mat: true, ref: 'CEI 0-21' });
     add(C.BOS, 'qg_fv', `Interruttore magnetotermico ${pol} curva C ${d.ac2.In} A, Icn ${String(qf0.icn).replace('.', ',')} kA, di partenza della linea FV nel quadro generale`, 1, 'pz', fase === 3 ? PR.qg_fv_3 : PR.qg_fv_1, { lk: fase === 3 ? 'pr.qg_fv_3' : 'pr.qg_fv_1', mat: true, ref: 'CEI 64-8 sez. 433-434' });
     for (const r of P.lines) {
       const n = (v, k = 1) => v.toFixed(k).replace('.', ',');
@@ -1320,42 +1342,65 @@ function compute(S) {
   }
 
   /* ---- manodopera ---- */
-  const H = { mod: N * roof.h, opt: d.Nopt * 10 / 60, str: d.nStr * 0.8, inv: 3 + (I.hyb ? 1 : 0), batt: S.batt_on ? 3 + 0.2 * S.batt_kwh : 0, qac: 2.5 + (S.meter ? 0.5 : 0), test: 3 + 0.2 * d.nStr, wb: S.wb_on ? 3 + 0.15 * S.wb_line_m : 0, ac: (S.l_ac1 + S.l_ac2) * 0.06 };
+  const H = { mod: N * roof.h, opt: d.Nopt * 10 / 60, str: d.nStr * 0.8, inv: 3 + (I.hyb ? 1 : 0), batt: S.batt_on ? 3 + 0.2 * (d.battKwh || S.batt_kwh) : 0, qac: 2.5 + (S.meter ? 0.5 : 0), test: 3 + 0.2 * d.nStr, wb: S.wb_on ? 3 + 0.15 * S.wb_line_m : 0, ac: (S.l_ac1 + S.l_ac2) * 0.06 };
   d.hTot = Object.values(H).reduce((a, b) => a + b, 0);
   d.H = H;
-  const crewH = Math.max(1, S.team * S.h_day);
-  d.hEff = d.hTot / Math.max(0.3, S.prod_eff);
-  d.daysAuto = Math.max(1, Math.ceil(d.hEff / crewH));
+  const crewH = Math.max(1, Math.round(S.team) || 2) * Math.max(1, S.h_day || 8);
+  const pe = S.prod_eff > 0 ? Math.min(1, Math.max(0.5, S.prod_eff)) : 0.8;
+  d.hEff = d.hTot / pe;
+  d.daysEst = Math.max(1, Math.ceil(d.hEff / crewH));   // giorni dalle ore delle singole lavorazioni
+  // taratura aziendale: durata complessiva del cantiere (ponteggio, sicurezze, installazione, collaudo) = base + giorni per kWp
+  d.daysCal = (S.cal_base > 0 || S.cal_kwp > 0) ? Math.max(1, Math.ceil((S.cal_base || 0) + (S.cal_kwp || 0) * d.Pdc - 1e-9)) : 0;
+  d.daysAuto = Math.max(d.daysEst, d.daysCal);
   d.daysMan = S.days_man > 0;
   d.daysWork = d.daysMan ? Math.max(1, Math.round(S.days_man)) : d.daysAuto;
-  if (d.daysMan) d.hEff = d.daysWork * crewH;
+  d.hEff = d.daysWork * crewH;   // la squadra si paga a giornate intere
   d.days = d.daysWork + (d.asbDays || 0);
   d.months = Math.max(1, Math.ceil(d.days / 21));
-  add(C.MDO, 'mdo_mod', 'Posa strutture, moduli' + (d.Nopt ? ' e ottimizzatori' : ''), +(H.mod + H.opt).toFixed(1), 'h', costH);
-  add(C.MDO, 'mdo_dc', 'Cablaggio stringhe, vie cavi e collegamenti di terra', +(H.str).toFixed(1), 'h', costH);
-  add(C.MDO, 'mdo_ac', 'Installazione inverter, linee AC e quadro', +(H.inv + H.ac + H.qac).toFixed(1), 'h', costH);
-  add(C.MDO, 'mdo_batt', 'Installazione e configurazione accumulo', +H.batt.toFixed(1), 'h', costH);
-  add(C.MDO, 'mdo_wb', 'Installazione stazione di ricarica e linea dedicata', +H.wb.toFixed(1), 'h', costH, { vcat: 'wb', det: !!S.wb_det });
-  add(C.MDO, 'mdo_test', 'Verifiche iniziali (isolamento, Voc/Isc, prove di funzionamento), messa in servizio, dichiarazione di conformità', +H.test.toFixed(1), 'h', costH, { ref: 'DM 37/08 art. 7 · CEI 64-8/6 · CEI EN 62446-1' });
-  add(C.MDO, 'mdo_idle', 'Ore non produttive di squadra (carico/scarico, spostamenti in cantiere, tempi morti)', +(d.daysMan ? Math.max(0, d.daysWork * crewH - d.hTot) : d.hTot * (1 / Math.max(0.3, S.prod_eff) - 1)).toFixed(1), 'h', costH);
+  /* opera provvisionale (scelta prima della ripartizione: con il ponteggio di proprietà le ore di montaggio sono della squadra) */
+  const scafM2 = Math.round(S.scaf_len * (S.gronda + 1.2));
+  const scafOwn = S.scaf_own !== false;   // ponteggio di proprietà: niente nolo, montaggio con la squadra interna
+  d.scafH = scafOwn ? +(scafM2 * PR.scaf_h_m2).toFixed(1) : 0;
+  const costScaf = scafOwn ? d.scafH * costH + PR.scaf_tr + scafM2 * PR.scaf_wear : scafM2 * PR.scaf_ms + scafM2 * PR.scaf_nolo * Math.max(0, d.months - 1);
+  const costPle = d.daysWork * PR.ple + PR.ple_tr;
+  d.safeMode = S.safe_mode === 'auto' ? (S.gronda > 2 ? (costPle <= costScaf ? 'ple' : 'ponteggio') : 'nessuno') : (S.safe_mode === 'ponteggio' && !(S.gronda > 2) ? 'nessuno' : S.safe_mode);
+  d.safeAlt = { scaf: costScaf, ple: costPle };
+  // con la PLE non si monta il ponteggio: la taratura (che lo comprende) si riduce dei giorni di montaggio/smontaggio
+  if (!d.daysMan && d.safeMode !== 'ponteggio' && d.daysCal > d.daysEst && S.gronda > 2) {
+    const dScaf = Math.floor(scafM2 * PR.scaf_h_m2 / crewH + 1e-9);
+    if (dScaf > 0) { d.daysWork = Math.max(d.daysEst, d.daysCal - dScaf); d.daysAuto = d.daysWork; d.days = d.daysWork + (d.asbDays || 0); d.months = Math.max(1, Math.ceil(d.days / 21)); d.daysNoScaf = dScaf; }
+  }
+  // giorni inseriti a mano: tutte le ore della squadra presenti in cantiere sono ripartite sulle lavorazioni in proporzione alla stima
+  d.scafHcrew = d.safeMode === 'ponteggio' && scafOwn ? d.scafH : 0;   // ore di ponteggio già comprese nelle giornate di squadra
+  d.hFactor = d.hTot > 0 ? Math.max(0, d.daysWork * crewH - d.scafHcrew) / d.hTot : 1;   // giornate di squadra ripartite sulle lavorazioni (al netto del ponteggio, che va in sicurezza)
+  if (d.scafHcrew > 0 && d.daysWork * crewH - d.scafHcrew < d.hTot) chk('warn', 'Giornate di squadra insufficienti con il ponteggio', `${Math.round(d.daysWork * crewH)} h di squadra, di cui ${Math.round(d.scafHcrew)} h per montare e smontare il ponteggio: restano ${Math.round(d.daysWork * crewH - d.scafHcrew)} h per ${Math.round(d.hTot)} h di lavorazioni stimate.`);
+  const hh = (h) => +(h * d.hFactor).toFixed(1);
+  add(C.MDO, 'mdo_mod', 'Posa strutture, moduli' + (d.Nopt ? ' e ottimizzatori' : ''), hh(H.mod + H.opt), 'h', costH);
+  add(C.MDO, 'mdo_dc', 'Cablaggio stringhe, vie cavi e collegamenti di terra', hh(H.str), 'h', costH);
+  add(C.MDO, 'mdo_ac', 'Installazione inverter, linee AC e quadro', hh(H.inv + H.ac + H.qac), 'h', costH);
+  add(C.MDO, 'mdo_batt', 'Installazione e configurazione accumulo', hh(H.batt), 'h', costH);
+  add(C.MDO, 'mdo_wb', 'Installazione stazione di ricarica e linea dedicata', hh(H.wb), 'h', costH, { vcat: 'wb', det: !!S.wb_det });
+  add(C.MDO, 'mdo_test', 'Verifiche iniziali (isolamento, Voc/Isc, prove di funzionamento), messa in servizio, dichiarazione di conformità', hh(H.test), 'h', costH, { ref: 'DM 37/08 art. 7 · CEI 64-8/6 · CEI EN 62446-1' });
+  if (!d.daysMan) chk('info', 'Giorni di cantiere in automatico', `${d.daysWork} gg × ${Math.max(1, Math.round(S.team) || 2)} operai × ${S.h_day || 8} h = ${Math.round(d.daysWork * crewH)} h ripartite sulle lavorazioni (taratura ${d.daysCal} gg = ${String(S.cal_base || 0).replace('.', ',')} + ${String(S.cal_kwp || 0).replace('.', ',')}/kWp × ${d.Pdc.toFixed(2).replace('.', ',')} kWp; stima per lavorazioni ${d.daysEst} gg: si usa il maggiore).`);
   if (d.daysMan) {
-    if (d.daysWork * crewH < d.hTot - 0.5) chk('warn', 'Giorni di lavoro inseriti inferiori alle ore stimate', `${d.daysWork} gg × ${S.team} operai × ${S.h_day} h = ${Math.round(d.daysWork * crewH)} h, contro ${Math.round(d.hTot)} h produttive stimate (${d.daysAuto} gg in automatico): verificare squadra e giorni.`);
-    else chk('info', 'Giorni di lavoro inseriti a mano', `${d.daysWork} gg invece di ${d.daysAuto} in automatico: le ore non produttive e il costo della squadra sono ricalcolati su ${Math.round(d.daysWork * crewH)} h, e con essi trasferte, ponteggio/PLE e durata del cantiere.`);
+    const hIn = Math.round(d.daysWork * crewH), dev = Math.round((d.hFactor - 1) * 100);
+    if (d.hFactor < 1) chk('warn', 'Giorni di lavoro inseriti inferiori alle ore stimate', `${d.daysWork} gg × ${S.team} operai × ${S.h_day} h = ${hIn} h, contro ${Math.round(d.hTot)} h stimate (${d.daysAuto} gg in automatico): verificare squadra e giorni.`);
+    else chk(dev > 100 ? 'warn' : 'info', 'Giorni di lavoro inseriti a mano', `${hIn} h di squadra (${d.daysWork} gg × ${S.team} operai × ${S.h_day} h) contro ${Math.round(d.hTot)} h stimate dalle lavorazioni (${dev > 0 ? '+' : ''}${dev}%): le ore sono ripartite sulle singole lavorazioni. Se lo scostamento è ricorrente, conviene tarare le ore standard sui vostri tempi.${S.gronda > 2 ? ' Se la squadra monta anche il ponteggio, quelle ore sono già nel prezzo del ponteggio.' : ''}`);
   }
   add(C.MDO, 'travel_km', `Trasferimenti (${d.days} giorni × ${S.km * 2} km A/R)`, Math.round(d.days * S.km * 2), 'km', S.eur_km);
 
   /* ---- sicurezza ---- */
-  const scafM2 = Math.round(S.scaf_len * (S.gronda + 1.2));
-  const costScaf = scafM2 * PR.scaf_ms + scafM2 * PR.scaf_nolo * Math.max(0, d.months - 1);
-  const costPle = d.daysWork * PR.ple + PR.ple_tr;
-  d.safeMode = S.safe_mode === 'auto' ? (S.gronda > 2 ? (costPle <= costScaf ? 'ple' : 'ponteggio') : 'nessuno') : S.safe_mode;
-  d.safeAlt = { scaf: costScaf, ple: costPle };
   if (S.safe_mode === 'auto' && S.gronda > 2) chk('info', `Opera provvisionale scelta: ${d.safeMode === 'ple' ? 'piattaforma elevabile' : 'ponteggio'}`, `Confronto di costo per ${d.daysWork} gg di posa: ponteggio ${Math.round(costScaf).toLocaleString('it-IT')} € contro PLE ${Math.round(costPle).toLocaleString('it-IT')} € (la PLE serve la gronda; verificare accessibilità del mezzo e portanza del suolo).`, 'D.Lgs. 81/08 art. 111, 122 · All. XV');
-  if (d.safeMode === 'ponteggio') {
+  if (d.safeMode === 'ponteggio' && scafOwn) {
+    add(C.SIC, 'scaf_own_h', `Ponteggio di facciata di proprietà con PiMUS: montaggio e smontaggio con squadra interna (${scafM2} m² × ${String(PR.scaf_h_m2).replace('.', ',')} h/m²)`, d.scafH, 'h', costH, { ref: 'All. XV 4.1.1 lett. a · art. 122, 131–136' });
+    add(C.SIC, 'scaf_tr', 'Trasporto ponteggio A/R', 1, 'a corpo', PR.scaf_tr);
+    add(C.SIC, 'scaf_wear', 'Usura, manutenzione e verifiche del ponteggio di proprietà', scafM2, 'm²', PR.scaf_wear);
+  } else if (d.safeMode === 'ponteggio') {
     add(C.SIC, 'scaf_ms', 'Ponteggio di facciata con PiMUS: montaggio, smontaggio e 1° mese', scafM2, 'm²', PR.scaf_ms, { ref: 'All. XV 4.1.1 lett. a · art. 122, 131–136' });
     add(C.SIC, 'scaf_nolo', 'Nolo ponteggio, mesi successivi al primo', d.months > 1 ? scafM2 * (d.months - 1) : 0, 'm²·mese', PR.scaf_nolo, { ref: 'All. XV 4.1.1 lett. a' });
   } else if (d.safeMode === 'ple') {
-    add(C.SIC, 'ple', 'Piattaforma di lavoro elevabile (PLE) per accesso e protezione di bordo', d.daysWork, 'gg', PR.ple, { ref: 'D.Lgs. 81/08 All. VI' });
+    d.pleDays = Math.max(1, Math.ceil((H.mod + H.opt) * d.hFactor / crewH - 1e-9));   // solo i giorni di lavoro in copertura
+    add(C.SIC, 'ple', `Piattaforma di lavoro elevabile (PLE) per i giorni di lavoro in copertura (${d.pleDays} gg)`, d.pleDays, 'gg', PR.ple, { ref: 'D.Lgs. 81/08 All. VI' });
     add(C.SIC, 'ple_tr', 'Trasporto PLE A/R', 1, 'a corpo', PR.ple_tr);
   } else if (d.safeMode === 'parapetti') {
     const pm = Math.round(S.scaf_len);
@@ -1365,9 +1410,10 @@ function compute(S) {
   const kitN = Math.max(1, Math.ceil(S.team / 4));
   if (roof.pitched !== false || roof.frag) add(C.SIC, 'fall_kit', `Kit anticaduta e linea vita temporanea EN 795 della squadra (quota di ammortamento su ${S.fall_amort} cantieri)`, kitN / Math.max(1, S.fall_amort), 'squadra', PR.fall_kit, { ref: 'All. XV 4.1.1 lett. d · art. 115–116' });
   add(C.SIC, 'dpi', 'Segnaletica, delimitazione dell\'area a terra, estintori', 1, 'a corpo', PR.dpi, { ref: 'All. XV 4.1.1 lett. b, d' });
-  if (S.lifeline_m > 0) { add(C.SIC, 'lifeline', 'Linea vita permanente EN 795 tipo C con certificazione', S.lifeline_m, 'm', PR.lifeline, { mat: true, ref: 'UNI EN 795 · UNI 11578' }); add(C.SIC, 'lifeline_doc', 'Elaborato tecnico della copertura', 1, 'a corpo', PR.lifeline_doc); }
+  if (S.lifeline_m > 0) { add(C.EDI, 'lifeline', 'Linea vita permanente EN 795 tipo C con certificazione', S.lifeline_m, 'm', PR.lifeline, { mat: true, ref: 'UNI EN 795 · UNI 11578' }); add(C.EDI, 'lifeline_doc', 'Elaborato tecnico della copertura', 1, 'a corpo', PR.lifeline_doc); }
   else chk('info', 'Accesso permanente per la manutenzione', 'Senza linea vita permanente ogni intervento futuro richiede protezioni provvisorie. Verificare la normativa regionale sull\'accesso in copertura e consegnare l\'elaborato tecnico.', 'UNI EN 795 · UNI 11578');
-  d.ug = Math.ceil(d.hTot / 8) + (d.asbDays || 0) * S.team;
+  d.ug = d.daysWork * Math.max(1, Math.round(S.team) || 2) + (d.asbDays || 0) * Math.max(1, Math.round(S.team) || 2);   // uomini-giorno di presenza in cantiere
+  if (S.roof_type === 'amianto' && !S.multi_imp) chk('warn', 'Bonifica amianto: più imprese in cantiere', 'La rimozione del fibrocemento la esegue un\'impresa iscritta all\'Albo cat. 10: con la vostra squadra le imprese sono almeno due. Spuntare «Più imprese in cantiere» (CSP/CSE, PSC, notifica preliminare).', 'D.Lgs. 81/08 art. 90, 99, 256');
   if (S.multi_imp) chk('info', 'Più imprese in cantiere: CSP, CSE e PSC obbligatori', 'Anche se non contemporanee (bonifica amianto, ponteggiatore, noleggio con operatore). Notifica preliminare all\'ASL prima dell\'inizio dei lavori.', 'D.Lgs. 81/08 art. 90 c.3, art. 99');
   else chk('info', `Impresa unica, circa ${d.ug} uomini-giorno`, 'Senza altre imprese non servono CSP/CSE né notifica preliminare (sotto 200 uomini-giorno): restano il POS dell\'impresa e il rispetto dell\'art. 26 verso il committente. Se il ponteggio o la gru sono affidati a terzi, spunta "più imprese".', 'D.Lgs. 81/08 art. 26, 90 c.3, 99');
   if (S.condominio) chk('info', 'Condominio: comunicazione e assemblea', 'Impianto su parti comuni (lastrico, copertura): comunicare all\'amministratore, che convoca l\'assemblea per le modalità di esecuzione e l\'uso delle parti comuni. Detrazione solo sulla quota della singola unità se l\'impianto è a servizio della singola unità.', 'art. 1122-bis c.c. (da verificare con l\'amministratore)');
@@ -1394,6 +1440,7 @@ function compute(S) {
   const battEx = !!S.fv_esistente && d.battKwh > 0;                 // accumulo su impianto FV già esistente: 22%
   const isB = (it) => it.vcat === 'imp' && it.mat && !it.pass && !(battEx && it.cat === C.BATT);   // beni (forniture materiali)
   const isL = (it) => it.cat === C.MDO && it.vcat === 'imp';       // manodopera
+  const isT = (it) => it.vcat === 'imp' && !it.pass && !(battEx && it.cat === C.BATT);   // prestazione agevolata complessiva
   const baseRate = (it) => it.vcat === 'imp' ? rImp : (F.vat[it.vcat] != null ? F.vat[it.vcat] : 22);
   const W = items.filter(i => !i.nomk);                    // lavori soggetti a ricarico e imprevisti
   const SI = items.filter(i => i.nomk && !i.pass);         // oneri di sicurezza: a costo, non ribassabili
@@ -1416,17 +1463,20 @@ function compute(S) {
       if (it.vcat === 'imp' && battEx && it.cat === C.BATT) { it.rate = 22; it.f22 = 1; }
       else if (ivaMode === 'manodopera' && f22 > 0 && isB(it)) { it.f22 = f22; it.rate = rImp + (22 - rImp) * f22; }
     }
-    const gW = W.reduce((a, i) => a + i.val * i.kImp * (1 + i.rate / 100), 0), gSI = SI.reduce((a, i) => a + i.val * (1 + i.rate / 100), 0);
+    const kS = 1 + (S.sic_mk || 0) / 100;   // ricarico facoltativo sulla sicurezza (gestione noli); default 0 = a costo
+    const gW = W.reduce((a, i) => a + i.val * i.kImp * (1 + i.rate / 100), 0), gSI = kS * SI.reduce((a, i) => a + i.val * (1 + i.rate / 100), 0);
     const gPA = PA.reduce((a, i) => a + i.tot * (1 + i.rate / 100), 0);
     // spese professionali = pR × importo dei lavori (lavori con ricarico e imprevisti + sicurezza, esclusi gli oneri del distributore); passano a costo
-    if (S.price_mode === 'price' && S.price_gross > 0 && gW > 0) markup = ((S.price_gross - gSI - gPA - (1 + rP / 100) * pR * vSI) / (gW + (1 + rP / 100) * pR * vWc) - 1) * 100;
+    const ovp0 = ov.prof, profFix = (ovp0 !== undefined && ovp0 !== '' && !isNaN(+ovp0)) ? +ovp0 : (S.prof_fix > 0 && d.Pdc <= (S.prof_fix_kwp || 0) + 1e-9 ? +S.prof_fix : null);   // spese professionali modificate a mano: importo fisso
+    if (S.price_mode === 'price' && S.price_gross > 0 && gW > 0) markup = (profFix != null ? (S.price_gross - gSI - gPA - (1 + rP / 100) * (pR > 0 ? profFix : 0)) / gW - 1 : (S.price_gross - gSI - gPA - (1 + rP / 100) * pR * kS * vSI) / (gW + (1 + rP / 100) * pR * vWc) - 1) * 100;
     else markup = S.markup;
     const fM = 1 + markup / 100;
     for (const it of W) it.price = it.val * fM * it.kImp;
-    for (const it of SI) it.price = it.val;
+    for (const it of SI) it.price = it.val * kS;
     for (const it of PA) it.price = it.tot;
     if (ivaMode !== 'manodopera') break;
-    const Bp = items.filter(isB).reduce((a, i) => a + i.price, 0), Lp = items.filter(isL).reduce((a, i) => a + i.price, 0);
+    // beni significativi (L. 488/99 art. 7 c. 1 lett. b): 10% sul valore dei beni fino a concorrenza del corrispettivo complessivo ridotto del valore dei beni stessi
+    const Bp = items.filter(isB).reduce((a, i) => a + i.price, 0), Tp = items.filter(isT).reduce((a, i) => a + i.price, 0), Lp = Tp - Bp;
     const fn = Bp > 0 ? Math.max(0, Bp - Lp) / Bp : 0;
     if (Math.abs(fn - f22) < 1e-9) break; f22 = fn;
   }
@@ -1434,9 +1484,11 @@ function compute(S) {
   const lavori = W.reduce((a, i) => a + i.price, 0) + SI.reduce((a, i) => a + i.price, 0);
   d.lavori = lavori;
   if (pR > 0 && lavori > 0) {
-    const P = pR * lavori, ovp = ov.prof;
+    const fixOn = S.prof_fix > 0 && d.Pdc <= (S.prof_fix_kwp || 0) + 1e-9;   // piccoli impianti: importo fisso a pratica
+    const P = fixOn ? +S.prof_fix : pR * lavori, ovp = ov.prof;
     const u = (ovp !== undefined && ovp !== '' && !isNaN(+ovp)) ? +ovp : P;
-    items.push({ cat: C.PRO, id: 'prof', desc: `Spese professionali: progettazione elettrica, direzione lavori, coordinamento sicurezza, verifiche e cassa previdenziale (${S.prof_pct}% dell'importo dei lavori)`, qty: 1, um: 'a corpo', unit: u, def: P, edited: u !== P, mat: false, pass: true, nomk: true, vcat: 'prof', det: true, ref: 'DM 37/08 art. 5 · D.Lgs. 81/08 · DM parametri (riferimento)', tot: u, price: u, rate: rP, val: u });
+    d.profFixed = fixOn;
+    items.push({ cat: C.PRO, id: 'prof', desc: `Spese professionali: progettazione elettrica, direzione lavori, coordinamento sicurezza, verifiche e cassa previdenziale (${fixOn ? 'importo fisso per impianti fino a ' + String(S.prof_fix_kwp).replace('.', ',') + ' kWp' : S.prof_pct + '% dell\'importo dei lavori'})`, qty: 1, um: 'a corpo', unit: u, def: P, edited: u !== P, fixed: fixOn, mat: false, pass: true, nomk: true, vcat: 'prof', det: true, ref: 'DM 37/08 art. 5 · D.Lgs. 81/08 · DM parametri (riferimento)', tot: u, price: u, rate: rP, val: u });
   }
   let net = 0, vat = 0;
   for (const it of items) { it.vat = it.price * it.rate / 100; net += it.price; vat += it.vat; }
@@ -1447,6 +1499,8 @@ function compute(S) {
   const contingency = vWc - vW;                                         // riserva imprevisti a costo (solo voci con imprevisti)
   const cost = itemsCost + transport + contingency;
   const profit = net - cost;
+  d.effMk = cost > 0 ? (net / cost - 1) * 100 : 0; d.sicShare = cost > 0 ? items.filter(i => i.cat === C.SIC).reduce((x, i) => x + i.tot, 0) / cost : 0;
+  if (d.sicShare > 0.25) chk('warn', 'Sicurezza oltre il 25% del costo', `Oneri di sicurezza e mezzi = ${Math.round(d.sicShare * 100)}% del costo${(S.sic_mk || 0) > 0 ? ' (ricarico ' + S.sic_mk + '%)' : ' (passano a costo)'}: ricarico effettivo sul costo totale ${d.effMk.toFixed(1).replace('.', ',')}%. Controllare opera provvisionale e durata; valutare il ricarico sulla sicurezza.`);
   const byCat = {}, byCatPrice = {};
   for (const it of items) { byCat[it.cat] = (byCat[it.cat] || 0) + it.tot; byCatPrice[it.cat] = (byCatPrice[it.cat] || 0) + it.price; }
   const tot = { vatBreak: vb, cost, itemsCost, transport, contingency, net, vat, gross, markup, profit, margin: net > 0 ? profit / net * 100 : 0, lavori,
@@ -1538,18 +1592,23 @@ function qesMacro(it, C) {
 
 function qesData(R, S) {
   const C = R.d.C, groups = [{ rows: {} }, { rows: {} }];
-  let sic = 0, P = 0; const impB = { E: 0, F: 0, G: 0 };   // costo delle voci soggette a imprevisti, per colonna
+  let sic = 0, sicMk = 0, P = 0; const impB = { E: 0, F: 0, G: 0 };   // costo delle voci soggette a imprevisti, per colonna
   for (const it of R.items) {
     if (!(it.val > 0.005)) continue;
     const q = qesMacro(it, C);
     if (q.pro) { P += it.tot; continue; }
-    if (q.sic) { sic += it.val; continue; }
+    if (q.sic) { sic += it.val; sicMk += it.price - it.val; continue; }   // oneri sicurezza al costo; l'eventuale ricarico noli va nei lavori
     const g = groups[q.grp - 1], key = q.m + (q.ric === false ? '#n' : '');
     g.rows[key] = g.rows[key] || { label: q.m, E: 0, F: 0, G: 0, ric: q.ric !== false, vat: { E: 0, F: 0, G: 0 }, pr: { E: 0, F: 0, G: 0 } };
     const f22 = it.f22 || 0;
     const im = q.ric !== false && (it.kImp || 1) > 1;
     if (f22 > 0 && q.col !== 'G' && q.ric !== false) { g.rows[key][q.col] += it.val * (1 - f22); g.rows[key].G += it.val * f22; if (im) { impB[q.col] += it.val * (1 - f22); impB.G += it.val * f22; } }   // quota al 22% (beni oltre il valore della manodopera, accumulo su impianto esistente)
     else { g.rows[key][q.col] += it.val; if (im) impB[q.col] += it.val; }
+  }
+  if (sicMk > 0.005) {   // ricarico su sicurezza e noli: riga dei lavori, espressa a costo (il QES applica poi il ricarico K7)
+    const rk = (R.tot.markup || 0) / 100, g = groups[0], key = 'Altre opere impiantistiche';
+    g.rows[key] = g.rows[key] || { label: key, E: 0, F: 0, G: 0, ric: true, vat: { E: 0, F: 0, G: 0 }, pr: { E: 0, F: 0, G: 0 } };
+    g.rows[key].E += sicMk / (1 + rk);
   }
   const out = groups.map(g => Object.values(g.rows).sort((a, b) => QES_ORDER.indexOf(a.label) - QES_ORDER.indexOf(b.label)));
   let wE = 0, wF = 0; for (const g of out) for (const x of g) { wE += x.E; wF += x.F; }
@@ -1686,7 +1745,7 @@ function newState() {
   return Object.assign(E.defaults(), {
     azienda: '', tecnico: '', validita: 30,
     pagamento: '30% all\'ordine · 60% a fine posa · 10% al collaudo e messa in servizio (bonifico parlante per la detrazione)',
-    tempi: 'Inizio lavori entro 30–60 giorni dall\'ordine; posa in 1–3 giorni lavorativi; attivazione dipendente dai tempi del distributore.',
+    tempi: 'Inizio lavori entro 30–60 giorni dall\'ordine; durata della posa come indicato nel riepilogo; attivazione dipendente dai tempi del distributore.',
     garanzia: 'Moduli: garanzia di prodotto e di prestazione del costruttore. Inverter: garanzia del costruttore (estendibile). Installazione: 2 anni per vizi di esecuzione, salvi i diritti di legge.'
   });
 }
@@ -1850,7 +1909,8 @@ const SCHEMA_RAW = [
   { id: 'lav', t: 'Lavori speciali e sicurezza', s: 'amianto, guaina, accessi, D.Lgs. 81/08', f: [
     { k: 'redo', l: 'Opere sulla copertura', t: 'o', o: [['nessuno', 'Nessuna'], ['guaina', 'Rifacimento guaina (tetto piano)'], ['amianto', 'Bonifica amianto e nuova copertura']], wide: true },
     { k: 'redo_m2', l: 'Superficie da rifare (0 = stima)', t: 'n', u: 'm²', step: 5 },
-    { k: 'safe_mode', l: 'Opera provvisionale', t: 'o', o: [['auto', 'Automatica'], ['ponteggio', 'Ponteggio di facciata'], ['ple', 'Piattaforma elevabile (PLE)'], ['parapetti', 'Parapetti di bordo'], ['nessuno', 'Nessuna']] },
+    { k: 'safe_mode', l: 'Opera provvisionale (lavori sopra 2 m)', t: 'o', o: [['ponteggio', 'Ponteggio di facciata'], ['ple', 'Piattaforma elevabile (PLE) — se accessibile'], ['parapetti', 'Parapetti di bordo'], ['auto', 'Automatica (la più economica)'], ['nessuno', 'Nessuna']], h: 'Scegli la PLE quando il mezzo arriva alla gronda: niente montaggio del ponteggio e cantiere più corto.' },
+    { k: 'scaf_own', l: 'Ponteggio di proprietà (montato dalla squadra)', t: 'c', h: 'Niente nolo: in sicurezza vanno le ore di montaggio/smontaggio (tolte dalle giornate di squadra), trasporto e usura.' },
     { k: 'scaf_len', l: 'Sviluppo lineare protetto', t: 'n', u: 'm', step: 1 },
     { k: 'lifeline_m', l: 'Linea vita permanente', t: 'n', u: 'm', step: 1 },
     { k: 'multi_imp', l: 'Più imprese in cantiere', t: 'c', h: 'Attiva CSP/CSE e notifica preliminare.' },
@@ -1862,6 +1922,7 @@ const SCHEMA_RAW = [
     { k: 'eur_km', l: 'Costo chilometrico', t: 'n', u: '€/km', step: 0.05 },
     { k: 'transport', l: 'Trasporto e logistica su materiali', t: 'n', u: '%', step: 0.5 },
     { k: 'contingency', l: 'Imprevisti', t: 'n', u: '%', step: 0.5, h: 'Regola fissa: si applicano a materiali, opere edili e manodopera; mai a pratiche e spese tecniche, sicurezza, TICA e spese professionali.' },
+    { k: 'sic_mk', l: 'Ricarico su sicurezza e noli', t: 'n', u: '%', step: 1, h: 'Default 15%: copre la gestione di ponteggi e mezzi a noleggio. Nel QES la riga «oneri sicurezza» resta al costo, il ricarico va nei lavori.' },
     { k: 'prod_eff', l: 'Produttività della squadra', t: 'n', step: 0.05, h: 'Quota di ore effettivamente produttive; il resto è carico/scarico, spostamenti e tempi morti.' },
     { k: 'prof_on', l: 'Includi spese professionali', t: 'c', wide: true, h: 'Progettazione (sempre esterna), direzione lavori, coordinamento sicurezza, verifiche e cassa: passano a costo, senza ricarico.' },
     { k: 'prof_pct', l: 'Spese professionali', t: 'n', u: '% dei lavori', step: 0.5, h: 'Valida fino a 20 kW; oltre usare il preventivatore industriale (DM parametri).' },
@@ -1882,7 +1943,7 @@ const SCHEMA_F = (() => {
   const take = (sec, keys) => { const out = []; sec.f = sec.f.filter(f => { if (keys.includes(f.k)) { out.push(f); return false; } return true; }); return out; };
   const detF = take(by('cli'), ['abit_princ', 'titolare']).concat(take(by('for'), ['pay_year', 'altre_spese', 'irpef']));
   const ecoF = by('eco').f;
-  const daysF = { k: 'days_man', l: 'Giorni di lavoro in cantiere', t: 'n', u: 'gg', step: 1, auto: (r) => r.d.daysAuto, h: 'Vuoto = calcolato dalle ore stimate. Se lo inserisci, costo della squadra, trasferte, ponteggio/PLE e durata del cantiere si ricalcolano su questi giorni.' };
+  const daysF = { k: 'days_man', l: 'Giorni di lavoro in cantiere', t: 'n', u: 'gg', step: 1, auto: (r) => r.d.daysAuto, h: 'Vuoto = automatico: il maggiore tra la taratura aziendale (sotto) e la stima per lavorazioni. Il costo della squadra è sempre giorni × operai × ore/giorno, ripartito sulle lavorazioni.' };
   const strut = { id: 'strut', t: 'Struttura di fissaggio', s: 'sistema di ancoraggio dei moduli alla copertura', box: 'strBox', f: [
     { k: 'str_kit', l: 'Sistema di fissaggio', t: 'o', wide: true, o: [['auto', 'Automatico: in base al tipo di copertura'], ['hook', 'Ganci su coppi / tegole / ardesia'], ['rail_screw', 'Binari su arcarecci (tetto in legno)'], ['minirail', 'Mini-rail su lamiera / sandwich'], ['ballast', 'Zavorrato su tetto piano']], h: 'Il sistema è proposto dal tipo di copertura (sezione «Sito e copertura»). Cambialo solo se il sopralluogo indica altro: il tool segnala gli abbinamenti non tipici.' },
     { k: 'str_orient', l: 'Orientamento dei moduli', t: 'o', o: [['v', 'Verticale (portrait)'], ['o', 'Orizzontale (landscape)']], h: 'Cambia la lunghezza dei binari per modulo.' },
@@ -1891,7 +1952,9 @@ const SCHEMA_F = (() => {
   ] };
   const det = { id: 'det', t: 'Requisiti del cliente per la detrazione', s: 'abitazione principale, anno dei pagamenti, capienza', f: detF };
   const eco = by('eco'); eco.t = 'Squadra, costi e prezzo'; eco.s = 'operai, giorni, trasferte, costo orario, imprevisti, spese professionali (parametri interni, non appaiono nell\'offerta al cliente)';
-  { const o = {}; ecoF.forEach(f => o[f.k] = f); const ord = ['team', 'h_day', 'days_man', 'prod_eff', 'km', 'eur_km', 'cost_h', 'transport', 'contingency', 'prof_on', 'prof_pct', 'prof_split']; o.days_man = daysF; eco.f = ord.map(k => o[k]); }
+  ecoF.push({ k: 'prof_fix', l: 'Spese professionali fisse (piccoli impianti)', t: 'n', u: '€', step: 50, h: 'Importo a pratica al posto della percentuale, fino alla potenza indicata. 0 = sempre percentuale.' }, { k: 'prof_fix_kwp', l: 'Importo fisso fino a', t: 'n', u: 'kWp', step: 0.5 });
+  ecoF.push({ k: 'cal_base', l: 'Taratura: giorni base per cantiere', t: 'n', u: 'gg', step: 0.5, h: 'Durata minima di un cantiere (ponteggio, sicurezze, allestimento, collaudo).' }, { k: 'cal_kwp', l: 'Taratura: giorni per kWp', t: 'n', u: 'gg/kWp', step: 0.1, h: 'Default 4 + 0,6 × kWp: 3 kWp = 6 giorni, 6 kWp = 8, 10 kWp = 10.' });
+  { const o = {}; ecoF.forEach(f => o[f.k] = f); const ord = ['team', 'h_day', 'days_man', 'cal_base', 'cal_kwp', 'prod_eff', 'km', 'eur_km', 'cost_h', 'transport', 'contingency', 'sic_mk', 'prof_on', 'prof_pct', 'prof_fix', 'prof_fix_kwp', 'prof_split']; o.days_man = daysF; eco.f = ord.map(k => o[k]); }
   const g = (g_, arr) => arr.map(x => Object.assign(x, { g: g_ }));
   return g('imp', [by('cli'), by('for'), by('sito'), by('falde'), strut, by('mod'), by('acc'), by('ele'), by('lav'), eco])
     .concat(g('com', [det, by('piano'), by('conc'), by('com'), by('fisc')]));
@@ -2004,7 +2067,7 @@ function onForm(e) {
     const k = t.dataset.k;
     let v;
     if (t.type === 'checkbox') v = t.checked;
-    else if (t.type === 'number') v = t.value === '' ? 0 : parseFloat(t.value);
+    else if (t.type === 'number') { v = t.value === '' ? 0 : parseFloat(t.value); if (['team', 'h_day', 'prod_eff'].includes(k) && !(v > 0)) { v = E.defaults()[k]; if (e.type === 'change') t.value = v; } }
     else if (t.dataset.num) v = parseFloat(t.value);
     else v = t.value;
     if (typeof v === 'number' && isNaN(v)) return;
@@ -2051,7 +2114,9 @@ function renderAside() {
   $('#margin').textContent = nf(tot.margin, 1) + ' %';
   $('#profit').textContent = eur(tot.profit);
   $('#priceWp').textContent = nf(tot.perKwp, 0) + ' €/kWp IVA incl.';
-  $('#mode-note').innerHTML = `Prezzo netto <b>${eur(tot.net)}</b> + IVA <b>${eur(tot.vat)}</b> = <b>${eur(tot.gross)}</b>. ` + (S.price_mode === 'price' ? 'Modalità: prezzo IVA inclusa fissato, il ricarico si ricalcola.' : 'Modalità: ricarico sul costo.');
+  const eff = R.d.effMk || 0, sh = R.d.sicShare || 0;
+  $('#mode-note').innerHTML = `Prezzo netto <b>${eur(tot.net)}</b> + IVA <b>${eur(tot.vat)}</b> = <b>${eur(tot.gross)}</b>. ` + (S.price_mode === 'price' ? 'Modalità: prezzo IVA inclusa fissato, il ricarico si ricalcola.' : 'Modalità: ricarico sul costo.') +
+    `<br><span class="${sh > 0.25 ? 'warntxt' : ''}">Ricarico effettivo sul costo totale: <b>${nf(eff, 1)}%</b> — il ${nf(markupShown, 0)}% vale su materiali, manodopera e pratiche; sicurezza (${nf(sh * 100, 0)}% del costo)${(S.sic_mk || 0) > 0 ? ' ricaricata del ' + S.sic_mk + '%' : ' a costo'}, TICA e spese professionali passano a costo.</span>`;
   const nerr = R.checks.filter(c => c.lvl === 'err').length, nwarn = R.checks.filter(c => c.lvl === 'warn').length;
   $('#chkSum').innerHTML = nerr ? `<span class="pill err">${nerr} errori</span>` : nwarn ? `<span class="pill warn">${nwarn} avvisi</span>` : '<span class="pill ok">verifiche ok</span>';
   $('#fiscCard').innerHTML = fisc.eligible ? `<h2><span>Detrazione ${fisc.aliq}%</span><span class="muted" style="font-weight:400;font-size:12px">anno ${S.pay_year}</span></h2>
@@ -2103,8 +2168,8 @@ function confrontiHtml(R, S) {
   const row = (l, a, b, f, hl) => `<tr${hl ? ' class="tot"' : ''}><td>${l}</td><td class="num">${f(a)}</td><td class="num">${f(b)}</td><td class="num">${dl(a, b, f)}</td></tr>`;
   const A = V.a, B = V.b, pc = (x) => nf(x, 1) + ' %';
   const rowY = (l, a, b, hl) => `<tr${hl ? ' class="tot"' : ''}><td>${l}</td><td class="num">${yy(a)}</td><td class="num">${yy(b)}</td><td class="num">${a === null || b === null ? '–' : dl(a, b, x => nf(x, 1) + ' anni')}</td></tr>`;
-  const var_ = `<div><h3 style="margin:0 0 6px;font-size:14px">Con e senza accumulo (batteria = ${V.kwh} kWh, come i kWp)</h3>
-    <div class="tablewrap"><table class="boq" style="min-width:420px"><thead><tr><th></th><th class="num">Senza accumulo</th><th class="num">Con ${V.kwh} kWh</th><th class="num">Differenza</th></tr></thead><tbody>
+  const var_ = `<div><h3 style="margin:0 0 6px;font-size:14px">Con e senza accumulo (batteria di circa ${Math.max(2, Math.round(R.d.Pdc))} kWh come i kWp: ${nf(V.kwh, 1)} kWh effettivi)</h3>
+    <div class="tablewrap"><table class="boq" style="min-width:420px"><thead><tr><th></th><th class="num">Senza accumulo</th><th class="num">Con ${nf(V.kwh, 1)} kWh</th><th class="num">Differenza</th></tr></thead><tbody>
     ${row('Costo interno', A.cost, B.cost, eur)}${row('Prezzo netto', A.net, B.net, eur)}${row('Prezzo IVA inclusa', A.gross, B.gross, eur, true)}
     ${row('Utile lordo', A.profit, B.profit, eur)}${row('Margine', A.margin, B.margin, pc)}${row('Costo netto dopo detrazione', A.netto, B.netto, eur)}
     ${row('Risparmio + ritiro, primo anno', A.y1, B.y1, eur)}${row('Autoconsumo', A.sh * 100, B.sh * 100, pc)}${rowY('Rientro centrale', A.pb, B.pb)}${rowY('Rientro prudente', A.pbp, B.pbp)}${row('VAN', A.van, B.van, eur, true)}</tbody></table></div>
@@ -2129,13 +2194,13 @@ function renderLower() {
   const dims = [
     ['Moduli', `${d.Ntot} × ${d.M.p} Wp = ${nf(d.Pdc, 2)} kWp`],
     ['Inverter', `${d.I.name} · DC/AC ${nf(d.ratio, 2)}`],
-    ['Stringhe', d.fs.map(z => z.ok ? `${z.s} × ${z.Ns} moduli` : 'non valida').join(' · ') + ` (finestra ${d.fs[0] ? d.fs[0].NsMin : '–'}–${d.fs[0] ? d.fs[0].NsMax : '–'} moduli)`],
+    ['Stringhe', d.fs.map(z => z.ok ? (z.NsList ? `${z.NsList.join(' + ')} moduli su ${z.mlab ? 'MPPT ' + z.mlab : '2 MPPT'}` : `${z.s} × ${z.Ns} moduli`) : 'non valida').join(' · ') + ` (finestra ${d.fs[0] ? d.fs[0].NsMin : '–'}–${d.fs[0] ? d.fs[0].NsMax : '–'} moduli)`],
     ['Voc a Tmin', nf(d.VocTmin, 1) + ' V per modulo'],
     ['Produzione', `${nf(d.prod, 0)} kWh/anno · ${nf(d.Yeff, 0)} kWh/kWp (base ${d.Y})`],
     ['Linee AC', `${d.ac1.S} / ${d.ac2.S} mm² · In ${d.ac1.In} A · ΔV ${nf(d.dvTot, 2)}%`],
     ['Neve sulla copertura', nf(d.qs, 2) + ' kN/m² (qsk ' + nf(d.qsk, 2) + ')'],
     ['Durata lavori', `${nf(d.hTot, 0)} h · ${d.days} giorni (${S.team} operai) · ${d.ug} uomini-giorno`],
-    ['Accumulo', d.battKwh ? `${d.battKwh} kWh / ${d.battKw} kW` : 'assente']
+    ['Accumulo', d.battKwh ? `${nf(d.battKwh, 1)} kWh / ${nf(d.battKw, 1)} kW` : 'assente']
   ];
   const cats = [...new Set(items.map(i => i.cat))];
   const rows = cats.map(c => {
@@ -2207,7 +2272,7 @@ function renderStructBox() {
 function renderArchBox() {
   const box = $('#archBox'); if (!box || !R) return;
   const I = R.d.I, M = R.d.M || null, a = (v) => Array.isArray(v) ? v.join('/') : v;
-  const rows = R.d.fs.map((z, i) => `<tr><td>Falda ${i + 1}</td><td class="num">${z.f.n}</td><td>${z.ok ? `${z.s} × ${z.Ns}` : '—'}</td><td class="num">${I.mppt > 1 ? 'MPPT ' + z.mlab : '—'}</td><td class="num">${z.ok ? nf(z.Ns * R.d.VocTmin, 0) + ' V' : '—'}</td><td class="num">${z.iscI != null ? nf(z.iscI, 1) + ' A' : '—'}</td></tr>`).join('');
+  const rows = R.d.fs.map((z, i) => `<tr><td>Falda ${i + 1}</td><td class="num">${z.f.n}</td><td>${z.ok ? (z.NsList ? z.NsList.join(' + ') : `${z.s} × ${z.Ns}`) : '—'}</td><td class="num">${I.mppt > 1 ? 'MPPT ' + z.mlab : '—'}</td><td class="num">${z.ok ? nf(z.Ns * R.d.VocTmin, 0) + ' V' : '—'}</td><td class="num">${z.iscI != null ? nf(z.iscI, 1) + ' A' : '—'}</td></tr>`).join('');
   box.innerHTML = `<div style="background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:12px 14px"><div><b>Inverter: ${esc(I.name)}</b> · ${nf(I.pac, 2)} kW${I.hyb ? ' · ibrido' : ''}${I.arch ? '' : ' <span class="muted">(valori tipici di categoria)</span>'}</div>
     <p class="help" style="margin:4px 0 8px">${I.mppt} MPPT · ${a(I.inp)} stringhe per MPPT · finestra MPPT ${I.vmin}–${I.vmaxm} V · Vmax ${I.vmax} V · Imax ${a(I.imax)} A · Isc max ${a(I.isc)} A${I.hyb && I.bmax ? ' · max ' + I.bmax + ' moduli batteria' : ''}${I.src ? '<br>Fonte: ' + esc(I.src) : ''}</p>
     <div class="tablewrap"><table class="boq" style="min-width:520px"><thead><tr><th>Falda</th><th class="num">Moduli</th><th>Stringhe</th><th class="num">Ingresso</th><th class="num">Voc a Tmin</th><th class="num">Isc max MPPT</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
@@ -2243,10 +2308,10 @@ function newOffer(S0) {
    STAMPA
    ============================================================ */
 const today = () => new Date().toLocaleDateString('it-IT');
-function printHead(title, kick, S, o) {
+function printHead(title, kick, S, o, noVal) {
   const num = 'OFF-' + new Date(o.created || Date.now()).getFullYear() + '-' + o.id.slice(-4).toUpperCase();
   const val = new Date(Date.now() + (S.validita || 30) * 864e5).toLocaleDateString('it-IT');
-  return `<div class="pr-head"><div><div class="pr-kick">${esc(kick)}</div><h1>${esc(title)}</h1></div><div class="meta">${esc(num)}<br>del ${today()}${S.validita ? '<br>valida fino al ' + val : ''}</div></div>`;
+  return `<div class="pr-head"><div><div class="pr-kick">${esc(kick)}</div><h1>${esc(title)}</h1></div><div class="meta">${esc(num)}<br>del ${today()}${S.validita && !noVal ? '<br>valida fino al ' + val : ''}</div></div>`;
 }
 
 function planPrint(R, S) {
@@ -2317,7 +2382,7 @@ function confrontiPrint(R, S) {
   const yy = (x) => x === null || x === undefined ? 'oltre orizz.' : nf(x, 1) + ' anni';
   const A = V.a, B = V.b, c = M.conc;
   const r = (l, a, b) => `<tr><td>${l}</td><td class="n">${a}</td><td class="n">${b}</td></tr>`;
-  return `<h2>Confronto con e senza accumulo (${V.kwh} kWh)</h2><table><thead><tr><th></th><th class="n">Senza</th><th class="n">Con ${V.kwh} kWh</th></tr></thead><tbody>${r('Costo interno', eur(A.cost), eur(B.cost))}${r('Prezzo IVA inclusa', eur(A.gross), eur(B.gross))}${r('Margine / utile', nf(A.margin, 1) + '% / ' + eur(A.profit), nf(B.margin, 1) + '% / ' + eur(B.profit))}${r('Costo netto dopo detrazione', eur(A.netto), eur(B.netto))}${r('Rientro centrale / prudente', yy(A.pb) + ' / ' + yy(A.pbp), yy(B.pb) + ' / ' + yy(B.pbp))}${r('VAN', eur(A.van), eur(B.van))}</tbody></table>
+  return `<h2>Confronto con e senza accumulo (${nf(V.kwh, 1)} kWh)</h2><table><thead><tr><th></th><th class="n">Senza</th><th class="n">Con ${nf(V.kwh, 1)} kWh</th></tr></thead><tbody>${r('Costo interno', eur(A.cost), eur(B.cost))}${r('Prezzo IVA inclusa', eur(A.gross), eur(B.gross))}${r('Margine / utile', nf(A.margin, 1) + '% / ' + eur(A.profit), nf(B.margin, 1) + '% / ' + eur(B.profit))}${r('Costo netto dopo detrazione', eur(A.netto), eur(B.netto))}${r('Rientro centrale / prudente', yy(A.pb) + ' / ' + yy(A.pbp), yy(B.pb) + ' / ' + yy(B.pbp))}${r('VAN', eur(A.van), eur(B.van))}</tbody></table>
   <h2>Mercato e concorrenza</h2><table><tbody><tr><td>Nostro prezzo IVA incl. ${eur(M.ours)} (${nf(M.perKwp, 0)} €/kWp) · fascia ${M.bandKind} ${eur(M.lo)}–${eur(M.hi)}: ${M.pos === 'dentro' ? 'nella fascia' : M.pos === 'sopra' ? 'sopra la fascia' : 'sotto la fascia'}</td></tr>${c ? `<tr><td>${esc(c.name)}: ${eur(c.price)} (${nf(c.perKwp, 0)} €/kWp) · differenza ${(c.delta > 0 ? '+' : '') + eur(c.delta)} (${nf(c.deltaPct, 1)}%) · per eguagliarli ricarico ${nf(c.matchMarkup, 1)}% (margine ${nf(c.matchMargin, 1)}%, utile ${eur(c.matchProfit)})</td></tr>` : ''}</tbody></table>`;
 }
 function printInternal() {
@@ -2402,20 +2467,22 @@ async function exportXlsx(client) {
     if (fisc.eligible) { ws.addRow([]); ws.addRow(['Detrazione IRPEF ' + fisc.aliq + '% (stima)', null, null, +fisc.detr.toFixed(2)]); ws.addRow(['Rata annua × ' + fisc.years, null, null, +fisc.rata.toFixed(2)]); ws.addRow(['Costo netto dopo detrazione', null, null, +fisc.netto.toFixed(2)]); }
   } else {
     // parametri attivi: il prezzo di ogni riga = costo × (1+trasporto·T) × (1+ricarico·M) × (1+imprevisti·I)
-    const pr = [['Ricarico sui lavori', R.tot.markup / 100], ['Trasporto e logistica (materiali e opere edili)', S.transport / 100], ['Imprevisti (solo voci con I = 1)', S.contingency / 100]];
+    const pr = [['Ricarico sui lavori', R.tot.markup / 100], ['Trasporto e logistica (materiali e opere edili)', S.transport / 100], ['Imprevisti (solo voci con I = 1)', S.contingency / 100], ['Ricarico sicurezza e noli (voci con S = 1)', (S.sic_mk || 0) / 100]];
     const pRow = {};
     pr.forEach(([l, v], k) => { const r = ws.addRow([l, null, null, null, null, null, null, null, null, +v.toFixed(6)]); r.getCell(10).numFmt = '0.00%'; r.getCell(10).font = { bold: true, color: { argb: 'FF1F5F55' } }; pRow[k] = r.number; });
-    ws.addRow(['T = trasporto applicato (materiali e opere edili) · M = ricarico applicato (no sicurezza, TICA, spese professionali) · I = imprevisti applicati (materiali, opere edili e manodopera). Modificando J' + pRow[0] + '–J' + pRow[2] + ' o i flag 0/1 il prezzo si ricalcola.']).font = { italic: true, size: 9 };
+    ws.addRow(['T = trasporto applicato (materiali e opere edili) · M = ricarico applicato (no sicurezza, TICA, spese professionali) · I = imprevisti applicati (materiali, opere edili e manodopera) · S (colonna N) = ricarico sicurezza. Modificando J' + pRow[0] + '–J' + pRow[3] + ' o i flag 0/1 il prezzo si ricalcola.']).font = { italic: true, size: 9 };
     ws.addRow([]);
-    ws.addRow(['Categoria', 'Voce', 'UM', 'Q.tà', 'Costo unitario', 'Costo', 'T', 'M', 'I', 'Prezzo netto', 'IVA %', 'IVA', 'Totale']).font = { bold: true };
+    ws.addRow(['Categoria', 'Voce', 'UM', 'Q.tà', 'Costo unitario', 'Costo', 'T', 'M', 'I', 'Prezzo netto', 'IVA %', 'IVA', 'Totale', 'S', 'L']).font = { bold: true };
     const first = ws.rowCount + 1;
     const $J = k => '$J$' + pRow[k];
     for (const i of items) {
-      const T = i.tr ? 1 : 0, M = i.nomk ? 0 : 1, I = (i.kImp || 1) > 1 ? 1 : 0;
-      const r = ws.addRow([i.cat, i.desc, i.um, i.qty, i.unit, null, T, M, I, null, i.rate, null, null]);
+      const T = i.tr ? 1 : 0, M = i.nomk ? 0 : 1, I = (i.kImp || 1) > 1 ? 1 : 0, Sf = i.cat === 'Sicurezza di cantiere e mezzi' ? 1 : 0;
+      const Lf = i.pass ? 0 : 1;   // L = voce compresa nell'importo dei lavori (base delle spese professionali)
+      const r = ws.addRow([i.cat, i.desc, i.um, i.qty, i.unit, null, T, M, I, null, i.rate, null, null, Sf, Lf]);
       const n = r.number;
       r.getCell(6).value = { formula: `D${n}*E${n}`, result: i.tot };
-      r.getCell(10).value = { formula: `F${n}*(1+${$J(1)}*G${n})*(1+${$J(0)}*H${n})*(1+${$J(2)}*I${n})`, result: i.price };
+      if (i.id === 'prof' && !i.edited && !i.fixed && n > first) { r.getCell(6).value = { formula: `J${n}`, result: i.tot }; r.getCell(10).value = { formula: `${(S.prof_pct || 0) / 100}*SUMPRODUCT(J${first}:J${n - 1},O${first}:O${n - 1})`, result: i.price }; r.getCell(5).value = null; }
+      else r.getCell(10).value = { formula: `F${n}*(1+${$J(1)}*G${n})*(1+${$J(0)}*H${n})*(1+${$J(2)}*I${n})*(1+${$J(3)}*N${n})`, result: i.price };
       r.getCell(12).value = { formula: `J${n}*K${n}/100`, result: i.vat };
       r.getCell(13).value = { formula: `J${n}+L${n}`, result: i.price + i.vat };
     }
@@ -2432,7 +2499,7 @@ async function exportXlsx(client) {
     [1, 2].forEach((c, i) => ws.getColumn(c).width = i ? 70 : 28);
     [5, 6, 10, 12, 13].forEach(c => { ws.getColumn(c).width = 16; if (c !== 10) ws.getColumn(c).numFmt = money; });
     for (let k = first; k <= tr; k++) ws.getCell('J' + k).numFmt = money;
-    [7, 8, 9].forEach(c => ws.getColumn(c).width = 4); ws.getColumn(11).width = 7;
+    [7, 8, 9, 14, 15].forEach(c => ws.getColumn(c).width = 4); ws.getColumn(11).width = 7;
   }
   addIvaRows(ws);
   addPlanSheet(wb);
@@ -2893,7 +2960,7 @@ function schemaData(R, S) {
     return {
       i: z.mlab || (i + 1), iscI: z.iscI != null ? z.iscI : I.isc, falda: `Falda ${i + 1} · ${SCH.az(z.f.az)} (az ${nf(z.f.az || 0, 0)}°, tilt ${nf(z.f.tilt || 0, 0)}°)`,
       n: z.f.n, s, Ns, kwp: z.f.n * M.p / 1000, ok: !!z.ok,
-      voc: Ns * d.VocTmin, vmp: Ns * M.vmp, isc: (z.split ? s / z.split : s) * M.isc, split: z.split || 0,
+      voc: Ns * d.VocTmin, vmp: Ns * M.vmp, isc: (z.split ? s / z.split : s) * M.isc, split: z.split || 0, NsList: z.NsList || null,
       S: sec.S, L: z.f.l_dc || 15, dv: sec.dv, Iz: sec.Iz
     };
   });
@@ -2940,7 +3007,7 @@ function schemaSvg(R, S) {
     // simbolo stringa: due moduli + puntini
     g += `<rect x="24" y="${y - 16}" width="26" height="32" fill="#fff"/>${L(24, y + 16, 50, y - 16)}<rect x="58" y="${y - 16}" width="26" height="32" fill="#fff"/>${L(58, y + 16, 84, y - 16)}`;
     g += T(92, y + 4, '···', { s: 11 });
-    g += T(24, y - 22, `MPPT ${m.i} — ${m.s} × ${m.Ns} moduli${m.split ? ' (1 stringa per ingresso)' : ''} (${nf(m.kwp, 2)} kWp)`, { w: 700, s: 9.5 });
+    g += T(24, y - 22, `MPPT ${m.i} — ${m.NsList ? m.NsList.join(' + ') + ' moduli' : m.s + ' × ' + m.Ns + ' moduli'}${m.split ? ' (su più ingressi)' : ''} (${nf(m.kwp, 2)} kWp)`, { w: 700, s: 9.5 });
     g += T(24, y + 30, m.falda, { s: 8.5 });
     g += T(24, y + 41, `Voc(${S.t_min} °C) ${nf(m.voc, 0)} V · Vmp ${nf(m.vmp, 0)} V · Isc ${nf(m.isc, 1)} A`, { s: 8.5 });
     // cavo DC
@@ -3077,7 +3144,7 @@ function printSchema() {
   const rows = schemaRows(R, S).map(r => `<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${esc(r[2])}</td><td><small>${esc(r[3])}</small></td></tr>`).join('');
   const d = R.d;
   return `<div class="pr-land">
-  ${printHead('Schema unifilare preliminare', 'Documento interno · ' + offerName(S), S, o)}
+  ${printHead('Schema unifilare preliminare', 'Documento interno · ' + offerName(S), S, o, true)}
   <div class="pr-prelim"><b>SCHEMA PURAMENTE PRELIMINARE — NON VALIDO PER COSTRUZIONE.</b> Ricavato automaticamente dai dati dell'offerta per capire collegamenti e apparecchiature. Non è il progetto dell'impianto (DM 37/08 art. 5) né lo schema da allegare alla dichiarazione di conformità. Le taglie indicate sono di primo dimensionamento e richiedono tutte le verifiche elencate in calce.</div>
   <div class="pr-sub">${esc(S.indirizzo || '')} ${S.comune ? '· ' + esc(S.comune) : ''} · fornitura ${d.fase === 3 ? 'trifase 400 V' : 'monofase 230 V'}${S.pot_imp ? ' · ' + nf(S.pot_imp, 1) + ' kW impegnati' : ''} · ${nf(d.Pdc, 2)} kWp · ${d.Ntot} moduli · inverter ${esc(d.I.name)}</div>
   <div class="sch-wrap">${schemaSvg(R, S)}</div>
