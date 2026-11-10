@@ -330,6 +330,7 @@ table.lt tr.edited td:nth-child(3) input{background:var(--warn-bg);color:var(--w
 #priceRef .pref{background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);padding:8px 12px;margin:0 0 12px;font-size:13.5px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}#priceRef .pref.frozen{border-left:4px solid var(--accent)}#priceRef .pref.warn{border-left:4px solid var(--warn);background:var(--warn-bg)}#priceRef .pref-acts{margin-left:auto;display:flex;gap:6px}
 @media print{#priceRef{display:none}}
 .warntxt{color:var(--warn)}
+table.falde input[type=number]{width:78px;min-width:0}table.falde select{width:120px;min-width:0}table.falde td,table.falde th{padding-left:6px;padding-right:6px}
 table.lt td.num small{display:block;font-size:10.5px;color:var(--muted)}
 @media print{#listino{display:none!important}
 .pr-land{break-after:page}
@@ -2027,11 +2028,17 @@ function fieldHtml(f, S) {
   if (f.t === 's') return `<div class="fld${w}"><label for="${id}">${esc(f.l)}</label><input type="text" id="${id}" data-k="${f.k}" value="${esc(v)}">${h}</div>`;
   return `<div class="fld${w}"><label for="${id}">${esc(f.l)}</label><span class="inp"><input type="number" id="${id}" data-k="${f.k}" value="${v === '' || v == null || (f.auto && v === 0) ? '' : v}" step="${f.step || 'any'}" inputmode="decimal">${f.u ? `<span class="u">${esc(f.u)}</span>` : ''}</span>${h}</div>`;
 }
+const ORIENT = [['S', 0], ['SSE', -22.5], ['SE', -45], ['ESE', -67.5], ['E', -90], ['ENE', -112.5], ['NE', -135], ['NNE', -157.5], ['N', 180], ['SSO', 22.5], ['SO', 45], ['OSO', 67.5], ['O', 90], ['ONO', 112.5], ['NO', 135], ['NNO', 157.5]];
+function orientSel(i, az) {
+  const v = +az || 0, hit = ORIENT.some(o => Math.abs(o[1] - v) < 1e-6);
+  const opts = ORIENT.map(([n, d]) => `<option value="${d}" ${Math.abs(d - v) < 1e-6 ? 'selected' : ''}>${n} · ${String(d).replace('.', ',')}°</option>`).join('') + (hit ? '' : `<option value="${v}" selected>altro · ${v}°</option>`);
+  return `<select data-fi="${i}" data-fk="az" aria-label="Orientamento falda ${i + 1}">${opts}</select>`;
+}
 function faldeHtml(S) {
   const rows = S.falde.map((f, i) => `<tr>
     <td class="mono">${i + 1}</td>
     <td><input type="number" data-fi="${i}" data-fk="n" value="${f.n}" step="1" min="0"></td>
-    <td><input type="number" data-fi="${i}" data-fk="az" value="${f.az}" step="5"></td>
+    <td>${orientSel(i, f.az)}</td>
     <td><input type="number" data-fi="${i}" data-fk="tilt" value="${f.tilt}" step="1"></td>
     <td><input type="number" data-fi="${i}" data-fk="shade" value="${f.shade}" step="1"></td>
     <td><input type="number" data-fi="${i}" data-fk="area" value="${f.area}" step="1"></td>
@@ -2040,8 +2047,8 @@ function faldeHtml(S) {
   const tg = `<div style="padding:4px 16px 12px;border-bottom:1px solid var(--line);margin-bottom:12px"><div class="fgrid" style="padding:0;border:0"><label class="fld chk wide"><input type="checkbox" data-k="target_on" ${S.target_on ? 'checked' : ''}><span>Parti da una potenza obiettivo</span><span class="help">Il tool propone i moduli per falda in base a resa e area utile e verifica se è fattibile. Lasciando la spunta vuota si inseriscono i moduli a mano.</span></label>
     ${S.target_on ? `<div class="fld"><label for="f_target_kwp">Potenza obiettivo</label><span class="inp"><input type="number" id="f_target_kwp" data-k="target_kwp" value="${S.target_kwp || ''}" step="0.1" inputmode="decimal"><span class="u">kWp</span></span></div>` : ''}</div>
     ${S.target_on ? '<div id="targetBox"></div>' : ''}</div>`;
-  return tg + `<div class="tablewrap" style="margin:0 16px 12px"><table class="grid compact falde"><thead><tr><th>#</th><th>Moduli</th><th>Azimut °</th><th>Inclin. °</th><th>Ombre %</th><th>Area utile m²</th><th>Cavo DC (m, 1 via)</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-  <div style="padding:0 16px 16px" class="acts"><button class="btn sm" type="button" id="addFalda">+ Aggiungi falda</button><span class="help">Azimut: 0 = Sud, −90 = Est, +90 = Ovest, 180 = Nord. Un inverter con 2 MPPT gestisce al massimo 2 falde con orientamenti diversi. Area utile 0 = nessun controllo di spazio.</span></div>`;
+  return tg + `<div class="tablewrap" style="margin:0 16px 12px"><table class="grid compact falde"><thead><tr><th>#</th><th>Moduli</th><th>Orientamento (azimut)</th><th>Inclin. °</th><th>Ombre %</th><th>Area utile m²</th><th>Cavo DC (m, 1 via)</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div style="padding:0 16px 16px" class="acts"><button class="btn sm" type="button" id="addFalda">+ Aggiungi falda</button><span class="help">Orientamento della falda: l'azimut si imposta da solo (S = 0°, E = −90°, O = +90°, N = 180°). Un inverter con 2 MPPT gestisce al massimo 2 falde con orientamenti diversi. Area utile 0 = nessun controllo di spazio.</span></div>`;
 }
 function fiscHtml(S) {
   const F = S.fisc;
