@@ -843,7 +843,7 @@ const PR0 = {
   opt: 55, opt_ctrl: 175,
   clamp: 1.6, minirail: 3.3, screw: 0.30, rail: 6.0, splice: 2.5, hook: 4.0, kit_ballast: 26, ballast: 0.06, prot: 2.0, deckscrew: 0.6,
   mc4: 6.0, corr: 0.6, earth: 1.2,
-  qac_1: 220, qac_3: 340, qg_fv_1: 45, qg_fv_3: 85, spi_ext: 700, spd_dc: 120, meter_1: 180, meter_3: 260, batt_kit: 250,
+  qac_1: 220, qac_3: 340, qg_fv_1: 45, qg_fv_3: 85, spi_ext: 700, vvf_sez: 450, vvf_sign: 12, vvf_scia: 600, spd_dc: 120, meter_1: 180, meter_3: 260, batt_kit: 250,
   wb_74: 1100, wb_11: 1300, wb_22: 1900, wb_line: 14, wb_prot: 150,
   ple: 220, ple_tr: 300, scaf_ms: 24, scaf_nolo: 2.8, scaf_h_m2: 0.2, scaf_tr: 250, scaf_wear: 1.5, parap_ms: 23, parap_nolo: 2.0, fall_kit: 1028, dpi: 150, lifeline: 55, lifeline_doc: 600, coord: 700, fence: 3.7,
   asb_rem: 16, asb_plan: 900, asb_mon: 280, sandwich: 42, flashing: 25, guaina_new: 26, demo_guaina: 5, asb_test: 250,
@@ -874,7 +874,7 @@ const CAT_LABELS = {
   rail: ['Strutture', 'Binario in alluminio', 'm'], splice: ['Strutture', 'Giunto per binari', 'pz'], hook: ['Strutture', 'Gancio inox per coppi/tegole', 'pz'],
   kit_ballast: ['Strutture', 'Supporto zavorrato (tetto piano)', 'pz mod'], ballast: ['Strutture', 'Zavorra in cls', 'kg'], prot: ['Strutture', 'Tappetino protezione guaina', 'pz'], deckscrew: ['Strutture', 'Staffa/vite su arcareccio (base)', 'pz'],
   mc4: ['Cavi e quadri', 'Connettori MC4 (coppia)', 'coppia'], corr: ['Cavi e quadri', 'Corrugato per calate DC', 'm'], earth: ['Cavi e quadri', 'Conduttore di terra 6 mm²', 'm'],
-  qac_1: ['Cavi e quadri', 'Quadro AC FV monofase', 'a corpo'], qg_fv_1: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 2P', 'pz'], spi_ext: ['Cavi e quadri', 'SPI esterno CEI 0-21 con dispositivo di interfaccia (oltre 11,08 kW)', 'a corpo'], qg_fv_3: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 4P', 'pz'], qac_3: ['Cavi e quadri', 'Quadro AC FV trifase', 'a corpo'], spd_dc: ['Cavi e quadri', 'SPD lato DC', 'pz'],
+  qac_1: ['Cavi e quadri', 'Quadro AC FV monofase', 'a corpo'], qg_fv_1: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 2P', 'pz'], spi_ext: ['Cavi e quadri', 'SPI esterno CEI 0-21 con dispositivo di interfaccia (oltre 11,08 kW)', 'a corpo'], vvf_sez: ['Cavi e quadri', 'Sezionamento di emergenza VVF (comando segnalato e protetto, sgancio di tutte le sorgenti)', 'a corpo'], vvf_sign: ['Cavi e quadri', 'Cartello UV «impianto FV in tensione nelle ore diurne»', 'pz'], vvf_scia: ['Pratiche e connessione', 'Pratica prevenzione incendi: valutazione del rischio e SCIA al Comando VVF', 'a corpo'], qg_fv_3: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 4P', 'pz'], qac_3: ['Cavi e quadri', 'Quadro AC FV trifase', 'a corpo'], spd_dc: ['Cavi e quadri', 'SPD lato DC', 'pz'],
   meter_1: ['Inverter e accessori', 'Misuratore di scambio monofase', 'pz'], meter_3: ['Inverter e accessori', 'Misuratore di scambio trifase', 'pz'], batt_kit: ['Accumulo', 'Kit collegamento batteria (cavi, protezioni, staffe)', 'a corpo'],
   wb_74: ['Wallbox', 'Wallbox 7,4 kW', 'pz'], wb_11: ['Wallbox', 'Wallbox 11 kW', 'pz'], wb_22: ['Wallbox', 'Wallbox 22 kW', 'pz'], wb_line: ['Wallbox', 'Linea dedicata wallbox', 'm'], wb_prot: ['Wallbox', 'Protezioni dedicate wallbox', 'a corpo'],
   ple: ['Sicurezza e mezzi', 'Nolo PLE (piattaforma elevabile)', '€/gg'], ple_tr: ['Sicurezza e mezzi', 'Trasporto PLE A/R', 'a corpo'], scaf_ms: ['Sicurezza e mezzi', 'Ponteggio: montaggio, smontaggio e 1° mese', '€/m²'], scaf_h_m2: ['Sicurezza e mezzi', 'Ponteggio di proprietà: ore di montaggio + smontaggio', 'h/m²'], scaf_tr: ['Sicurezza e mezzi', 'Ponteggio di proprietà: trasporto A/R', 'a corpo'], scaf_wear: ['Sicurezza e mezzi', 'Ponteggio di proprietà: usura, manutenzione e verifiche', '€/m²'], scaf_nolo: ['Sicurezza e mezzi', 'Ponteggio: nolo mesi successivi', '€/m²·mese'],
@@ -924,7 +924,7 @@ function defaults() {
     profilo: 'misto', autoc_pct: 0, e_buy: 0, e_rid: 0, e_esc: 2, degr: 0.5, om_kwp: 12, inv_repl_year: 13, horizon: 20, disc: 3, lps: false, meter: true,
     redo: 'nessuno', redo_m2: 0,
     team: 2, h_day: 8, cost_h: 0, km: 25, eur_km: 0.5,
-    mod_price: 0, fall_amort: 5, prod_eff: 0.8, safe_mode: 'ponteggio', scaf_own: true, scaf_len: 12, multi_imp: false, lifeline_m: 0,
+    mod_price: 0, fall_amort: 5, prod_eff: 0.8, safe_mode: 'ponteggio', scaf_own: true, vvf: false, scaf_len: 12, multi_imp: false, lifeline_m: 0,
     prof_on: true, prof_pct: 10, prof_fix: 400, prof_fix_kwp: 6, prof_split: 60, paes_on: false,
     transport: 3, contingency: 3, sic_mk: 15, markup: 40, price_mode: 'markup', price_gross: 0,
     fisc: JSON.parse(JSON.stringify(FISC_DEFAULT)),
@@ -1282,6 +1282,13 @@ function compute(S) {
     const qf1 = line('QF1', 'Linea inverter nel quadro AC FV', d.ac1.In, d.ac1.S, S.l_ac1, I.iac, pts.qac, pts.inv, pol); qf1.iz = d.ac1.Iz;
     if (d.wbc) { const w = line('QFW', 'Linea stazione di ricarica', d.wbc.In, d.wbc.S, S.wb_line_m, d.wbIb, pts.qg, pts.wb, d.wbPh === 3 ? '4P' : '2P'); w.iz = d.wbc.Iz; }
     if (d.Pac > 11.08) add(C.BOS, 'spi_ext', 'Sistema di protezione di interfaccia esterno (SPI) certificato CEI 0-21 con dispositivo di interfaccia, alimentazione ausiliaria e cablaggio', 1, 'a corpo', PR.spi_ext, { mat: true, ref: 'CEI 0-21' });
+    if (S.vvf) {   // impianto in attività soggetta VVF o a suo servizio (nota DCPREV 14030 del 01/09/2025)
+      const lDC = d.fs.reduce((x, z) => x + (z.f.l_dc || 15) * 2 * (z.s || 1), 0);
+      add(C.BOS, 'vvf_sez', 'Sezionamento di emergenza: comando segnalato, protetto dall\'incendio e accessibile ai soccorritori, che toglie tensione da tutte le sorgenti compreso il generatore FV (bobina di sgancio, pulsante e linea di comando)', 1, 'a corpo', PR.vvf_sez, { mat: true, ref: 'Nota VVF 14030/2025 § 3.3.5.2' });
+      add(C.BOS, 'vvf_sign', 'Cartellonistica UV «ATTENZIONE: impianto fotovoltaico in tensione durante le ore diurne (… V)» ogni 10 m sulle linee DC e nell\'area del generatore', Math.max(3, Math.ceil(lDC / 10) + 2), 'pz', PR.vvf_sign, { mat: true, ref: 'Nota VVF 14030/2025 § 3.3.5.4' });
+      add(C.PRA, 'vvf_scia', 'Prevenzione incendi: valutazione del rischio, progetto e SCIA al Comando VVF (modifica rilevante, art. 4 DPR 151/2011)', 1, 'a corpo', PR.vvf_scia, { vcat: 'prat', ref: 'DPR 151/2011 · DM 7/8/2012' });
+      chk('warn', 'Attività soggetta VVF: applicare le linee guida FV 2025', `Pannelli, cavi, inverter e quadri ad almeno 1 m (in proiezione orizzontale) da velux, lucernari, camini ed evacuatori; gruppi ≤ 20 m con corridoi da 2 m e 1 m libero dal bordo; copertura Broof (T3/T4) con moduli almeno classe E (o valutazione CEI TS 82-89); inverter su supporto A1; segnaletica ogni 10 m; progetto firmato obbligatorio; verifica antincendio ogni 2 anni.${S.batt_on ? ' Accumulo: valutazione specifica del rischio di incendio ed esplosione (circ. DCPREV 21021/2024), locale ventilato e lontano dalle vie di esodo.' : ''} Ricontrollare in sopralluogo che le falde rispettino le distanze: possono ridurre il numero di moduli.`, 'Nota VVF DCPREV 14030 del 01/09/2025');
+    }
     add(C.BOS, 'qg_fv', `Interruttore magnetotermico ${pol} curva C ${d.ac2.In} A, Icn ${String(qf0.icn).replace('.', ',')} kA, di partenza della linea FV nel quadro generale`, 1, 'pz', fase === 3 ? PR.qg_fv_3 : PR.qg_fv_1, { lk: fase === 3 ? 'pr.qg_fv_3' : 'pr.qg_fv_1', mat: true, ref: 'CEI 64-8 sez. 433-434' });
     for (const r of P.lines) {
       const n = (v, k = 1) => v.toFixed(k).replace('.', ',');
@@ -1914,6 +1921,7 @@ const SCHEMA_RAW = [
     { k: 'scaf_len', l: 'Sviluppo lineare protetto', t: 'n', u: 'm', step: 1 },
     { k: 'lifeline_m', l: 'Linea vita permanente', t: 'n', u: 'm', step: 1 },
     { k: 'multi_imp', l: 'Più imprese in cantiere', t: 'c', h: 'Attiva CSP/CSE e notifica preliminare.' },
+    { k: 'vvf', l: 'Edificio con attività soggetta ai Vigili del Fuoco (o a suo servizio)', t: 'c', h: 'Sì se c\'è: autorimessa > 300 m², centrale termica > 116 kW, fienile/deposito fieno-legna > 50 t, B&B > 25 posti letto, negozio > 400 m², edificio > 24 m. Aggiunge sezionamento di emergenza, cartelli, pratica SCIA e le verifiche delle linee guida 2025.' },
     { k: 'fall_amort', l: 'Kit anticaduta ammortizzato su', t: 'n', u: 'cantieri', step: 1, h: 'Il prezzo del kit è di acquisto: qui si addebita solo la quota per cantiere.' }
   ] },
   { id: 'eco', t: 'Squadra, costi e prezzo', s: 'parametri interni, non appaiono nell\'offerta al cliente', f: [
@@ -3134,7 +3142,7 @@ const SCH_CHECKS = [
   'Datasheet reali dei componenti scelti: tensioni e correnti di stringa, tipo di differenziale richiesto dall\'inverter, sezionatore e SPD DC integrati, certificazione dell\'SPI secondo l\'edizione vigente della CEI 0-21.',
   'Accumulo: protezioni DC del costruttore, luogo di installazione; eventuale funzionamento in isola/backup con commutazione e interblocco secondo CEI 0-21.',
   'Necessità e classe degli SPD dalla valutazione del rischio di fulminazione (CEI EN 62305-2).',
-  'Prevenzione incendi: se l\'edificio ospita o serve attività soggette (DPR 151/2011) si applicano le Linee guida VVF (nota DCPREV 14030 del 01/09/2025): sezionamento di emergenza, segnaletica, distanze.',
+  (typeof S !== 'undefined' && S.vvf ? 'Prevenzione incendi (attività soggetta): rispettare le Linee guida VVF 2025 (nota DCPREV 14030): distanze di 1 m da aperture, fasce libere, Broof/classe E, inverter su A1, sezionamento di emergenza e segnaletica; SCIA al Comando VVF.' : 'Prevenzione incendi: se l\'edificio ospita o serve attività soggette (DPR 151/2011) si applicano le Linee guida VVF (nota DCPREV 14030 del 01/09/2025): sezionamento di emergenza, segnaletica, distanze.'),
   'Configurazione di misura (M1, eventuale M2) secondo il preventivo di connessione del distributore.',
   'Progetto a firma di professionista abilitato nei casi previsti dal DM 37/08 art. 5; lo schema da allegare alla dichiarazione di conformità è quello dell\'impianto come realizzato.'
 ];
