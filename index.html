@@ -711,12 +711,13 @@ function paybackPlan(S, d, tot, fi, items, prodK, escPct) {
     const fe = Math.pow(1 + escPct / 100, t - 1);
     const sav = self * pBuy * fe, rid = exp * pRid;
     const det = fi.eligible && t <= fi.years ? fi.rata : 0;
+    const inc = fi.contrib > 0 && t === (fi.contribYear || 1) ? fi.contrib : 0;
     const om = (S.om_kwp || 0) * d.Pdc;
     const rep = S.inv_repl_year > 0 && t === Math.round(S.inv_repl_year) ? invCost : 0;
-    const flow = sav + rid + det - om - rep;
+    const flow = sav + rid + det + inc - om - rep;
     const prev = cum; cum += flow; cf.push(flow);
     if (pb === null && cum >= 0) pb = t - 1 + (flow > 0 ? -prev / flow : 0);
-    rows.push({ t, P, self, exp, sav, rid, det, om, rep, flow, cum });
+    rows.push({ t, P, self, exp, sav, rid, det, inc, om, rep, flow, cum });
   }
   const disc = (S.disc || 0) / 100;
   const van = cf.reduce((a, c, t) => a + c / Math.pow(1 + disc, t), 0);
@@ -744,13 +745,13 @@ function market(S, R) {
   const out = { lo, hi, ours, pos: ours < lo ? 'sotto' : ours > hi ? 'sopra' : 'dentro', perKwp: R.tot.perKwp, bandKind: R.d.battKwh > 0 ? 'FV + accumulo' : 'solo FV', conc: null };
   if (S.conc_price > 0) {
     const th = S.conc_price, kc = S.conc_kwp > 0 ? S.conc_kwp : kwp;
-    const fi = R.fisc, detT = fi.eligible ? Math.min(th, fi.cap) * fi.aliq / 100 : 0;
+    const fi = R.fisc, cT = fi.contrib || 0, detT = fi.eligible ? Math.min(Math.max(0, th - (R.rg && R.rg.detNet ? cT : 0)), fi.cap) * fi.aliq / 100 : 0;
     const s2 = JSON.parse(JSON.stringify(S)); s2.price_mode = 'price'; s2.price_gross = th; s2.inv_sel = S.inv_sel;
     const r2 = compute(s2);
     const tot2 = Object.assign({}, R.tot, { gross: th }), fi2 = Object.assign({}, fi, { rata: detT / fi.years });
     const pb = R.d.prod > 0 ? paybackPlan(S, R.d, tot2, fi2, [], 1, S.e_esc || 0) : null;
     out.conc = { name: S.conc_name || 'Concorrente', price: th, kwp: kc, perKwp: kc > 0 ? th / kc : 0, batt: S.conc_batt || 0, delta: ours - th, deltaPct: th > 0 ? (ours - th) / th * 100 : 0,
-      nettoT: th - detT, nettoO: fi.netto, matchMarkup: r2.tot.markup, matchMargin: r2.tot.margin, matchProfit: r2.tot.profit, pbT: pb ? pb.pb : null, pbO: R.plan ? R.plan.central.pb : null };
+      nettoT: th - detT - cT, nettoO: fi.netto, matchMarkup: r2.tot.markup, matchMargin: r2.tot.margin, matchProfit: r2.tot.profit, pbT: pb ? pb.pb : null, pbO: R.plan ? R.plan.central.pb : null };
   }
   return out;
 }
@@ -909,6 +910,7 @@ function defaults() {
     cliente: '', indirizzo: '', comune: '', provincia: '', note: '',
     abit_princ: true, titolare: true, condominio: false, vincolo: false, anno_edif: 1990,
     pay_year: 2026, altre_spese: 0, irpef: 0,
+    inc_on: false, inc_pct: 40, inc_kw_obbl: 0, inc_sp_fv: 0, inc_sp_acc: 0, inc_altri: 0, inc_year: 1, inc_det_net: true,
     fase: 'mono', pot_imp: 3, consumo: 3500,
     regione: 'Piemonte', resa_custom: 0, t_min: -10, t_max: 70, zona_neve: 'I-A', quota: 300,
     roof_type: 'coppi', gronda: 6, roof_cap: 0, strutt_verif: false,
@@ -1514,6 +1516,39 @@ function compute(S) {
   const tot = { vatBreak: vb, cost, itemsCost, transport, contingency, net, vat, gross, markup, profit, margin: net > 0 ? profit / net * 100 : 0, lavori,
     perKwp: d.Pdc > 0 ? gross / d.Pdc : 0, perKwpNet: d.Pdc > 0 ? net / d.Pdc : 0, costKwp: d.Pdc > 0 ? cost / d.Pdc : 0 };
 
+  /* ---- contributo regionale Valle d'Aosta (DGR 1165/2026, art. 15 l.r. 24/2025 · PD 5203/2026) ---- */
+  const rg = { on: !!S.inc_on, pct: S.inc_pct > 0 ? Math.min(40, S.inc_pct) : 40, ott: 0, teor: 0, cFv: 0, cAcc: 0 };
+  if (rg.on) {
+    const gv = it => it.price + (it.vat || 0);
+    const isAcc = it => it.cat === C.BATT || it.id === 'mdo_batt';
+    const wbG = items.filter(it => it.vcat === 'wb').reduce((a, it) => a + gv(it), 0);
+    rg.spAccAuto = d.battKwh > 0 ? items.filter(isAcc).reduce((a, it) => a + gv(it), 0) : 0;
+    rg.spFvAuto = Math.max(0, gross - wbG - rg.spAccAuto);
+    rg.kwObbl = Math.max(0, S.inc_kw_obbl || 0);
+    rg.kwEl = Math.max(0, d.Pdc - rg.kwObbl);
+    rg.spFv = S.inc_sp_fv > 0 ? S.inc_sp_fv : rg.spFvAuto * (d.Pdc > 0 ? rg.kwEl / d.Pdc : 0);
+    rg.spAcc = S.inc_sp_acc > 0 ? S.inc_sp_acc : rg.spAccAuto;
+    rg.kwh = d.battKwh || 0;
+    rg.altri = Math.max(0, S.inc_altri || 0);
+    rg.okFv = rg.kwEl >= 3 - 1e-9 && !S.fv_esistente;
+    if (rg.okFv) {
+      rg.cFv = Math.min(30000, rg.kwEl * 1500, rg.spFv) * rg.pct / 100;
+      rg.cAcc = rg.kwh > 0 ? Math.min(12000, rg.kwh * 600, rg.spAcc) * rg.pct / 100 : 0;
+    }
+    rg.teor = rg.cFv + rg.cAcc;
+    rg.ott = Math.max(0, Math.min(rg.altri + rg.teor, rg.spFv + rg.spAcc) - rg.altri);
+    rg.year = Math.max(1, Math.round(S.inc_year || 1));
+    rg.detNet = S.inc_det_net !== false;
+    const e0 = (x) => Math.round(x).toLocaleString('it-IT') + ' €';
+    if (S.fv_esistente) chk('err', 'Contributo regionale: accumulo da solo non ammesso', 'L\'avviso finanzia un impianto FV (nuovo o potenziamento ≥ 3 kW) con eventuale accumulo abbinato: la sola batteria su impianto esistente non è ammissibile. Contributo azzerato.', 'DGR 1165/2026 · PD 5203/2026');
+    else if (!rg.okFv) chk('err', 'Contributo regionale: potenza sotto 3 kW', `Potenza ammissibile ${rg.kwEl.toFixed(2).replace('.', ',')} kW${rg.kwObbl > 0 ? ' (al netto della quota obbligatoria D.Lgs. 199/2021)' : ''}: serve almeno 3 kW nuovi. Senza FV ammissibile non è finanziabile neanche l'accumulo.`, 'DGR 1165/2026 · PD 5203/2026');
+    else chk('ok', `Contributo regionale ${rg.pct}%: ${e0(rg.ott)}`, `FV: ${rg.pct}% × min(30.000 €; ${rg.kwEl.toFixed(2).replace('.', ',')} kW × 1.500 €; spesa ${e0(rg.spFv)}) = ${e0(rg.cFv)}.${rg.kwh > 0 ? ` Accumulo: ${rg.pct}% × min(12.000 €; ${String(rg.kwh).replace('.', ',')} kWh × 600 €; spesa ${e0(rg.spAcc)}) = ${e0(rg.cAcc)}.` : ''}${rg.altri > 0 ? ` Altri contributi pubblici ${e0(rg.altri)}: cumulo entro il 100% della spesa.` : ''} Spese IVA inclusa (IVA ammissibile per i privati); wallbox esclusa.`, 'DGR 1165/2026 · PD 5203/2026');
+    if (rg.on && rg.okFv) {
+      chk('info', 'Contributo regionale: condizioni e tempi', 'Domanda solo a lavori conclusi e spese interamente saldate (DiCo DM 37/08, fine lavori al distributore / Modello Unico parte II): il cliente anticipa l\'intera spesa. Spese ammesse dal 9/10/2026; sportello dalle 10:00 del 16/11/2026 fino a esaurimento fondi (1 M€) e non oltre il 30/09/2027; istruttoria entro 90 giorni. Unità abitativa senza attività economica; un impianto e un accumulo per domanda.', 'PD 5203 del 14/10/2026');
+      if (!S.inc_sp_fv && !S.inc_sp_acc) chk('info', 'Contributo regionale: ripartizione della spesa (ipotesi)', `Spesa FV = prezzo IVA inclusa meno wallbox e accumulo; spesa accumulo = batteria, kit e posa della batteria (${e0(rg.spAccAuto)}). Spese professionali e pratiche sono state lasciate nella spesa FV: verificare l'elenco delle spese ammissibili dell'avviso e, se serve, correggere gli importi a mano.`, 'ipotesi');
+      if (rg.kwh > 0) chk('info', 'Contributo regionale: capacità dell\'accumulo', `Il massimale a kWh è calcolato su ${String(rg.kwh).replace('.', ',')} kWh (capacità usata nel tool): verificare se l'avviso intende la capacità nominale o utile della scheda tecnica.`, 'da verificare sull\'avviso');
+    }
+  }
   /* ---- detrazione ---- */
   const fi = {};
   const rowF = (F.table.slice().sort((a, b) => a.y - b.y)).filter(r => r.y <= S.pay_year).pop() || F.table[0];
@@ -1522,12 +1557,14 @@ function compute(S) {
   fi.aliq = fi.main ? rowF.main : rowF.other;
   fi.eligible = d.Pdc <= F.kwpMax && d.Pdc > 0;
   fi.spesa = items.reduce((a, it) => a + (it.det && it.vcat !== 'onere' ? it.price * (1 + it.rate / 100) : 0), 0);
+  fi.spesaLorda = fi.spesa; fi.contrib = rg.ott || 0; fi.contribYear = rg.year || 1;
+  if (rg.on && rg.detNet) fi.spesa = Math.max(0, fi.spesa - fi.contrib);
   fi.cap = Math.max(0, rowF.cap - (S.altre_spese || 0));
   fi.base = fi.eligible ? Math.min(fi.spesa, fi.cap) : 0;
   fi.detr = fi.base * fi.aliq / 100;
   fi.years = F.years;
   fi.rata = fi.detr / F.years;
-  fi.netto = gross - fi.detr;
+  fi.netto = gross - fi.detr - fi.contrib;
   fi.excl = gross - fi.spesa;
   if (fi.eligible) {
     chk(fi.aliq >= 50 ? 'ok' : 'info', `Detrazione IRPEF ${fi.aliq}% (spesa sostenuta nel ${S.pay_year})`, fi.main ? 'Abitazione principale con spesa sostenuta dal proprietario o titolare di diritto reale.' : 'Aliquota ordinaria: manca l\'abitazione principale o il titolo di proprietà/diritto reale di chi paga.', 'art. 16-bis TUIR · L. 199/2025');
@@ -1535,7 +1572,7 @@ function compute(S) {
     if (S.irpef > 0 && fi.rata > S.irpef) chk('warn', 'Capienza IRPEF insufficiente', `La rata annua ${Math.round(fi.rata).toLocaleString('it-IT')} € supera l\'imposta lorda annua ${Math.round(S.irpef).toLocaleString('it-IT')} € dichiarata: parte della detrazione andrebbe persa.`);
     chk('info', 'Condizioni di pagamento per la detrazione', 'Bonifico bancario o postale "parlante" con causale, codice fiscale del beneficiario e partita IVA dell\'impresa; fatture intestate a chi sostiene la spesa. Sconto in fattura e cessione del credito non sono utilizzabili per questi interventi (salvo casi residuali: verificare). La banca applica la ritenuta sui bonifici (aliquota vigente da verificare).', 'art. 16-bis TUIR · prassi Agenzia delle Entrate');
     chk('info', 'Comunicazione ENEA', 'Se prevista per l\'intervento, da trasmettere entro 90 giorni dalla fine lavori o dal collaudo.', 'D.L. 63/2013 art. 16 · portale ENEA');
-    chk('info', 'Cumulabilità', 'Detrazione compatibile con il ritiro dedicato GSE; non cumulabile con altri incentivi sulla stessa spesa. Il Conto Termico 3.0 finanzia FV e accumulo solo se contestualmente si sostituisce il riscaldamento con pompa di calore.', 'DM Conto Termico 3.0');
+    chk('info', 'Cumulabilità', rg.on ? `Contributo regionale e detrazione: ${rg.detNet ? 'la detrazione è calcolata sulla spesa rimasta a carico, cioè al netto del contributo (' + Math.round(fi.contrib).toLocaleString('it-IT') + ' €)' : 'ATTENZIONE: la detrazione è calcolata sull\'intera spesa senza togliere il contributo, scelta non prudente'}. Se il contributo è incassato dopo aver già detratto la spesa piena, la quota corrispondente va dichiarata come reddito a tassazione separata. Da confermare con il commercialista del cliente. Compatibile con il ritiro dedicato GSE.` : 'Detrazione compatibile con il ritiro dedicato GSE; con altri contributi pubblici sulla stessa spesa (es. contributo regionale VdA) la detrazione spetta solo sulla parte rimasta a carico. Il Conto Termico 3.0 finanzia FV e accumulo solo se contestualmente si sostituisce il riscaldamento con pompa di calore.', rg.on ? 'art. 16-bis TUIR · art. 17 c.1 lett. n-bis TUIR · prassi AdE (da verificare)' : 'DM Conto Termico 3.0');
     if (S.pay_year >= 2027) chk('warn', 'Aliquota in calo', 'Dal 2027 l\'aliquota scende (36% abitazione principale, 30% altri casi) e dal 2028 il limite di spesa scende a 48.000 €: i bonifici del 2026 conservano le aliquote 2026.', 'L. 199/2025');
   }
   if (profit < 0) chk('err', 'Prezzo sotto costo', `Il prezzo netto (${Math.round(net).toLocaleString('it-IT')} €) è inferiore al costo interno (${Math.round(cost).toLocaleString('it-IT')} €): margine ${tot.margin.toFixed(1).replace('.', ',')}%.`);
@@ -1558,7 +1595,7 @@ function compute(S) {
     if (central.pb === null) chk('warn', 'Rientro oltre l\'orizzonte', `Nello scenario centrale il cumulato resta negativo entro ${central.H} anni.`);
     chk('info', 'Piano di rientro: ipotesi', `Autoconsumo ${Math.round(central.sh * 100)}% (${AUTOC_LABEL[S.profilo] || ''}${S.autoc_pct > 0 ? ', valore inserito' : ''}), costo evitato ${central.pBuy.toFixed(2).replace('.', ',')} €/kWh, ritiro ${central.pRid.toFixed(2).replace('.', ',')} €/kWh, prezzo energia ${S.e_esc || 0}%/anno, degrado ${S.degr || 0}%/anno. Batteria non sostituita nell'orizzonte; ritiro dedicato non tassato (impianto domestico ≤ 20 kW: da verificare con il commercialista). Scenario prudente: produzione −10%, prezzo energia costante.`, 'stima indicativa');
   }
-  return { d, items, checks, byCat, byCatPrice, tot, fisc: fi, plan, S };
+  return { d, items, checks, byCat, byCatPrice, tot, fisc: fi, rg, plan, S };
 }
 
 const api = { setArchive, ARCH0, archive: () => ARCH, brands, propose, variants, market, BENCH, MODS, INVS, ROOFS, REGIONS, FISC_DEFAULT, PR: PR0, setListino, catalog, defaults, compute, orientFactor, qsk, battPrice, pickAC };
@@ -1944,6 +1981,17 @@ const SCHEMA_RAW = [
     { k: 'tempi', l: 'Tempi', t: 's', wide: true },
     { k: 'garanzia', l: 'Garanzie', t: 's', wide: true }
   ] },
+  { id: 'inc', t: 'Contributo regionale Valle d\'Aosta', s: 'fino al 40% a fondo perduto su FV e accumulo (DGR 1165/2026, art. 15 l.r. 24/2025)', f: [
+    { k: 'inc_on', l: 'Il cliente aderisce al contributo regionale', t: 'c', wide: true, h: 'Persone fisiche, unità abitativa senza attività economica, impianto FV nuovo o potenziamento di almeno 3 kW, accumulo solo se abbinato. Il contributo entra nel costo netto e nel piano di rientro.' },
+    { k: '_incinfo', t: 'i', wide: true, show: S => !!S.inc_on, txt: () => { const g = R && R.rg; if (!g || !g.on) return ''; return g.okFv ? `Contributo ottenibile: ${eur(g.ott)} (FV ${eur(g.cFv)}${g.kwh > 0 ? ' + accumulo ' + eur(g.cAcc) : ''}) su spesa ammissibile ${eur(g.spFv + g.spAcc)} IVA inclusa = ${nf((g.spFv + g.spAcc) > 0 ? g.ott / (g.spFv + g.spAcc) * 100 : 0, 1)}% della spesa. Incassato nell'anno ${g.year} del piano di rientro.` : 'Non ammissibile: vedi le verifiche (potenza ammissibile sotto 3 kW o solo accumulo su impianto esistente).'; } },
+    { k: 'inc_pct', l: 'Aliquota del contributo', t: 'n', u: '%', step: 1, show: S => !!S.inc_on, h: 'Massimo 40% dell\'importo minore tra spesa e massimali.' },
+    { k: 'inc_kw_obbl', l: 'Potenza obbligatoria da escludere', t: 'n', u: 'kW', step: 0.5, show: S => !!S.inc_on, h: 'Solo per edifici nuovi o ristrutturazioni rilevanti: la quota d\'obbligo D.Lgs. 199/2021 non è finanziabile. 0 = nessun obbligo.' },
+    { k: 'inc_sp_fv', l: 'Spesa FV ammissibile (IVA incl.)', t: 'n', u: '€', step: 100, show: S => !!S.inc_on, auto: (r) => r.rg && r.rg.on ? nf(r.rg.spFvAuto * (r.d.Pdc > 0 ? r.rg.kwEl / r.d.Pdc : 0), 0) : '', h: 'Vuoto = prezzo IVA inclusa meno wallbox e accumulo (riproporzionato se c\'è quota d\'obbligo).' },
+    { k: 'inc_sp_acc', l: 'Spesa accumulo ammissibile (IVA incl.)', t: 'n', u: '€', step: 100, show: S => !!S.inc_on, auto: (r) => r.rg && r.rg.on ? nf(r.rg.spAccAuto, 0) : '', h: 'Vuoto = batteria, kit di collegamento e posa della batteria.' },
+    { k: 'inc_altri', l: 'Altri contributi pubblici sulla stessa spesa', t: 'n', u: '€', step: 100, show: S => !!S.inc_on, h: 'Importo già incentivato: il cumulo non può superare il 100% della spesa.' },
+    { k: 'inc_year', l: 'Anno di incasso nel piano di rientro', t: 'n', step: 1, show: S => !!S.inc_on, h: 'La domanda si presenta a lavori finiti e saldati, istruttoria entro 90 giorni: di norma anno 1.' },
+    { k: 'inc_det_net', l: 'Detrazione calcolata al netto del contributo', t: 'c', show: S => !!S.inc_on, h: 'Consigliato: la detrazione IRPEF spetta solo sulla spesa rimasta a carico. Da confermare con il commercialista del cliente.' }
+  ] },
   { id: 'fisc', custom: 'fisc', t: 'Parametri fiscali', s: 'aliquote IVA e detrazione, modificabili e datate' }
 ];
 // Riorganizzazione in due aree: IMPIANTO (tecnica e cantiere) e COMMERCIALE (cliente, costi, prezzi, fisco, piano di rientro)
@@ -1966,7 +2014,7 @@ const SCHEMA_F = (() => {
   { const o = {}; ecoF.forEach(f => o[f.k] = f); const ord = ['team', 'h_day', 'days_man', 'cal_base', 'cal_kwp', 'prod_eff', 'km', 'eur_km', 'cost_h', 'transport', 'contingency', 'sic_mk', 'prof_on', 'prof_pct', 'prof_fix', 'prof_fix_kwp', 'prof_split']; o.days_man = daysF; eco.f = ord.map(k => o[k]); }
   const g = (g_, arr) => arr.map(x => Object.assign(x, { g: g_ }));
   return g('imp', [by('cli'), by('for'), by('sito'), by('falde'), strut, by('mod'), by('acc'), by('ele'), by('lav'), eco])
-    .concat(g('com', [det, by('piano'), by('conc'), by('com'), by('fisc')]));
+    .concat(g('com', [det, by('piano'), by('conc'), by('com'), by('inc'), by('fisc')]));
 })();
 const UI = { tab: (() => { try { return localStorage.getItem('fvres.tab') === 'com' ? 'com' : 'imp'; } catch (e) { return 'imp'; } })() };
 
@@ -2135,7 +2183,7 @@ function renderAside() {
   const nerr = R.checks.filter(c => c.lvl === 'err').length, nwarn = R.checks.filter(c => c.lvl === 'warn').length;
   $('#chkSum').innerHTML = nerr ? `<span class="pill err">${nerr} errori</span>` : nwarn ? `<span class="pill warn">${nwarn} avvisi</span>` : '<span class="pill ok">verifiche ok</span>';
   $('#fiscCard').innerHTML = fisc.eligible ? `<h2><span>Detrazione ${fisc.aliq}%</span><span class="muted" style="font-weight:400;font-size:12px">anno ${S.pay_year}</span></h2>
-    <div class="secshare"><div class="row"><span>Spesa agevolata (IVA incl.)</span><b>${eur(fisc.base)}</b></div><div class="row"><span>Detrazione totale</span><b>${eur(fisc.detr)}</b></div><div class="row"><span>Rata annua × ${fisc.years}</span><b>${eur(fisc.rata)}</b></div><div class="row tot"><span>Costo netto per il cliente</span><b>${eur(fisc.netto)}</b></div><div class="note">Netto = prezzo IVA incl. − detrazione. Non è il flusso di cassa: la detrazione arriva in ${fisc.years} anni.</div></div>`
+    <div class="secshare"><div class="row"><span>Spesa agevolata (IVA incl.${fisc.contrib > 0 && R.rg.detNet ? ', netto contributo' : ''})</span><b>${eur(fisc.base)}</b></div><div class="row"><span>Detrazione totale</span><b>${eur(fisc.detr)}</b></div><div class="row"><span>Rata annua × ${fisc.years}</span><b>${eur(fisc.rata)}</b></div>${fisc.contrib > 0 ? `<div class="row"><span>Contributo regionale VdA</span><b>${eur(fisc.contrib)}</b></div>` : ''}<div class="row tot"><span>Costo netto per il cliente</span><b>${eur(fisc.netto)}</b></div><div class="note">Netto = prezzo IVA incl. − detrazione${fisc.contrib > 0 ? ' − contributo regionale' : ''}. Non è il flusso di cassa: la detrazione arriva in ${fisc.years} anni${fisc.contrib > 0 ? ', il contributo dopo la fine lavori' : ''}.</div></div>`
     : `<h2>Detrazione</h2><div class="note muted">Non applicabile${d.Pdc > S.fisc.kwpMax ? ': impianto oltre ' + S.fisc.kwpMax + ' kWp.' : '.'}</div>`;
   if (R.plan) { const { c, p, yy } = planKpis(R.plan); $('#fiscCard').innerHTML += `<div class="secshare" style="margin-top:10px"><div class="row"><span>Rientro (centrale)</span><b>${yy(c.pb)}</b></div><div class="row"><span>Rientro (prudente)</span><b>${yy(p.pb)}</b></div></div>`; }
 }
@@ -2162,17 +2210,18 @@ function planHtml(R, S) {
   const pl = R.plan; if (!pl) return '';
   const { c, p, yy } = planKpis(pl);
   const pct = (x) => x === null ? '–' : nf(x * 100, 1) + ' %';
-  const tr = c.rows.map((r, i) => `<tr><td>${r.t}</td><td class="num">${nf(r.P, 0)}</td><td class="num">${nf(r.self, 0)}</td><td class="num">${eur(r.sav)}</td><td class="num">${eur(r.rid)}</td><td class="num">${eur(r.det)}</td><td class="num">${eur(-(r.om + r.rep))}</td><td class="num">${eur(r.flow)}</td><td class="num"><b>${eur(r.cum)}</b></td></tr>`).join('');
+  const hasInc = c.rows.some(r => r.inc > 0);
+  const tr = c.rows.map((r, i) => `<tr><td>${r.t}</td><td class="num">${nf(r.P, 0)}</td><td class="num">${nf(r.self, 0)}</td><td class="num">${eur(r.sav)}</td><td class="num">${eur(r.rid)}</td><td class="num">${eur(r.det)}</td>${hasInc ? `<td class="num">${eur(r.inc)}</td>` : ''}<td class="num">${eur(-(r.om + r.rep))}</td><td class="num">${eur(r.flow)}</td><td class="num"><b>${eur(r.cum)}</b></td></tr>`).join('');
   return `<section class="blk"><div class="blkhead"><div><h2>Piano di rientro</h2><p>Stima indicativa su ${c.H} anni · autoconsumo ${nf(c.sh * 100, 0)}% (${esc(pl.profiloLabel)}) · produzione da media regionale (±10%)</p></div></div>
   <div class="two"><div><dl class="dims">
     <div><dt>Rientro (scenario centrale)</dt><dd><b>${yy(c.pb)}</b></dd></div>
     <div><dt>Rientro (prudente: −10% produzione, prezzo energia costante)</dt><dd><b>${yy(p.pb)}</b></dd></div>
     <div><dt>Investimento considerato</dt><dd>${eur(c.invest)}${c.wbOut ? ' (wallbox esclusa)' : ''}</dd></div>
-    <div><dt>Primo anno: risparmio + ritiro + detrazione</dt><dd>${eur(c.y1.sav)} + ${eur(c.y1.rid)} + ${eur(c.y1.det)}</dd></div>
+    <div><dt>Primo anno: risparmio + ritiro + detrazione${hasInc ? ' (+ contributo regionale)' : ''}</dt><dd>${eur(c.y1.sav)} + ${eur(c.y1.rid)} + ${eur(c.y1.det)}${hasInc ? ' (+ ' + eur(R.fisc.contrib) + ' nell\'anno ' + R.fisc.contribYear + ')' : ''}</dd></div>
     <div><dt>Utile cumulato a ${c.H} anni</dt><dd>${eur(c.total)} (prudente ${eur(p.total)})</dd></div>
     <div><dt>VAN al ${nf(S.disc, 1)}% · TIR</dt><dd>${eur(c.van)} · ${pct(c.tir)}</dd></div></dl></div>
     <div>${planChart(pl, 420, 200)}<p class="help" style="margin:4px 0 0"><span style="color:#1F5F55">━</span> centrale &nbsp; <span style="color:#A85A1C">╌</span> prudente · asse: anni</p></div></div>
-  <details class="okfold" style="margin-top:12px"><summary>Tabella anno per anno (scenario centrale)</summary><div class="tablewrap"><table class="boq" style="min-width:720px"><thead><tr><th>Anno</th><th class="num">Produzione kWh</th><th class="num">Autoconsumo kWh</th><th class="num">Risparmio</th><th class="num">Ritiro GSE</th><th class="num">Detrazione</th><th class="num">Costi</th><th class="num">Flusso</th><th class="num">Cumulato</th></tr></thead><tbody>${tr}</tbody></table></div></details></section>`;
+  <details class="okfold" style="margin-top:12px"><summary>Tabella anno per anno (scenario centrale)</summary><div class="tablewrap"><table class="boq" style="min-width:720px"><thead><tr><th>Anno</th><th class="num">Produzione kWh</th><th class="num">Autoconsumo kWh</th><th class="num">Risparmio</th><th class="num">Ritiro GSE</th><th class="num">Detrazione</th>${hasInc ? '<th class="num">Contributo VdA</th>' : ''}<th class="num">Costi</th><th class="num">Flusso</th><th class="num">Cumulato</th></tr></thead><tbody>${tr}</tbody></table></div></details></section>`;
 }
 
 function confrontiHtml(R, S) {
@@ -2186,7 +2235,7 @@ function confrontiHtml(R, S) {
   const var_ = `<div><h3 style="margin:0 0 6px;font-size:14px">Con e senza accumulo (batteria di circa ${Math.max(2, Math.round(R.d.Pdc))} kWh come i kWp: ${nf(V.kwh, 1)} kWh effettivi)</h3>
     <div class="tablewrap"><table class="boq" style="min-width:420px"><thead><tr><th></th><th class="num">Senza accumulo</th><th class="num">Con ${nf(V.kwh, 1)} kWh</th><th class="num">Differenza</th></tr></thead><tbody>
     ${row('Costo interno', A.cost, B.cost, eur)}${row('Prezzo netto', A.net, B.net, eur)}${row('Prezzo IVA inclusa', A.gross, B.gross, eur, true)}
-    ${row('Utile lordo', A.profit, B.profit, eur)}${row('Margine', A.margin, B.margin, pc)}${row('Costo netto dopo detrazione', A.netto, B.netto, eur)}
+    ${row('Utile lordo', A.profit, B.profit, eur)}${row('Margine', A.margin, B.margin, pc)}${row('Costo netto dopo detrazione' + (R.fisc.contrib > 0 ? ' e contributo' : ''), A.netto, B.netto, eur)}
     ${row('Risparmio + ritiro, primo anno', A.y1, B.y1, eur)}${row('Autoconsumo', A.sh * 100, B.sh * 100, pc)}${rowY('Rientro centrale', A.pb, B.pb)}${rowY('Rientro prudente', A.pbp, B.pbp)}${row('VAN', A.van, B.van, eur, true)}</tbody></table></div>
     <p class="help" style="margin-top:6px">Stesso ricarico (${nf(R.tot.markup, 1)}%) e stessi parametri dell'offerta; inverter scelto in automatico per ciascuna variante (${esc(A.inv)} / ${esc(B.inv)}).</p></div>`;
   const c = M.conc;
@@ -2195,7 +2244,7 @@ function confrontiHtml(R, S) {
     <div><dt>Fascia di mercato (${M.bandKind}, ${nf(R.d.Pdc, 2)} kWp)</dt><dd>${eur(M.lo)} – ${eur(M.hi)} → <b>${M.pos === 'dentro' ? 'nella fascia' : M.pos === 'sopra' ? 'sopra la fascia' : 'sotto la fascia'}</b></dd></div>
     ${c ? `<div><dt>${esc(c.name)}</dt><dd><b>${eur(c.price)}</b> · ${nf(c.perKwp, 0)} €/kWp${c.kwp !== R.d.Pdc ? ' (' + nf(c.kwp, 2) + ' kWp)' : ''}${c.batt ? ' · accumulo ' + c.batt + ' kWh' : ''}</dd></div>
     <div><dt>Differenza rispetto a noi</dt><dd><b>${(c.delta > 0 ? '+' : '') + eur(c.delta)}</b> (${(c.deltaPct > 0 ? '+' : '') + nf(c.deltaPct, 1)} %) ${c.delta > 0 ? 'siamo più cari' : 'siamo più economici'}</dd></div>
-    <div><dt>Costo netto dopo detrazione: noi / loro</dt><dd>${eur(c.nettoO)} / ${eur(c.nettoT)}</dd></div>
+    <div><dt>Costo netto dopo detrazione${R.fisc.contrib > 0 ? ' e contributo' : ''}: noi / loro</dt><dd>${eur(c.nettoO)} / ${eur(c.nettoT)}</dd></div>
     <div><dt>Rientro: noi / loro</dt><dd>${yy(c.pbO)} / ${yy(c.pbT)}</dd></div>
     <div><dt>Per eguagliarli</dt><dd>ricarico <b>${nf(c.matchMarkup, 1)}%</b> (ora ${nf(R.tot.markup, 1)}%) → margine ${nf(c.matchMargin, 1)}%, utile ${eur(c.matchProfit)}</dd></div>` : '<div><dt>Concorrente</dt><dd class="muted">Inserisci il prezzo nella sezione «Confronto con la concorrenza».</dd></div>'}</dl>
     <p class="help" style="margin-top:6px">${esc(E.BENCH.note)}.</p></div>`;
@@ -2333,14 +2382,15 @@ function planPrint(R, S) {
   const pl = R.plan; if (!pl) return '';
   const { c, p, yy } = planKpis(pl);
   const pick = [0, 1, 2, 4, 6, 9, 14, 19].filter(i => i < c.rows.length);
-  const tr = pick.map(i => `<tr><td>${c.rows[i].t}</td><td class="n">${eur(c.rows[i].sav + c.rows[i].rid)}</td><td class="n">${eur(c.rows[i].det)}</td><td class="n">${eur(c.rows[i].cum)}</td><td class="n">${eur(p.rows[i].cum)}</td></tr>`).join('');
+  const hasInc = c.rows.some(r => r.inc > 0);
+  const tr = pick.map(i => `<tr><td>${c.rows[i].t}</td><td class="n">${eur(c.rows[i].sav + c.rows[i].rid)}</td><td class="n">${eur(c.rows[i].det + (c.rows[i].inc || 0))}</td><td class="n">${eur(c.rows[i].cum)}</td><td class="n">${eur(p.rows[i].cum)}</td></tr>`).join('');
   return `<h2>Piano di rientro (stima indicativa)</h2>
   <table><tbody><tr><td>Rientro dell'investimento</td><td class="n"><b>${yy(c.pb)}</b> (scenario prudente: ${yy(p.pb)})</td></tr>
   <tr><td>Risparmio in bolletta e ritiro dell'energia immessa, primo anno</td><td class="n">${eur(c.y1.sav + c.y1.rid)}</td></tr>
   <tr><td>Energia autoconsumata / immessa in rete (primo anno)</td><td class="n">${nf(c.y1.self, 0)} / ${nf(c.y1.exp, 0)} kWh</td></tr></tbody></table>
   <div style="margin:8px 0">${planChart(pl, 620, 190)}<div class="pr-note" style="margin:2px 0">Flusso di cassa cumulato in euro, per anno: linea continua scenario centrale, tratteggiata scenario prudente.</div></div>
-  <table><thead><tr><th>Anno</th><th class="n">Risparmio + ritiro</th><th class="n">Detrazione</th><th class="n">Cumulato centrale</th><th class="n">Cumulato prudente</th></tr></thead><tbody>${tr}</tbody></table>
-  <p class="pr-note">Ipotesi: autoconsumo ${nf(c.sh * 100, 0)}% (${esc(pl.profiloLabel)}); costo evitato dell'energia ${nf(c.pBuy, 2)} €/kWh IVA inclusa; ritiro dedicato ${nf(c.pRid, 2)} €/kWh; variazione prezzo energia ${nf(S.e_esc, 1)}%/anno (nello scenario prudente 0%); degrado moduli ${nf(S.degr, 1)}%/anno; manutenzione ${nf(S.om_kwp, 0)} €/kWp·anno; sostituzione inverter all'anno ${S.inv_repl_year || '–'}${c.wbOut ? '; stazione di ricarica esclusa dall\'investimento' : ''}. Produzione stimata su media regionale con incertezza di circa ±10% (scenario prudente −10%). Il risultato dipende dai consumi reali: non è una garanzia di risparmio.</p>`;
+  <table><thead><tr><th>Anno</th><th class="n">Risparmio + ritiro</th><th class="n">${hasInc ? 'Detrazione + contributo' : 'Detrazione'}</th><th class="n">Cumulato centrale</th><th class="n">Cumulato prudente</th></tr></thead><tbody>${tr}</tbody></table>
+  <p class="pr-note">Ipotesi: autoconsumo ${nf(c.sh * 100, 0)}% (${esc(pl.profiloLabel)}); costo evitato dell'energia ${nf(c.pBuy, 2)} €/kWh IVA inclusa; ritiro dedicato ${nf(c.pRid, 2)} €/kWh; variazione prezzo energia ${nf(S.e_esc, 1)}%/anno (nello scenario prudente 0%); degrado moduli ${nf(S.degr, 1)}%/anno; manutenzione ${nf(S.om_kwp, 0)} €/kWp·anno; sostituzione inverter all'anno ${S.inv_repl_year || '–'}${hasInc ? '; contributo regionale di ' + eur(R.fisc.contrib) + ' incassato nell\'anno ' + R.fisc.contribYear + ' (soggetto ad ammissione della domanda e a disponibilità dei fondi)' : ''}${c.wbOut ? '; stazione di ricarica esclusa dall\'investimento' : ''}. Produzione stimata su media regionale con incertezza di circa ±10% (scenario prudente −10%). Il risultato dipende dai consumi reali: non è una garanzia di risparmio.</p>`;
 }
 
 function ivaPrint(R, S) {
@@ -2369,17 +2419,21 @@ function printClient() {
     ['Produzione stimata', `${nf(d.prod, 0)} kWh/anno (${nf(d.Yeff, 0)} kWh/kWp) — stima indicativa, non garanzia`]
   ].filter(Boolean);
   const detr = fisc.eligible ? `<h2>Detrazione fiscale (stima indicativa)</h2>
-    <table><tbody><tr><td>Aliquota applicabile (${S.pay_year})</td><td class="n">${fisc.aliq}%</td></tr><tr><td>Spesa agevolabile (IVA inclusa)</td><td class="n">${eur(fisc.base)}</td></tr><tr><td>Detrazione IRPEF totale</td><td class="n">${eur(fisc.detr)}</td></tr><tr class="t"><td>Rata annua per ${fisc.years} anni</td><td class="n">${eur(fisc.rata)}</td></tr><tr><td>Costo netto dopo la detrazione</td><td class="n">${eur(fisc.netto)}</td></tr></tbody></table>
+    <table><tbody><tr><td>Aliquota applicabile (${S.pay_year})</td><td class="n">${fisc.aliq}%</td></tr><tr><td>Spesa agevolabile (IVA inclusa${fisc.contrib > 0 && R.rg.detNet ? ', al netto del contributo regionale' : ''})</td><td class="n">${eur(fisc.base)}</td></tr><tr><td>Detrazione IRPEF totale</td><td class="n">${eur(fisc.detr)}</td></tr><tr class="t"><td>Rata annua per ${fisc.years} anni</td><td class="n">${eur(fisc.rata)}</td></tr>${fisc.contrib > 0 ? `<tr><td>Contributo regionale Valle d'Aosta (stima, a fondo perduto)</td><td class="n">${eur(fisc.contrib)}</td></tr>` : ''}<tr><td>Costo netto dopo la detrazione${fisc.contrib > 0 ? ' e il contributo' : ''}</td><td class="n">${eur(fisc.netto)}</td></tr></tbody></table>
     <p class="pr-note">La detrazione è fruita in ${fisc.years} quote annuali costanti e richiede capienza IRPEF, pagamento con bonifico «parlante» e adempimenti ENEA ove previsti. Parametri verificati: ${esc(S.fisc.verified)}. Quanto indicato non costituisce consulenza fiscale: il cliente verifichi la propria posizione con il proprio commercialista.</p>` : '';
+  const rgP = R.rg && R.rg.on && R.rg.ott > 0 ? `<h2>Contributo regionale Valle d'Aosta (stima indicativa)</h2>
+    <table><tbody><tr><td>Spesa ammissibile fotovoltaico (IVA inclusa)</td><td class="n">${eur(R.rg.spFv)}</td></tr>${R.rg.kwh > 0 ? `<tr><td>Spesa ammissibile accumulo (IVA inclusa)</td><td class="n">${eur(R.rg.spAcc)}</td></tr>` : ''}<tr><td>Contributo fotovoltaico: ${R.rg.pct}% entro 1.500 €/kW e 30.000 € di spesa</td><td class="n">${eur(R.rg.cFv)}</td></tr>${R.rg.kwh > 0 ? `<tr><td>Contributo accumulo: ${R.rg.pct}% entro 600 €/kWh e 12.000 € di spesa</td><td class="n">${eur(R.rg.cAcc)}</td></tr>` : ''}${R.rg.altri > 0 ? `<tr><td>Altri contributi pubblici già ottenuti</td><td class="n">${eur(R.rg.altri)}</td></tr>` : ''}<tr class="t"><td>Contributo ottenibile a fondo perduto</td><td class="n">${eur(R.rg.ott)}</td></tr></tbody></table>
+    <p class="pr-note">Misura della Regione Autonoma Valle d'Aosta (art. 15 l.r. 24/2025, DGR 1165 del 9/10/2026, avviso PD 5203 del 14/10/2026) per persone fisiche. La domanda si presenta a lavori conclusi e spese interamente pagate: il contributo è erogato dopo l'istruttoria, non è uno sconto in fattura. Assegnazione a sportello fino a esaurimento dei fondi e comunque entro il 30/09/2027; l'importo è una stima soggetta all'ammissione della domanda.${fisc.eligible && R.rg.detNet ? ' La detrazione fiscale indicata è calcolata sulla spesa al netto del contributo.' : ''}</p>` : '';
   return `${printHead('Offerta impianto fotovoltaico', 'Preventivo', S, o)}
   <p class="pr-sub"><b>${esc(S.cliente || 'Cliente')}</b>${S.indirizzo ? ' · ' + esc(S.indirizzo) : ''}${S.comune ? ', ' + esc(S.comune) : ''}${S.provincia ? ' (' + esc(S.provincia) + ')' : ''}</p>
   <div class="pr-hero"><div class="them"><span class="l">Prezzo chiavi in mano IVA inclusa</span><span class="v">${eur(tot.gross)}</span><span class="n">Imponibile ${eur(tot.net)} + IVA ${eur(tot.vat)}</span></div>
-  ${fisc.eligible ? `<div class="us"><span class="l">Costo netto dopo detrazione ${fisc.aliq}%</span><span class="v">${eur(fisc.netto)}</span><span class="n">Detrazione ${eur(fisc.detr)} in ${fisc.years} anni (${eur(fisc.rata)} l'anno)</span></div>` : `<div class="us"><span class="l">Costo per kWp</span><span class="v">${eur(tot.perKwp)}</span><span class="n">IVA inclusa</span></div>`}</div>
+  ${fisc.eligible ? `<div class="us"><span class="l">Costo netto dopo detrazione ${fisc.aliq}%${fisc.contrib > 0 ? ' e contributo regionale' : ''}</span><span class="v">${eur(fisc.netto)}</span><span class="n">Detrazione ${eur(fisc.detr)} in ${fisc.years} anni (${eur(fisc.rata)} l'anno)${fisc.contrib > 0 ? ' · contributo ' + eur(fisc.contrib) : ''}</span></div>` : `<div class="us"><span class="l">Costo per kWp</span><span class="v">${eur(tot.perKwp)}</span><span class="n">IVA inclusa</span></div>`}</div>
   <div class="pr-mini"><div><span class="l">Potenza</span><span class="v">${nf(d.Pdc, 2)} kWp</span><span class="n">${d.Ntot} moduli</span></div><div class="pro"><span class="l">Produzione stimata</span><span class="v">${nf(d.prod, 0)} kWh</span><span class="n">all'anno</span></div><div><span class="l">Accumulo</span><span class="v">${d.battKwh ? d.battKwh + ' kWh' : '–'}</span><span class="n">${d.battKwh ? 'ibrido' : 'non previsto'}</span></div><div class="sic"><span class="l">Durata lavori</span><span class="v">${d.days} gg</span><span class="n">posa in cantiere</span></div></div>
   <h2>Caratteristiche dell'impianto</h2><table><tbody>${comp.map(([a, b]) => `<tr><td style="width:28%">${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</tbody></table>
   <h2>Dettaglio economico</h2><table><thead><tr><th>Voce</th><th class="n">Imponibile</th><th class="n">IVA</th><th class="n">Totale</th></tr></thead><tbody>${catRows}<tr class="t"><td>Totale</td><td class="n">${eur(tot.net)}</td><td class="n">${eur(tot.vat)}</td><td class="n">${eur(tot.gross)}</td></tr></tbody></table>
   ${ivaPrint(R, S)}
   <p class="pr-note">Oneri del distributore (preventivo di connessione) sono addebitati a costo e sono compresi nel totale.${S.wb_on && !S.wb_det ? ' La stazione di ricarica non è inclusa nella spesa su cui è calcolata la detrazione.' : ''}</p>
+  ${rgP}
   ${detr}
   ${planPrint(R, S)}
   <h2>Cosa è compreso</h2><table><tbody><tr><td>Fornitura, trasporto e posa di tutti i componenti indicati; opere provvisionali e sicurezza di cantiere (D.Lgs. 81/08); collegamenti elettrici, quadro di protezione, messa a terra.</td></tr><tr><td>Progettazione elettrica, direzione lavori e coordinamento della sicurezza affidati a professionisti abilitati; verifiche iniziali, dichiarazione di conformità (DM 37/08), schema unifilare, manuale d'uso.</td></tr><tr><td>Pratiche di connessione al distributore (CEI 0-21, TICA) e attivazione del ritiro dedicato con il GSE${S.condominio ? '; documentazione per l\'assemblea condominiale' : ''}; assistenza per comunicazione ENEA.</td></tr></tbody></table>
@@ -2397,7 +2451,7 @@ function confrontiPrint(R, S) {
   const yy = (x) => x === null || x === undefined ? 'oltre orizz.' : nf(x, 1) + ' anni';
   const A = V.a, B = V.b, c = M.conc;
   const r = (l, a, b) => `<tr><td>${l}</td><td class="n">${a}</td><td class="n">${b}</td></tr>`;
-  return `<h2>Confronto con e senza accumulo (${nf(V.kwh, 1)} kWh)</h2><table><thead><tr><th></th><th class="n">Senza</th><th class="n">Con ${nf(V.kwh, 1)} kWh</th></tr></thead><tbody>${r('Costo interno', eur(A.cost), eur(B.cost))}${r('Prezzo IVA inclusa', eur(A.gross), eur(B.gross))}${r('Margine / utile', nf(A.margin, 1) + '% / ' + eur(A.profit), nf(B.margin, 1) + '% / ' + eur(B.profit))}${r('Costo netto dopo detrazione', eur(A.netto), eur(B.netto))}${r('Rientro centrale / prudente', yy(A.pb) + ' / ' + yy(A.pbp), yy(B.pb) + ' / ' + yy(B.pbp))}${r('VAN', eur(A.van), eur(B.van))}</tbody></table>
+  return `<h2>Confronto con e senza accumulo (${nf(V.kwh, 1)} kWh)</h2><table><thead><tr><th></th><th class="n">Senza</th><th class="n">Con ${nf(V.kwh, 1)} kWh</th></tr></thead><tbody>${r('Costo interno', eur(A.cost), eur(B.cost))}${r('Prezzo IVA inclusa', eur(A.gross), eur(B.gross))}${r('Margine / utile', nf(A.margin, 1) + '% / ' + eur(A.profit), nf(B.margin, 1) + '% / ' + eur(B.profit))}${r('Costo netto dopo detrazione' + (R.fisc.contrib > 0 ? ' e contributo' : ''), eur(A.netto), eur(B.netto))}${r('Rientro centrale / prudente', yy(A.pb) + ' / ' + yy(A.pbp), yy(B.pb) + ' / ' + yy(B.pbp))}${r('VAN', eur(A.van), eur(B.van))}</tbody></table>
   <h2>Mercato e concorrenza</h2><table><tbody><tr><td>Nostro prezzo IVA incl. ${eur(M.ours)} (${nf(M.perKwp, 0)} €/kWp) · fascia ${M.bandKind} ${eur(M.lo)}–${eur(M.hi)}: ${M.pos === 'dentro' ? 'nella fascia' : M.pos === 'sopra' ? 'sopra la fascia' : 'sotto la fascia'}</td></tr>${c ? `<tr><td>${esc(c.name)}: ${eur(c.price)} (${nf(c.perKwp, 0)} €/kWp) · differenza ${(c.delta > 0 ? '+' : '') + eur(c.delta)} (${nf(c.deltaPct, 1)}%) · per eguagliarli ricarico ${nf(c.matchMarkup, 1)}% (margine ${nf(c.matchMargin, 1)}%, utile ${eur(c.matchProfit)})</td></tr>` : ''}</tbody></table>`;
 }
 function printInternal() {
@@ -2441,12 +2495,12 @@ function addPlanSheet(wb) {
   ws.addRow(['Rientro scenario centrale (anni)', c.pb === null ? 'oltre orizzonte' : +c.pb.toFixed(2)]);
   ws.addRow(['Rientro scenario prudente (anni)', p.pb === null ? 'oltre orizzonte' : +p.pb.toFixed(2)]);
   ws.addRow([]);
-  ws.addRow(['Anno', 'Produzione kWh', 'Autoconsumo kWh', 'Immessa kWh', 'Risparmio', 'Ritiro GSE', 'Detrazione', 'Manutenzione', 'Sostituzione inverter', 'Flusso', 'Cumulato', 'Cumulato prudente']).font = { bold: true };
+  ws.addRow(['Anno', 'Produzione kWh', 'Autoconsumo kWh', 'Immessa kWh', 'Risparmio', 'Ritiro GSE', 'Detrazione', 'Contributo regionale', 'Manutenzione', 'Sostituzione inverter', 'Flusso', 'Cumulato', 'Cumulato prudente']).font = { bold: true };
   const f0 = ws.rowCount + 1;
-  ws.addRow([0, null, null, null, null, null, null, null, null, -c.invest, -c.invest, -c.invest]);
-  c.rows.forEach((r, i) => { const n = ws.rowCount + 1; const row = ws.addRow([r.t, +r.P.toFixed(0), +r.self.toFixed(0), +r.exp.toFixed(0), +r.sav.toFixed(2), +r.rid.toFixed(2), +r.det.toFixed(2), -r.om, -r.rep, null, null, +p.rows[i].cum.toFixed(2)]);
-    row.getCell(10).value = { formula: `E${n}+F${n}+G${n}+H${n}+I${n}`, result: r.flow }; row.getCell(11).value = { formula: `K${n - 1}+J${n}`, result: r.cum }; });
-  ws.getColumn(1).width = 34; for (let k = 2; k <= 12; k++) ws.getColumn(k).width = 17; for (let k = 5; k <= 12; k++) ws.getColumn(k).numFmt = money;
+  ws.addRow([0, null, null, null, null, null, null, null, null, null, -c.invest, -c.invest, -c.invest]);
+  c.rows.forEach((r, i) => { const n = ws.rowCount + 1; const row = ws.addRow([r.t, +r.P.toFixed(0), +r.self.toFixed(0), +r.exp.toFixed(0), +r.sav.toFixed(2), +r.rid.toFixed(2), +r.det.toFixed(2), +(r.inc || 0).toFixed(2), -r.om, -r.rep, null, null, +p.rows[i].cum.toFixed(2)]);
+    row.getCell(11).value = { formula: `E${n}+F${n}+G${n}+H${n}+I${n}+J${n}`, result: r.flow }; row.getCell(12).value = { formula: `L${n - 1}+K${n}`, result: r.cum }; });
+  ws.getColumn(1).width = 34; for (let k = 2; k <= 13; k++) ws.getColumn(k).width = 17; for (let k = 5; k <= 13; k++) ws.getColumn(k).numFmt = money;
   ws.addRow([]); ws.addRow(['Ipotesi: autoconsumo ' + Math.round(c.sh * 100) + '%; costo evitato ' + c.pBuy + ' €/kWh; ritiro ' + c.pRid + ' €/kWh; produzione su media regionale ±10%. Il cumulato prudente è un valore calcolato (produzione −10%, prezzo energia costante).']);
 }
 
@@ -2479,7 +2533,7 @@ async function exportXlsx(client) {
     const last = ws.rowCount; const r = ws.addRow(['Totale', null, null, null]); r.font = { bold: true };
     ['B', 'C', 'D'].forEach((col, i) => r.getCell(i + 2).value = { formula: `SUM(${col}${first}:${col}${last})` });
     ws.getColumn(1).width = 52; [2, 3, 4].forEach(c => { ws.getColumn(c).width = 16; ws.getColumn(c).numFmt = money; });
-    if (fisc.eligible) { ws.addRow([]); ws.addRow(['Detrazione IRPEF ' + fisc.aliq + '% (stima)', null, null, +fisc.detr.toFixed(2)]); ws.addRow(['Rata annua × ' + fisc.years, null, null, +fisc.rata.toFixed(2)]); ws.addRow(['Costo netto dopo detrazione', null, null, +fisc.netto.toFixed(2)]); }
+    if (fisc.eligible) { ws.addRow([]); ws.addRow(['Detrazione IRPEF ' + fisc.aliq + '% (stima)', null, null, +fisc.detr.toFixed(2)]); ws.addRow(['Rata annua × ' + fisc.years, null, null, +fisc.rata.toFixed(2)]); if (fisc.contrib > 0) ws.addRow(['Contributo regionale VdA (stima)', null, null, +fisc.contrib.toFixed(2)]); ws.addRow([fisc.contrib > 0 ? 'Costo netto dopo detrazione e contributo' : 'Costo netto dopo detrazione', null, null, +fisc.netto.toFixed(2)]); }
   } else {
     // parametri attivi: il prezzo di ogni riga = costo × (1+trasporto·T) × (1+ricarico·M) × (1+imprevisti·I)
     const pr = [['Ricarico sui lavori', R.tot.markup / 100], ['Trasporto e logistica (materiali e opere edili)', S.transport / 100], ['Imprevisti (solo voci con I = 1)', S.contingency / 100], ['Ricarico sicurezza e noli (voci con S = 1)', (S.sic_mk || 0) / 100]];
