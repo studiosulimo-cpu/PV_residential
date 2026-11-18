@@ -1359,9 +1359,9 @@ function compute(S) {
   const pe = S.prod_eff > 0 ? Math.min(1, Math.max(0.5, S.prod_eff)) : 0.8;
   d.hEff = d.hTot / pe;
   d.daysEst = Math.max(1, Math.ceil(d.hEff / crewH));   // giorni dalle ore delle singole lavorazioni
-  // taratura aziendale: durata complessiva del cantiere (ponteggio, sicurezze, installazione, collaudo) = base + giorni per kWp
+  // riferimento aziendale (solo indicativo): durata complessiva del cantiere (ponteggio, sicurezze, installazione, collaudo) = base + giorni per kWp
   d.daysCal = (S.cal_base > 0 || S.cal_kwp > 0) ? Math.max(1, Math.ceil((S.cal_base || 0) + (S.cal_kwp || 0) * d.Pdc - 1e-9)) : 0;
-  d.daysAuto = Math.max(d.daysEst, d.daysCal);
+  d.daysAuto = d.daysCal > 0 ? d.daysCal : d.daysEst;   // usato solo se i giorni non sono inseriti (segnalato come errore): con i giorni inseriti il riferimento non entra nel costo
   d.daysMan = S.days_man > 0;
   d.daysWork = d.daysMan ? Math.max(1, Math.round(S.days_man)) : d.daysAuto;
   d.hEff = d.daysWork * crewH;   // la squadra si paga a giornate intere
@@ -1379,11 +1379,6 @@ function compute(S) {
   const costPle = d.daysWork * PR.ple + PR.ple_tr;
   d.safeMode = OP.sc ? 'ponteggio' : OP.pl ? 'ple' : OP.pa ? 'parapetti' : 'nessuno';   // opera principale (compatibilità)
   d.safeAlt = { scaf: costScaf, ple: costPle };
-  // senza ponteggio la taratura (che lo comprende) si riduce dei giorni di montaggio/smontaggio
-  if (!d.daysMan && !OP.sc && d.daysCal > d.daysEst && S.gronda > 2) {
-    const dScaf = Math.floor(scafM2d * PR.scaf_h_m2 / crewH + 1e-9);
-    if (dScaf > 0) { d.daysWork = Math.max(d.daysEst, d.daysCal - dScaf); d.daysAuto = d.daysWork; d.days = d.daysWork + (d.asbDays || 0); d.months = Math.max(1, Math.ceil(d.days / 21)); d.daysNoScaf = dScaf; }
-  }
   // giorni inseriti a mano: tutte le ore della squadra presenti in cantiere sono ripartite sulle lavorazioni in proporzione alla stima
   d.scafHcrew = OP.sc && scOwn ? d.scafH : 0;   // ore di ponteggio già comprese nelle giornate di squadra
   d.hFactor = d.hTot > 0 ? Math.max(0, d.daysWork * crewH - d.scafHcrew) / d.hTot : 1;   // giornate di squadra ripartite sulle lavorazioni (al netto del ponteggio, che va in sicurezza)
@@ -1395,11 +1390,12 @@ function compute(S) {
   add(C.MDO, 'mdo_batt', 'Installazione e configurazione accumulo', hh(H.batt), 'h', costH);
   add(C.MDO, 'mdo_wb', 'Installazione stazione di ricarica e linea dedicata', hh(H.wb), 'h', costH, { vcat: 'wb', det: !!S.wb_det });
   add(C.MDO, 'mdo_test', 'Verifiche iniziali (isolamento, Voc/Isc, prove di funzionamento), messa in servizio, dichiarazione di conformità', hh(H.test), 'h', costH, { ref: 'DM 37/08 art. 7 · CEI 64-8/6 · CEI EN 62446-1' });
-  if (!d.daysMan) chk('info', 'Giorni di cantiere in automatico', `${d.daysWork} gg × ${Math.max(1, Math.round(S.team) || 2)} operai × ${S.h_day || 8} h = ${Math.round(d.daysWork * crewH)} h ripartite sulle lavorazioni (taratura ${d.daysCal} gg = ${String(S.cal_base || 0).replace('.', ',')} + ${String(S.cal_kwp || 0).replace('.', ',')}/kWp × ${d.Pdc.toFixed(2).replace('.', ',')} kWp; stima per lavorazioni ${d.daysEst} gg: si usa il maggiore).`);
+  const calTxt = d.daysCal ? ` Riferimento aziendale indicativo: ${d.daysCal} gg (${String(S.cal_base || 0).replace('.', ',')} + ${String(S.cal_kwp || 0).replace('.', ',')}/kWp × ${d.Pdc.toFixed(2).replace('.', ',')} kWp), non usato nel calcolo.` : '';
+  if (!d.daysMan) chk('err', 'Giorni di lavoro non inseriti', `Inserire i giorni reali di cantiere: il costo della squadra è operai × ore al giorno × giorni. In attesa il tool usa ${d.daysCal ? `il riferimento aziendale indicativo di ${d.daysWork} gg (${String(S.cal_base || 0).replace('.', ',')} + ${String(S.cal_kwp || 0).replace('.', ',')}/kWp × ${d.Pdc.toFixed(2).replace('.', ',')} kWp)` : `la stima dalle ore delle lavorazioni, ${d.daysWork} gg, che di solito sottostima il cantiere`}: ${d.daysWork} gg × ${Math.max(1, Math.round(S.team) || 2)} operai × ${S.h_day || 8} h = ${Math.round(d.daysWork * crewH)} h.`);
   if (d.daysMan) {
     const hIn = Math.round(d.daysWork * crewH), dev = Math.round((d.hFactor - 1) * 100);
     if (d.hFactor < 1) chk('warn', 'Giorni di lavoro inseriti inferiori alle ore stimate', `${d.daysWork} gg × ${S.team} operai × ${S.h_day} h = ${hIn} h, contro ${Math.round(d.hTot)} h stimate (${d.daysAuto} gg in automatico): verificare squadra e giorni.`);
-    else chk(dev > 100 ? 'warn' : 'info', 'Giorni di lavoro inseriti a mano', `${hIn} h di squadra (${d.daysWork} gg × ${S.team} operai × ${S.h_day} h) contro ${Math.round(d.hTot)} h stimate dalle lavorazioni (${dev > 0 ? '+' : ''}${dev}%): le ore sono ripartite sulle singole lavorazioni. Se lo scostamento è ricorrente, conviene tarare le ore standard sui vostri tempi.${S.gronda > 2 ? ' Se la squadra monta anche il ponteggio, quelle ore sono già nel prezzo del ponteggio.' : ''}`);
+    else chk('info', 'Giorni di lavoro inseriti a mano', `${hIn} h di squadra (${d.daysWork} gg × ${S.team} operai × ${S.h_day} h) contro ${Math.round(d.hTot)} h stimate dalle lavorazioni (${dev > 0 ? '+' : ''}${dev}%): le ore sono ripartite sulle singole lavorazioni. Se lo scostamento è ricorrente, conviene tarare le ore standard sui vostri tempi.${S.gronda > 2 ? ' Se la squadra monta anche il ponteggio, quelle ore sono già nel prezzo del ponteggio.' : ''}${calTxt}`);
   }
   add(C.MDO, 'travel_km', `Trasferimenti (${d.days} giorni × ${S.km * 2} km A/R)`, Math.round(d.days * S.km * 2), 'km', S.eur_km);
 
@@ -2111,7 +2107,7 @@ const SCHEMA_RAW = [
     { k: 'transport', l: 'Trasporto e logistica su materiali', t: 'n', u: '%', step: 0.5 },
     { k: 'contingency', l: 'Imprevisti', t: 'n', u: '%', step: 0.5, h: 'Regola fissa: si applicano a materiali, opere edili e manodopera; mai a pratiche e spese tecniche, sicurezza, TICA e spese professionali.' },
     { k: 'sic_mk', l: 'Ricarico su sicurezza e noli', t: 'n', u: '%', step: 1, h: 'Default 15%: copre la gestione di ponteggi e mezzi a noleggio. Nel QES la riga «oneri sicurezza» resta al costo, il ricarico va nei lavori.' },
-    { k: 'prod_eff', l: 'Produttività della squadra', t: 'n', step: 0.05, h: 'Quota di ore effettivamente produttive; il resto è carico/scarico, spostamenti e tempi morti.' },
+    { k: 'prod_eff', l: 'Produttività della squadra', t: 'n', step: 0.05, h: 'Usata solo per la stima automatica dei giorni (campo giorni vuoto): con i giorni inseriti non cambia il costo.' },
     { k: 'prof_on', l: 'Includi spese professionali', t: 'c', wide: true, h: 'Progettazione (sempre esterna), direzione lavori, coordinamento sicurezza, verifiche e cassa: passano a costo, senza ricarico.' },
     { k: 'prof_pct', l: 'Spese professionali', t: 'n', u: '% dei lavori', step: 0.5, h: 'Valida fino a 20 kW; oltre usare il preventivatore industriale (DM parametri).' },
     { k: 'prof_split', l: 'Quota progettazione nel QES', t: 'n', u: '%', step: 5, h: 'Solo per ripartire il 10% tra progettazione e DL/CSE nel QES; non cambia il totale.' }
@@ -2142,7 +2138,7 @@ const SCHEMA_F = (() => {
   const take = (sec, keys) => { const out = []; sec.f = sec.f.filter(f => { if (keys.includes(f.k)) { out.push(f); return false; } return true; }); return out; };
   const detF = take(by('cli'), ['abit_princ', 'titolare']).concat(take(by('for'), ['pay_year', 'altre_spese', 'irpef']));
   const ecoF = by('eco').f;
-  const daysF = { k: 'days_man', l: 'Giorni di lavoro in cantiere', t: 'n', u: 'gg', step: 1, auto: (r) => r.d.daysAuto, h: 'Vuoto = automatico: il maggiore tra la taratura aziendale (sotto) e la stima per lavorazioni. Il costo della squadra è sempre giorni × operai × ore/giorno, ripartito sulle lavorazioni.' };
+  const daysF = { k: 'days_man', l: 'Giorni di lavoro in cantiere', t: 'n', u: 'gg', step: 1, auto: (r) => r.d.daysAuto, h: 'Costo della squadra = operai × ore al giorno × giorni. Da inserire sempre: se resta vuoto il tool segnala un errore e usa provvisoriamente il riferimento aziendale.' };
   const strut = { id: 'strut', t: 'Struttura di fissaggio', s: 'sistema di ancoraggio dei moduli alla copertura', box: 'strBox', f: [
     { k: 'str_kit', l: 'Sistema di fissaggio', t: 'o', wide: true, o: [['auto', 'Automatico: in base al tipo di copertura'], ['hook', 'Ganci su coppi / tegole / ardesia'], ['rail_screw', 'Binari su arcarecci (tetto in legno)'], ['minirail', 'Mini-rail su lamiera / sandwich'], ['ballast', 'Zavorrato su tetto piano']], h: 'Il sistema è proposto dal tipo di copertura (sezione «Sito e copertura»). Cambialo solo se il sopralluogo indica altro: il tool segnala gli abbinamenti non tipici.' },
     { k: 'str_orient', l: 'Orientamento dei moduli', t: 'o', o: [['v', 'Verticale (portrait)'], ['o', 'Orizzontale (landscape)']], h: 'Cambia la lunghezza dei binari per modulo.' },
@@ -2152,7 +2148,7 @@ const SCHEMA_F = (() => {
   const det = { id: 'det', t: 'Requisiti del cliente per la detrazione', s: 'abitazione principale, anno dei pagamenti, capienza', f: detF };
   const eco = by('eco'); eco.t = 'Squadra, costi e prezzo'; eco.s = 'operai, giorni, trasferte, costo orario, imprevisti, spese professionali (parametri interni, non appaiono nell\'offerta al cliente)';
   ecoF.push({ k: 'prof_fix', l: 'Spese professionali fisse (piccoli impianti)', t: 'n', u: '€', step: 50, h: 'Importo a pratica al posto della percentuale, fino alla potenza indicata. 0 = sempre percentuale.' }, { k: 'prof_fix_kwp', l: 'Importo fisso fino a', t: 'n', u: 'kWp', step: 0.5 });
-  ecoF.push({ k: 'cal_base', l: 'Taratura: giorni base per cantiere', t: 'n', u: 'gg', step: 0.5, h: 'Durata minima di un cantiere (ponteggio, sicurezze, allestimento, collaudo).' }, { k: 'cal_kwp', l: 'Taratura: giorni per kWp', t: 'n', u: 'gg/kWp', step: 0.1, h: 'Default 4 + 0,6 × kWp: 3 kWp = 6 giorni, 6 kWp = 8, 10 kWp = 10.' });
+  ecoF.push({ k: 'cal_base', l: 'Riferimento: giorni base per cantiere', t: 'n', u: 'gg', step: 0.5, h: 'Solo indicativo: con i giorni inseriti non entra nel calcolo, serve a confrontarli (vedi verifiche).' }, { k: 'cal_kwp', l: 'Riferimento: giorni per kWp', t: 'n', u: 'gg/kWp', step: 0.1, h: 'Solo indicativo. Es. 4 + 0,6 × kWp: 3 kWp = 6 gg, 6 kWp = 8, 10 kWp = 10.' });
   { const o = {}; ecoF.forEach(f => o[f.k] = f); const ord = ['team', 'h_day', 'days_man', 'cal_base', 'cal_kwp', 'prod_eff', 'km', 'eur_km', 'cost_h', 'transport', 'contingency', 'sic_mk', 'prof_on', 'prof_pct', 'prof_fix', 'prof_fix_kwp', 'prof_split']; o.days_man = daysF; eco.f = ord.map(k => o[k]); }
   const g = (g_, arr) => arr.map(x => Object.assign(x, { g: g_ }));
   return g('imp', [by('cli'), by('for'), by('sito'), by('falde'), strut, by('mod'), by('acc'), by('ele'), by('lav'), by('opv'), eco])
