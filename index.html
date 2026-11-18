@@ -70,7 +70,7 @@ details.sec[open]>summary::before{transform:rotate(45deg)}
 .sec-s{color:var(--muted);font-size:13px}
 .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px 14px;padding:4px 16px 16px;border-top:1px solid var(--line);padding-top:14px}
 .fld{display:flex;flex-direction:column;gap:4px;min-width:0}
-.fld.wide{grid-column:1/-1}
+.fld.wide{grid-column:1/-1}.fld.r1{grid-column-start:1}.fld.subh{font-weight:600;font-size:13px;color:var(--ink,inherit);border-bottom:1px solid var(--line);padding:10px 0 4px;margin-bottom:-2px}.fld.subh:first-child{padding-top:0}
 .fld>*{flex-shrink:0}
 .fld.chk>span:first-of-type{flex:1 1 0;min-width:0;overflow-wrap:anywhere}
 .fld>label{font-size:12.5px;color:var(--muted);font-weight:500;line-height:1.3}
@@ -847,7 +847,7 @@ const PR0 = {
   mc4: 6.0, corr: 0.6, earth: 1.2,
   qac_1: 220, qac_3: 340, qg_fv_1: 45, qg_fv_3: 85, spi_ext: 700, vvf_sez: 450, vvf_sign: 12, vvf_scia: 600, spd_dc: 120, meter_1: 180, meter_3: 260, batt_kit: 250,
   wb_74: 1100, wb_11: 1300, wb_22: 1900, wb_line: 14, wb_prot: 150,
-  ple: 220, ple_tr: 300, scaf_ms: 24, scaf_nolo: 2.8, scaf_h_m2: 0.2, scaf_tr: 250, scaf_wear: 1.5, parap_ms: 23, parap_nolo: 2.0, fall_kit: 1028, dpi: 150, lifeline: 55, lifeline_doc: 600, coord: 700, fence: 3.7,
+  ple: 220, ple_sem: 130, ple_ragno: 280, ple_caldo_h: 98, gru_h: 110, gru_cam_h: 90, gru_min: 4, gru_tr: 150, su_m2gg: 1.0, su_prat: 150, ple_tr: 300, scaf_ms: 24, scaf_nolo: 2.8, scaf_h_m2: 0.2, scaf_tr: 250, scaf_wear: 1.5, parap_ms: 23, parap_nolo: 2.0, fall_kit: 1028, dpi: 150, lifeline: 55, lifeline_doc: 600, coord: 700, fence: 3.7,
   asb_rem: 16, asb_plan: 900, asb_mon: 280, sandwich: 42, flashing: 25, guaina_new: 26, demo_guaina: 5, asb_test: 250,
   prog_base: 300, prog_kwp: 35, struct: 350, paes: 600, pratica: 350, enea: 80, smalt: 60, cond: 120,
   lps_doc: 0
@@ -879,7 +879,7 @@ const CAT_LABELS = {
   qac_1: ['Cavi e quadri', 'Quadro AC FV monofase', 'a corpo'], qg_fv_1: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 2P', 'pz'], spi_ext: ['Cavi e quadri', 'SPI esterno CEI 0-21 con dispositivo di interfaccia (oltre 11,08 kW)', 'a corpo'], vvf_sez: ['Cavi e quadri', 'Sezionamento di emergenza VVF (comando segnalato e protetto, sgancio di tutte le sorgenti)', 'a corpo'], vvf_sign: ['Cavi e quadri', 'Cartello UV «impianto FV in tensione nelle ore diurne»', 'pz'], vvf_scia: ['Pratiche e connessione', 'Pratica prevenzione incendi: valutazione del rischio e SCIA al Comando VVF', 'a corpo'], qg_fv_3: ['Cavi e quadri', 'Interruttore di partenza linea FV nel quadro generale, 4P', 'pz'], qac_3: ['Cavi e quadri', 'Quadro AC FV trifase', 'a corpo'], spd_dc: ['Cavi e quadri', 'SPD lato DC', 'pz'],
   meter_1: ['Inverter e accessori', 'Misuratore di scambio monofase', 'pz'], meter_3: ['Inverter e accessori', 'Misuratore di scambio trifase', 'pz'], batt_kit: ['Accumulo', 'Kit collegamento batteria (cavi, protezioni, staffe)', 'a corpo'],
   wb_74: ['Wallbox', 'Wallbox 7,4 kW', 'pz'], wb_11: ['Wallbox', 'Wallbox 11 kW', 'pz'], wb_22: ['Wallbox', 'Wallbox 22 kW', 'pz'], wb_line: ['Wallbox', 'Linea dedicata wallbox', 'm'], wb_prot: ['Wallbox', 'Protezioni dedicate wallbox', 'a corpo'],
-  ple: ['Sicurezza e mezzi', 'Nolo PLE (piattaforma elevabile)', '€/gg'], ple_tr: ['Sicurezza e mezzi', 'Trasporto PLE A/R', 'a corpo'], scaf_ms: ['Sicurezza e mezzi', 'Ponteggio: montaggio, smontaggio e 1° mese', '€/m²'], scaf_h_m2: ['Sicurezza e mezzi', 'Ponteggio di proprietà: ore di montaggio + smontaggio', 'h/m²'], scaf_tr: ['Sicurezza e mezzi', 'Ponteggio di proprietà: trasporto A/R', 'a corpo'], scaf_wear: ['Sicurezza e mezzi', 'Ponteggio di proprietà: usura, manutenzione e verifiche', '€/m²'], scaf_nolo: ['Sicurezza e mezzi', 'Ponteggio: nolo mesi successivi', '€/m²·mese'],
+  ple: ['Sicurezza e mezzi', 'Nolo PLE autocarrata senza operatore', '€/gg'], ple_sem: ['Sicurezza e mezzi', 'Nolo PLE semovente (forbice/articolata) senza operatore', '€/gg'], ple_ragno: ['Sicurezza e mezzi', 'Nolo PLE cingolata a ragno senza operatore', '€/gg'], ple_caldo_h: ['Sicurezza e mezzi', 'PLE con operatore (nolo a caldo)', '€/h'], gru_h: ['Sicurezza e mezzi', 'Autogru con operatore (nolo a caldo)', '€/h'], gru_cam_h: ['Sicurezza e mezzi', 'Autocarro con gru e operatore (nolo a caldo)', '€/h'], gru_min: ['Sicurezza e mezzi', 'Gru: ore minime fatturate per uscita', 'h'], gru_tr: ['Sicurezza e mezzi', 'Gru: diritto di uscita / trasferimento', 'a corpo'], su_m2gg: ['Sicurezza e mezzi', 'Occupazione suolo pubblico (canone, stima)', '€/m²·gg'], su_prat: ['Sicurezza e mezzi', 'Occupazione suolo pubblico: domanda, ordinanza e segnaletica', 'a corpo'], ple_tr: ['Sicurezza e mezzi', 'Trasporto PLE A/R', 'a corpo'], scaf_ms: ['Sicurezza e mezzi', 'Ponteggio: montaggio, smontaggio e 1° mese', '€/m²'], scaf_h_m2: ['Sicurezza e mezzi', 'Ponteggio di proprietà: ore di montaggio + smontaggio', 'h/m²'], scaf_tr: ['Sicurezza e mezzi', 'Ponteggio di proprietà: trasporto A/R', 'a corpo'], scaf_wear: ['Sicurezza e mezzi', 'Ponteggio di proprietà: usura, manutenzione e verifiche', '€/m²'], scaf_nolo: ['Sicurezza e mezzi', 'Ponteggio: nolo mesi successivi', '€/m²·mese'],
   parap_ms: ['Sicurezza e mezzi', 'Parapetto provvisorio: montaggio/smontaggio e 1° mese', '€/m'], parap_nolo: ['Sicurezza e mezzi', 'Parapetto: nolo mesi successivi', '€/m·mese'], fall_kit: ['Sicurezza e mezzi', 'Kit anticaduta e linea vita temporanea (acquisto)', 'squadra'],
   dpi: ['Sicurezza e mezzi', 'Segnaletica, delimitazione, estintori', 'a corpo'], lifeline: ['Sicurezza e mezzi', 'Linea vita permanente EN 795', 'm'], lifeline_doc: ['Sicurezza e mezzi', 'Elaborato tecnico della copertura', 'a corpo'],
   asb_rem: ['Opere edili', 'Bonifica amianto (rimozione, trasporto, smaltimento)', '€/m²'], asb_plan: ['Opere edili', 'Piano di lavoro ASL e certificato smaltimento', 'a corpo'], asb_mon: ['Opere edili', 'Monitoraggio fibre aerodisperse', '€/gg'], asb_test: ['Opere edili', 'Analisi campione amianto', 'cad'],
@@ -927,7 +927,7 @@ function defaults() {
     profilo: 'misto', autoc_pct: 0, e_buy: 0, e_rid: 0, e_esc: 2, degr: 0.5, om_kwp: 12, inv_repl_year: 13, horizon: 20, disc: 3, lps: false, meter: true,
     redo: 'nessuno', redo_m2: 0,
     team: 2, h_day: 8, cost_h: 0, km: 25, eur_km: 0.5,
-    mod_price: 0, fall_amort: 5, prod_eff: 0.8, safe_mode: 'ponteggio', scaf_own: true, vvf: false, scaf_len: 12, multi_imp: false, lifeline_m: 0,
+    mod_price: 0, fall_amort: 5, prod_eff: 0.8, sc_on: true, sc_mode: 'misura', sc_h: 0, sc_days: 0, sc_corpo: 0, scaf_own: true, vvf: false, scaf_len: 12, pa_on: false, pa_mode: 'misura', pa_len: 0, pa_days: 0, pa_corpo: 0, pl_on: false, pl_mode: 'misura', pl_type: 'autocarrata', pl_op: false, pl_days: 0, pl_corpo: 0, gr_on: false, gr_mode: 'misura', gr_type: 'autogru', gr_days: 1, gr_h: 4, gr_corpo: 0, su_on: false, su_m2: 20, su_days: 0, el_line: false, ot1_d: '', ot1_q: 0, ot1_um: 'a corpo', ot1_pu: 0, ot2_d: '', ot2_q: 0, ot2_um: 'a corpo', ot2_pu: 0, ot3_d: '', ot3_q: 0, ot3_um: 'a corpo', ot3_pu: 0, multi_imp: false, lifeline_m: 0,
     prof_on: true, prof_pct: 10, prof_fix: 400, prof_fix_kwp: 6, prof_split: 60, paes_on: false,
     transport: 3, contingency: 3, sic_mk: 15, markup: 40, price_mode: 'markup', price_gross: 0,
     fisc: JSON.parse(JSON.stringify(FISC_DEFAULT)),
@@ -1367,21 +1367,25 @@ function compute(S) {
   d.hEff = d.daysWork * crewH;   // la squadra si paga a giornate intere
   d.days = d.daysWork + (d.asbDays || 0);
   d.months = Math.max(1, Math.ceil(d.days / 21));
-  /* opera provvisionale (scelta prima della ripartizione: con il ponteggio di proprietà le ore di montaggio sono della squadra) */
-  const scafM2 = Math.round(S.scaf_len * (S.gronda + 1.2));
-  const scafOwn = S.scaf_own !== false;   // ponteggio di proprietà: niente nolo, montaggio con la squadra interna
-  d.scafH = scafOwn ? +(scafM2 * PR.scaf_h_m2).toFixed(1) : 0;
-  const costScaf = scafOwn ? d.scafH * costH + PR.scaf_tr + scafM2 * PR.scaf_wear : scafM2 * PR.scaf_ms + scafM2 * PR.scaf_nolo * Math.max(0, d.months - 1);
+  /* opere provvisionali e mezzi (scelti prima della ripartizione: il ponteggio di proprietà usa ore della squadra) */
+  const hEdge = (S.gronda || 0) + 1.2;   // i montanti superano di almeno 1,20 m il piano di gronda
+  const OP = d.op = { sc: !!S.sc_on && S.gronda > 2, pa: !!S.pa_on, pl: !!S.pl_on, gr: !!S.gr_on };
+  const scOwn = S.scaf_own !== false, scCorpo = !scOwn && S.sc_mode === 'corpo';
+  const scH = S.sc_h > 0 ? S.sc_h : hEdge;
+  const scafM2 = Math.round((S.scaf_len || 0) * scH), scafM2d = Math.round((S.scaf_len || 0) * hEdge);
+  d.scafM2 = scafM2;
+  d.scafH = OP.sc && scOwn ? +(scafM2 * PR.scaf_h_m2).toFixed(1) : 0;
+  const costScaf = scOwn ? scafM2d * PR.scaf_h_m2 * costH + PR.scaf_tr + scafM2d * PR.scaf_wear : scafM2d * PR.scaf_ms + scafM2d * PR.scaf_nolo * Math.max(0, d.months - 1);
   const costPle = d.daysWork * PR.ple + PR.ple_tr;
-  d.safeMode = S.safe_mode === 'auto' ? (S.gronda > 2 ? (costPle <= costScaf ? 'ple' : 'ponteggio') : 'nessuno') : (S.safe_mode === 'ponteggio' && !(S.gronda > 2) ? 'nessuno' : S.safe_mode);
+  d.safeMode = OP.sc ? 'ponteggio' : OP.pl ? 'ple' : OP.pa ? 'parapetti' : 'nessuno';   // opera principale (compatibilità)
   d.safeAlt = { scaf: costScaf, ple: costPle };
-  // con la PLE non si monta il ponteggio: la taratura (che lo comprende) si riduce dei giorni di montaggio/smontaggio
-  if (!d.daysMan && d.safeMode !== 'ponteggio' && d.daysCal > d.daysEst && S.gronda > 2) {
-    const dScaf = Math.floor(scafM2 * PR.scaf_h_m2 / crewH + 1e-9);
+  // senza ponteggio la taratura (che lo comprende) si riduce dei giorni di montaggio/smontaggio
+  if (!d.daysMan && !OP.sc && d.daysCal > d.daysEst && S.gronda > 2) {
+    const dScaf = Math.floor(scafM2d * PR.scaf_h_m2 / crewH + 1e-9);
     if (dScaf > 0) { d.daysWork = Math.max(d.daysEst, d.daysCal - dScaf); d.daysAuto = d.daysWork; d.days = d.daysWork + (d.asbDays || 0); d.months = Math.max(1, Math.ceil(d.days / 21)); d.daysNoScaf = dScaf; }
   }
   // giorni inseriti a mano: tutte le ore della squadra presenti in cantiere sono ripartite sulle lavorazioni in proporzione alla stima
-  d.scafHcrew = d.safeMode === 'ponteggio' && scafOwn ? d.scafH : 0;   // ore di ponteggio già comprese nelle giornate di squadra
+  d.scafHcrew = OP.sc && scOwn ? d.scafH : 0;   // ore di ponteggio già comprese nelle giornate di squadra
   d.hFactor = d.hTot > 0 ? Math.max(0, d.daysWork * crewH - d.scafHcrew) / d.hTot : 1;   // giornate di squadra ripartite sulle lavorazioni (al netto del ponteggio, che va in sicurezza)
   if (d.scafHcrew > 0 && d.daysWork * crewH - d.scafHcrew < d.hTot) chk('warn', 'Giornate di squadra insufficienti con il ponteggio', `${Math.round(d.daysWork * crewH)} h di squadra, di cui ${Math.round(d.scafHcrew)} h per montare e smontare il ponteggio: restano ${Math.round(d.daysWork * crewH - d.scafHcrew)} h per ${Math.round(d.hTot)} h di lavorazioni stimate.`);
   const hh = (h) => +(h * d.hFactor).toFixed(1);
@@ -1400,23 +1404,110 @@ function compute(S) {
   add(C.MDO, 'travel_km', `Trasferimenti (${d.days} giorni × ${S.km * 2} km A/R)`, Math.round(d.days * S.km * 2), 'km', S.eur_km);
 
   /* ---- sicurezza ---- */
-  if (S.safe_mode === 'auto' && S.gronda > 2) chk('info', `Opera provvisionale scelta: ${d.safeMode === 'ple' ? 'piattaforma elevabile' : 'ponteggio'}`, `Confronto di costo per ${d.daysWork} gg di posa: ponteggio ${Math.round(costScaf).toLocaleString('it-IT')} € contro PLE ${Math.round(costPle).toLocaleString('it-IT')} € (la PLE serve la gronda; verificare accessibilità del mezzo e portanza del suolo).`, 'D.Lgs. 81/08 art. 111, 122 · All. XV');
-  if (d.safeMode === 'ponteggio' && scafOwn) {
-    add(C.SIC, 'scaf_own_h', `Ponteggio di facciata di proprietà con PiMUS: montaggio e smontaggio con squadra interna (${scafM2} m² × ${String(PR.scaf_h_m2).replace('.', ',')} h/m²)`, d.scafH, 'h', costH, { ref: 'All. XV 4.1.1 lett. a · art. 122, 131–136' });
-    add(C.SIC, 'scaf_tr', 'Trasporto ponteggio A/R', 1, 'a corpo', PR.scaf_tr);
-    add(C.SIC, 'scaf_wear', 'Usura, manutenzione e verifiche del ponteggio di proprietà', scafM2, 'm²', PR.scaf_wear);
-  } else if (d.safeMode === 'ponteggio') {
-    add(C.SIC, 'scaf_ms', 'Ponteggio di facciata con PiMUS: montaggio, smontaggio e 1° mese', scafM2, 'm²', PR.scaf_ms, { ref: 'All. XV 4.1.1 lett. a · art. 122, 131–136' });
-    add(C.SIC, 'scaf_nolo', 'Nolo ponteggio, mesi successivi al primo', d.months > 1 ? scafM2 * (d.months - 1) : 0, 'm²·mese', PR.scaf_nolo, { ref: 'All. XV 4.1.1 lett. a' });
-  } else if (d.safeMode === 'ple') {
-    d.pleDays = Math.max(1, Math.ceil((H.mod + H.opt) * d.hFactor / crewH - 1e-9));   // solo i giorni di lavoro in copertura
-    add(C.SIC, 'ple', `Piattaforma di lavoro elevabile (PLE) per i giorni di lavoro in copertura (${d.pleDays} gg)`, d.pleDays, 'gg', PR.ple, { ref: 'D.Lgs. 81/08 All. VI' });
-    add(C.SIC, 'ple_tr', 'Trasporto PLE A/R', 1, 'a corpo', PR.ple_tr);
-  } else if (d.safeMode === 'parapetti') {
-    const pm = Math.round(S.scaf_len);
-    add(C.SIC, 'parap_ms', 'Parapetti provvisori di bordo EN 13374: montaggio, smontaggio e 1° mese', pm, 'm', PR.parap_ms, { ref: 'All. XV 4.1.1 lett. d · art. 125–126' });
-    add(C.SIC, 'parap_nolo', 'Nolo parapetti, mesi successivi', pm * (d.months - 1), 'm·mese', PR.parap_nolo);
-  } else if (S.gronda > 2) chk('err', 'Lavori in quota oltre 2 m senza protezione', 'Sopra 2 m servono opere provvisionali anticaduta (ponteggio, parapetti, PLE): scegliere una modalità.', 'D.Lgs. 81/08 art. 111, 122');
+  const n1 = (x) => String(+(+x || 0).toFixed(1)).replace('.', ',');
+  const e0 = (x) => Math.round(x || 0).toLocaleString('it-IT') + ' €';
+  const ggN = (g) => g > 0 ? Math.max(1, Math.round(g)) : d.days;   // giorni lavorativi di utilizzo (0 = durata del cantiere)
+  const moN = (g) => Math.max(1, Math.ceil(g / 21 - 1e-9));          // mesi di nolo: 21 giorni lavorativi = 1 mese
+  const gg = d.opDays = {};
+  const terzi = [];   // lavorazioni affidate a terzi che portano un'altra impresa in cantiere
+  if (S.gronda > 2 && (OP.sc !== OP.pl)) chk('info', 'Confronto di costo ponteggio / PLE', `Per ${d.daysWork} gg di cantiere: ponteggio ${scOwn ? 'di proprietà' : 'a noleggio'} circa ${e0(costScaf)}, PLE autocarrata senza operatore circa ${e0(costPle)}. La PLE serve la gronda solo se il mezzo arriva e il terreno regge: verificare accesso, pendenze e portanza.`, 'stima dal listino');
+  /* ponteggio */
+  if (S.sc_on && !(S.gronda > 2)) chk('info', 'Ponteggio non conteggiato', 'Gronda a 2 m o meno: il ponteggio non è conteggiato. Per i lavori in copertura bastano parapetti o dispositivi anticaduta.', 'D.Lgs. 81/08 art. 107, 122');
+  if (OP.sc) {
+    const ref = 'All. XV 4.1.1 lett. a · D.Lgs. 81/08 art. 122, 125, 131–136';
+    gg.sc = ggN(S.sc_days);
+    const ds = `${n1(S.scaf_len)} m × ${n1(scH)} m = ${scafM2} m², ${gg.sc} gg in cantiere`;
+    if (scOwn) {
+      add(C.SIC, 'scaf_own_h', `Ponteggio di facciata di proprietà con PiMUS (${ds}): montaggio e smontaggio con squadra interna, ${String(PR.scaf_h_m2).replace('.', ',')} h/m²`, d.scafH, 'h', costH, { ref });
+      add(C.SIC, 'scaf_tr', 'Trasporto ponteggio A/R', 1, 'a corpo', PR.scaf_tr);
+      add(C.SIC, 'scaf_wear', 'Usura, manutenzione e verifiche del ponteggio di proprietà', scafM2, 'm²', PR.scaf_wear);
+    } else if (scCorpo) {
+      add(C.SIC, 'scaf_corpo', `Ponteggio di facciata con PiMUS (${ds}) fornito, montato, noleggiato e smontato da ditta specializzata: a corpo`, 1, 'a corpo', S.sc_corpo || 0, { ref });
+      if (!(S.sc_corpo > 0)) chk('warn', 'Ponteggio a corpo senza importo', 'Inserire l\'importo del preventivo del ponteggiatore.');
+      terzi.push('ponteggiatore');
+    } else {
+      const m = moN(gg.sc);
+      add(C.SIC, 'scaf_ms', `Ponteggio di facciata con PiMUS (${ds}): fornitura, montaggio, smontaggio e 1° mese`, scafM2, 'm²', PR.scaf_ms, { ref });
+      add(C.SIC, 'scaf_nolo', `Nolo ponteggio, mesi successivi al primo (${m - 1})`, scafM2 * (m - 1), 'm²·mese', PR.scaf_nolo, { ref: 'All. XV 4.1.1 lett. a' });
+      terzi.push('ponteggiatore');
+    }
+    if (scH > 20) chk('warn', 'Ponteggio oltre 20 m: serve il progetto', `Altezza ${n1(scH)} m: oltre 20 m (o con schema diverso da quelli tipo dell'autorizzazione) il ponteggio richiede progetto firmato da ingegnere o architetto abilitato.`, 'D.Lgs. 81/08 art. 133');
+    chk('info', 'Ponteggio: documenti in cantiere', `PiMUS redatto dal datore di lavoro di chi monta; copia dell'autorizzazione ministeriale e del libretto; montatori formati (corso 28 h + aggiornamento quadriennale); preposto al montaggio; verifica degli elementi prima di ogni montaggio${scOwn ? ' (ponteggio di proprietà: conservare le schede di verifica, All. XIX)' : ''}. Superamento della gronda di almeno 1,20 m: altezza usata ${n1(scH)} m.`, 'D.Lgs. 81/08 art. 125, 134, 136 · All. XIX, XXI, XXII');
+  }
+  /* parapetti */
+  if (OP.pa) {
+    const pm = S.pa_len > 0 ? S.pa_len : (S.scaf_len || 0);
+    gg.pa = ggN(S.pa_days);
+    const ref = 'All. XV 4.1.1 lett. d · D.Lgs. 81/08 art. 125–126 · UNI EN 13374';
+    if (S.pa_mode === 'corpo') {
+      add(C.SIC, 'parap_corpo', `Parapetti provvisori di bordo UNI EN 13374 (${n1(pm)} m, ${gg.pa} gg): fornitura, montaggio, nolo e smontaggio a corpo`, 1, 'a corpo', S.pa_corpo || 0, { ref });
+      if (!(S.pa_corpo > 0)) chk('warn', 'Parapetti a corpo senza importo', 'Inserire l\'importo a corpo dei parapetti.');
+    } else {
+      const m = moN(gg.pa);
+      add(C.SIC, 'parap_ms', `Parapetti provvisori di bordo UNI EN 13374 (${gg.pa} gg in cantiere): montaggio, smontaggio e 1° mese`, pm, 'm', PR.parap_ms, { ref });
+      add(C.SIC, 'parap_nolo', `Nolo parapetti, mesi successivi al primo (${m - 1})`, pm * (m - 1), 'm·mese', PR.parap_nolo);
+    }
+    const tMax = Math.max(0, ...(S.falde || []).map(f => +f.tilt || 0));
+    const cls = tMax <= 10 ? 'A' : tMax <= 30 ? 'B' : tMax <= 45 ? 'C' : null;
+    if (!(pm > 0)) chk('warn', 'Parapetti senza lunghezza', 'Inserire i metri di bordo da proteggere (o lo sviluppo lineare protetto).');
+    if (cls) chk('info', `Parapetti: classe ${cls} per falde fino a ${n1(tMax)}°`, `Classe A fino a 10°; classe B fino a 30° (fino a 45° se l'altezza di caduta sul pendio è ≤ 2 m); classe C da 30° a 45° (fino a 60° se l'altezza di caduta è ≤ 5 m). Verificare il sistema di fissaggio sul supporto (gronda, travetti, muratura): il parapetto vale quanto il suo ancoraggio.`, 'UNI EN 13374');
+    else chk('err', 'Parapetti non adatti alla pendenza', `Falde fino a ${n1(tMax)}°: oltre 45° i parapetti di bordo non bastano; serve ponteggio o PLE.`, 'UNI EN 13374');
+  }
+  /* PLE */
+  if (OP.pl) {
+    const T = { autocarrata: ['autocarrata', PR.ple, 'ple'], semovente: ['semovente (forbice o articolata)', PR.ple_sem, 'ple_sem'], ragno: ['cingolata a ragno', PR.ple_ragno, 'ple_ragno'] }[S.pl_type] || ['autocarrata', PR.ple, 'ple'];
+    d.pleDays = S.pl_days > 0 ? Math.max(1, Math.round(S.pl_days)) : Math.max(1, Math.ceil((H.mod + H.opt) * d.hFactor / crewH - 1e-9));   // auto: solo i giorni di lavoro in copertura
+    gg.pl = d.pleDays;
+    const ref = 'D.Lgs. 81/08 art. 71, 73 · All. VII';
+    if (S.pl_mode === 'corpo') {
+      add(C.SIC, 'ple_corpo', `Piattaforma di lavoro elevabile ${T[0]}${S.pl_op ? ' con operatore' : ''}, ${d.pleDays} gg: a corpo`, 1, 'a corpo', S.pl_corpo || 0, { ref });
+      if (!(S.pl_corpo > 0)) chk('warn', 'PLE a corpo senza importo', 'Inserire l\'importo a corpo della piattaforma.');
+    } else if (S.pl_op) {
+      add(C.SIC, 'ple_caldo_h', `PLE ${T[0]} con operatore (nolo a caldo): ${d.pleDays} gg × ${S.h_day || 8} h`, d.pleDays * (S.h_day || 8), 'h', PR.ple_caldo_h, { ref });
+      if (S.pl_type !== 'autocarrata') add(C.SIC, 'ple_tr', 'Trasporto PLE A/R', 1, 'a corpo', PR.ple_tr);
+    } else {
+      add(C.SIC, T[2], `Piattaforma di lavoro elevabile ${T[0]} senza operatore (nolo a freddo): ${d.pleDays} gg di lavoro in copertura`, d.pleDays, 'gg', T[1], { ref });
+      add(C.SIC, 'ple_tr', 'Trasporto PLE A/R', 1, 'a corpo', PR.ple_tr);
+    }
+    if (S.pl_op) terzi.push('PLE con operatore');
+    chk('info', 'PLE: requisiti', `${S.pl_op ? 'Con operatore del noleggiatore: chiedere attestato di abilitazione dell\'operatore e verifiche periodiche della macchina.' : 'Senza operatore: i vostri addetti devono avere l\'abilitazione PLE (con e senza stabilizzatori) e aggiornamento quinquennale; il noleggiatore consegna la macchina con verifica periodica in corso di validità.'} Imbracatura con cordino corto agganciata al cestello; verificare accesso, pendenza e portanza del terreno${S.pl_type === 'ragno' ? ' (ragno: verificare la larghezza dei passaggi e la superficie di stabilizzazione)' : ''}; area delimitata sotto il cestello.`, 'D.Lgs. 81/08 art. 71 c.7 e c.11, art. 73 c.5 · All. VII');
+  }
+  /* gru */
+  if (OP.gr) {
+    const cam = S.gr_type === 'camion';
+    gg.gr = Math.max(1, Math.round(S.gr_days || 1));
+    const h = Math.max((PR.gru_min || 0) * gg.gr, S.gr_h || 0);   // minimo fatturato a ogni uscita
+    const ref = 'D.Lgs. 81/08 art. 71, 73 · All. VI p. 3 · All. VII';
+    if (S.gr_mode === 'corpo') {
+      add(C.SIC, 'gru_corpo', `${cam ? 'Autocarro con gru' : 'Autogru'} con operatore per sollevamento di moduli e materiali in copertura (${gg.gr} gg): a corpo`, 1, 'a corpo', S.gr_corpo || 0, { ref });
+      if (!(S.gr_corpo > 0)) chk('warn', 'Gru a corpo senza importo', 'Inserire l\'importo a corpo del sollevamento.');
+    } else {
+      add(C.SIC, cam ? 'gru_cam_h' : 'gru_h', `${cam ? 'Autocarro con gru' : 'Autogru'} con operatore (nolo a caldo) per sollevamento in copertura, ${gg.gr} gg${(S.gr_h || 0) < (PR.gru_min || 0) * gg.gr ? ` (minimo fatturato ${PR.gru_min} h per uscita)` : ''}`, h, 'h', cam ? PR.gru_cam_h : PR.gru_h, { ref });
+      add(C.SIC, 'gru_tr', `Gru: diritto di uscita / trasferimento (${gg.gr} ${gg.gr > 1 ? 'uscite' : 'uscita'})`, gg.gr, 'cad', PR.gru_tr);
+    }
+    terzi.push('gru con operatore');
+    chk('info', 'Gru: sollevamento in sicurezza', `Pianificare il sollevamento con il noleggiatore (portata al raggio, posizionamento, stabilizzatori e portanza del terreno); carichi imbracati con accessori marcati CE (bancali di moduli in forche o ceste); area di manovra interdetta e segnalata; segnalatore a terra con gesti convenzionali; nessuno sotto il carico sospeso.${S.su_on ? '' : ' Se la gru sta su strada o area pubblica: spuntare l\'occupazione di suolo pubblico.'}`, 'D.Lgs. 81/08 art. 71, 73 · All. V parte II p. 3, All. VI p. 3, All. XXXII');
+  }
+  { const L = [gg.sc && `ponteggio ${gg.sc} gg`, gg.pa && `parapetti ${gg.pa} gg`, gg.pl && `PLE ${gg.pl} gg`, gg.gr && `gru ${gg.gr} gg`].filter(Boolean);
+    if (L.length) chk('info', 'Giorni di utilizzo di opere provvisionali e mezzi', `${L.join(' · ')} — cantiere ${d.days} gg lavorativi${d.days !== d.daysWork ? ` (di cui ${d.daysWork} di posa)` : ''}. Giorni lavorativi; per i noli a mese, 21 gg = 1 mese.`, 'riepilogo'); }
+  if (S.el_line) chk('warn', 'Linee elettriche aeree vicine: distanze minime', 'Gru, PLE, ponteggio e parti in movimento devono restare oltre le distanze dell\'All. IX: fino a 1 kV 3 m; da 1 a 30 kV 3,5 m; da 30 a 132 kV 5 m; oltre 132 kV 7 m. Se non è possibile: chiedere al gestore la messa fuori tensione o la protezione della linea.', 'D.Lgs. 81/08 art. 83, 117 · All. IX');
+  /* suolo pubblico */
+  if (S.su_on) {
+    const gg = S.su_days > 0 ? Math.round(S.su_days) : d.days;
+    add(C.SIC, 'su_m2gg', `Occupazione di suolo pubblico (canone unico, stima): ${n1(S.su_m2)} m² × ${gg} gg`, (S.su_m2 || 0) * gg, 'm²·gg', PR.su_m2gg, { ref: 'L. 160/2019 art. 1 c. 816–836 · regolamento comunale' });
+    add(C.SIC, 'su_prat', 'Domanda di occupazione suolo pubblico, ordinanza di viabilità e segnaletica stradale temporanea', 1, 'a corpo', PR.su_prat, { ref: 'Codice della strada art. 21 · DM 10/07/2002' });
+    chk('info', 'Suolo pubblico: tempi', 'Domanda al comune con anticipo (spesso 10–30 giorni) e, se si restringe la carreggiata, ordinanza di viabilità. La tariffa del canone dipende dal comune: verificare quella del comune del cantiere.', 'L. 160/2019 · regolamento comunale');
+  }
+  /* altre attrezzature */
+  for (const i of [1, 2, 3]) {
+    const ds = String(S['ot' + i + '_d'] || '').trim(), um = S['ot' + i + '_um'] || 'a corpo', pu = +S['ot' + i + '_pu'] || 0;
+    if (!ds && !pu) continue;
+    const q = um === 'a corpo' ? 1 : (+S['ot' + i + '_q'] || 0);
+    add(C.SIC, 'ot' + i, (ds || 'Attrezzatura o mezzo') + (um === 'a corpo' ? ': a corpo' : ''), q, um, pu, { lk: '-' });
+    if (um !== 'a corpo' && !(q > 0)) chk('warn', `Attrezzatura «${ds || i}» senza quantità`, 'Inserire la quantità oppure scegliere «a corpo».');
+  }
+  if (S.gronda > 2 && !OP.sc && !OP.pa && !OP.pl) chk('err', 'Lavori in quota oltre 2 m senza protezione collettiva', 'Sopra 2 m servono opere provvisionali anticaduta (ponteggio, parapetti di bordo o PLE). I soli DPI anticaduta sono ammessi solo dove le protezioni collettive non sono realizzabili, motivandolo nel POS.', 'D.Lgs. 81/08 art. 111, 115, 122');
+  if (terzi.length && !S.multi_imp) chk('warn', 'Altre imprese in cantiere', `${terzi.join(', ')}: chi monta il ponteggio o lavora con un mezzo e un operatore suoi (nolo a caldo) è di norma un'impresa esecutrice. Con due o più imprese, anche non contemporanee, servono CSP/CSE e PSC: spuntare «Più imprese in cantiere». Con il nolo a freddo resta solo la verifica della macchina e della formazione dei vostri addetti.`, 'D.Lgs. 81/08 art. 26, 90 c.3, 99 · da verificare caso per caso');
   const kitN = Math.max(1, Math.ceil(S.team / 4));
   if (roof.pitched !== false || roof.frag) add(C.SIC, 'fall_kit', `Kit anticaduta e linea vita temporanea EN 795 della squadra (quota di ammortamento su ${S.fall_amort} cantieri)`, kitN / Math.max(1, S.fall_amort), 'squadra', PR.fall_kit, { ref: 'All. XV 4.1.1 lett. d · art. 115–116' });
   add(C.SIC, 'dpi', 'Segnaletica, delimitazione dell\'area a terra, estintori', 1, 'a corpo', PR.dpi, { ref: 'All. XV 4.1.1 lett. b, d' });
@@ -1811,7 +1902,13 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 /* ---------- archivio locale ---------- */
 let DB = { v: SCHEMA, offers: {}, cur: null, listino: {} };
 let storeOk = true;
-function legacy(S) { if (S && S.inv_brand === undefined) S.inv_brand = 'gen'; return S; }   // offerte create prima dell'archivio: restano sugli inverter generici
+function legacy(S) {
+  if (S && S.inv_brand === undefined) S.inv_brand = 'gen';
+  if (S && S.sc_on === undefined && S.safe_mode !== undefined) {   // offerte create con la vecchia scelta unica dell'opera provvisionale
+    const m = S.safe_mode; S.sc_on = m === 'ponteggio' || m === 'auto'; S.pa_on = m === 'parapetti'; S.pl_on = m === 'ple';
+  }
+  return S;
+}   // offerte create prima dell'archivio: restano sugli inverter generici
 function load() {
   try { const t = localStorage.getItem(KEY); if (t) { const d = JSON.parse(t); if (d && d.offers) DB = d; } } catch (e) { storeOk = false; }
   if (!DB.listino) DB.listino = {};
@@ -1951,16 +2048,61 @@ const SCHEMA_RAW = [
     { k: 'conc_batt', l: 'Accumulo offerto', t: 'n', u: 'kWh', step: 1 },
     { k: 'conc_note', l: 'Note', t: 's', wide: true }
   ] },
-  { id: 'lav', t: 'Lavori speciali e sicurezza', s: 'amianto, guaina, accessi, D.Lgs. 81/08', f: [
+  { id: 'lav', t: 'Lavori speciali', s: 'amianto, guaina, linea vita, imprese, VVF', f: [
     { k: 'redo', l: 'Opere sulla copertura', t: 'o', o: [['nessuno', 'Nessuna'], ['guaina', 'Rifacimento guaina (tetto piano)'], ['amianto', 'Bonifica amianto e nuova copertura']], wide: true },
     { k: 'redo_m2', l: 'Superficie da rifare (0 = stima)', t: 'n', u: 'm²', step: 5 },
-    { k: 'safe_mode', l: 'Opera provvisionale (lavori sopra 2 m)', t: 'o', o: [['ponteggio', 'Ponteggio di facciata'], ['ple', 'Piattaforma elevabile (PLE) — se accessibile'], ['parapetti', 'Parapetti di bordo'], ['auto', 'Automatica (la più economica)'], ['nessuno', 'Nessuna']], h: 'Scegli la PLE quando il mezzo arriva alla gronda: niente montaggio del ponteggio e cantiere più corto.' },
-    { k: 'scaf_own', l: 'Ponteggio di proprietà (montato dalla squadra)', t: 'c', h: 'Niente nolo: in sicurezza vanno le ore di montaggio/smontaggio (tolte dalle giornate di squadra), trasporto e usura.' },
-    { k: 'scaf_len', l: 'Sviluppo lineare protetto', t: 'n', u: 'm', step: 1 },
     { k: 'lifeline_m', l: 'Linea vita permanente', t: 'n', u: 'm', step: 1 },
     { k: 'multi_imp', l: 'Più imprese in cantiere', t: 'c', h: 'Attiva CSP/CSE e notifica preliminare.' },
     { k: 'vvf', l: 'Edificio con attività soggetta ai Vigili del Fuoco (o a suo servizio)', t: 'c', h: 'Sì se c\'è: autorimessa > 300 m², centrale termica > 116 kW, fienile/deposito fieno-legna > 50 t, B&B > 25 posti letto, negozio > 400 m², edificio > 24 m. Aggiunge sezionamento di emergenza, cartelli, pratica SCIA e le verifiche delle linee guida 2025.' },
     { k: 'fall_amort', l: 'Kit anticaduta ammortizzato su', t: 'n', u: 'cantieri', step: 1, h: 'Il prezzo del kit è di acquisto: qui si addebita solo la quota per cantiere.' }
+  ] },
+  { id: 'opv', t: 'Sicurezza: opere provvisionali e mezzi', s: 'ponteggio, parapetti, PLE, gru, suolo pubblico, altre attrezzature · a corpo o a misura', f: [
+    { k: '_h_sc', t: 'h', l: 'Ponteggio di facciata' },
+    { k: 'sc_on', l: 'Ponteggio', t: 'c', h: 'Conteggiato solo se la gronda è oltre 2 m.' },
+    { k: 'scaf_own', l: 'Di proprietà (montato dalla squadra)', t: 'c', show: S => !!S.sc_on, h: 'Niente nolo: in sicurezza vanno le ore di montaggio/smontaggio (tolte dalle giornate di squadra), trasporto e usura.' },
+    { k: 'sc_mode', l: 'Computo', t: 'o', o: [['misura', 'A misura (m² × prezzo di listino)'], ['corpo', 'A corpo (preventivo ponteggiatore)']], show: S => !!S.sc_on && S.scaf_own === false },
+    { k: 'scaf_len', l: 'Sviluppo lineare protetto', t: 'n', u: 'm', step: 1, show: S => !!S.sc_on || !!S.pa_on },
+    { k: 'sc_h', l: 'Altezza ponteggio (0 = gronda + 1,20 m)', t: 'n', u: 'm', step: 0.5, show: S => !!S.sc_on, auto: (r) => nf((r.S.gronda || 0) + 1.2, 1) },
+    { k: 'sc_days', l: 'Giorni di utilizzo (0 = durata cantiere)', t: 'n', u: 'gg', step: 1, show: S => !!S.sc_on, auto: (r) => r.d.opDays && r.d.opDays.sc ? String(r.d.opDays.sc) : '', h: 'Giorni lavorativi in cantiere; il nolo a misura si conta a mesi (21 gg = 1 mese).' },
+    { k: 'sc_corpo', l: 'Importo a corpo ponteggio', t: 'n', u: '€', step: 50, show: S => !!S.sc_on && S.scaf_own === false && S.sc_mode === 'corpo' },
+    { k: '_h_pa', t: 'h', l: 'Parapetti provvisori di bordo' },
+    { k: 'pa_on', l: 'Parapetti di bordo (UNI EN 13374)', t: 'c', h: 'Anche insieme al ponteggio (es. lati senza ponteggio).' },
+    { k: 'pa_mode', l: 'Computo', t: 'o', o: [['misura', 'A misura (m × prezzo di listino)'], ['corpo', 'A corpo']], show: S => !!S.pa_on },
+    { k: 'pa_len', l: 'Metri di bordo (0 = sviluppo protetto)', t: 'n', u: 'm', step: 1, show: S => !!S.pa_on },
+    { k: 'pa_days', l: 'Giorni di utilizzo (0 = durata cantiere)', t: 'n', u: 'gg', step: 1, show: S => !!S.pa_on, auto: (r) => r.d.opDays && r.d.opDays.pa ? String(r.d.opDays.pa) : '' },
+    { k: 'pa_corpo', l: 'Importo a corpo parapetti', t: 'n', u: '€', step: 50, show: S => !!S.pa_on && S.pa_mode === 'corpo' },
+    { k: '_h_pl', t: 'h', l: 'Piattaforma di lavoro elevabile (PLE)' },
+    { k: 'pl_on', l: 'PLE', t: 'c', h: 'Per lavorare dalla gronda o per il carico dei materiali; verificare accesso e portanza.' },
+    { k: 'pl_type', l: 'Tipo', t: 'o', o: [['autocarrata', 'Autocarrata'], ['semovente', 'Semovente (forbice/articolata)'], ['ragno', 'Cingolata a ragno']], show: S => !!S.pl_on },
+    { k: 'pl_op', l: 'Con operatore del noleggiatore (nolo a caldo)', t: 'c', show: S => !!S.pl_on },
+    { k: 'pl_mode', l: 'Computo', t: 'o', o: [['misura', 'A misura (giorni o ore × listino)'], ['corpo', 'A corpo']], show: S => !!S.pl_on },
+    { k: 'pl_days', l: 'Giorni di utilizzo (0 = giorni di posa in copertura)', t: 'n', u: 'gg', step: 1, show: S => !!S.pl_on, auto: (r) => r.d.pleDays ? String(r.d.pleDays) : '' },
+    { k: 'pl_corpo', l: 'Importo a corpo PLE', t: 'n', u: '€', step: 50, show: S => !!S.pl_on && S.pl_mode === 'corpo' },
+    { k: '_h_gr', t: 'h', l: 'Sollevamento con gru' },
+    { k: 'gr_on', l: 'Gru per il sollevamento in copertura', t: 'c', h: 'Sempre con operatore (nolo a caldo).' },
+    { k: 'gr_type', l: 'Mezzo', t: 'o', o: [['autogru', 'Autogru'], ['camion', 'Autocarro con gru']], show: S => !!S.gr_on },
+    { k: 'gr_mode', l: 'Computo', t: 'o', o: [['misura', 'A misura (ore × listino + uscita)'], ['corpo', 'A corpo']], show: S => !!S.gr_on },
+    { k: 'gr_days', l: 'Giorni di utilizzo (uscite)', t: 'n', u: 'gg', step: 1, show: S => !!S.gr_on, h: 'Ogni giorno è un\'uscita: diritto di uscita e ore minime per ciascuna.' },
+    { k: 'gr_h', l: 'Ore di gru totali', t: 'n', u: 'h', step: 1, show: S => !!S.gr_on && S.gr_mode !== 'corpo', h: 'Sotto il minimo fatturato del listino (ore minime × uscite) si paga comunque il minimo.' },
+    { k: 'gr_corpo', l: 'Importo a corpo gru', t: 'n', u: '€', step: 50, show: S => !!S.gr_on && S.gr_mode === 'corpo' },
+    { k: '_h_su', t: 'h', l: 'Area di cantiere e interferenze' },
+    { k: 'su_on', l: 'Occupazione di suolo pubblico', t: 'c', h: 'Mezzi o ponteggio su strada, marciapiede o area comunale.' },
+    { k: 'su_m2', l: 'Superficie occupata', t: 'n', u: 'm²', step: 1, show: S => !!S.su_on },
+    { k: 'su_days', l: 'Giorni di occupazione (0 = durata cantiere)', t: 'n', u: 'gg', step: 1, show: S => !!S.su_on },
+    { k: 'el_line', l: 'Linee elettriche aeree vicine', t: 'c', h: 'Aggiunge la verifica delle distanze minime (All. IX).' },
+    { k: '_h_ot', t: 'h', l: 'Altre attrezzature e mezzi (a corpo o a misura)' },
+    { k: 'ot1_d', l: 'Attrezzatura 1: descrizione', t: 's', first: true, h: 'Es. montamateriali, elevatore a cavalletto, transenne, recinzione, bagno chimico. Vuoto = riga non usata.' },
+    { k: 'ot1_um', l: 'Unità', t: 'o', o: [['a corpo', 'a corpo'], ['gg', 'giorni'], ['h', 'ore'], ['mese', 'mesi'], ['m', 'm'], ['m²', 'm²'], ['cad', 'cad']] },
+    { k: 'ot1_q', l: 'Quantità', t: 'n', step: 1, show: S => (S.ot1_um || 'a corpo') !== 'a corpo' },
+    { k: 'ot1_pu', l: 'Prezzo (unitario o a corpo)', t: 'n', u: '€', step: 10 },
+    { k: 'ot2_d', l: 'Attrezzatura 2: descrizione', t: 's', first: true, h: '' },
+    { k: 'ot2_um', l: 'Unità', t: 'o', o: [['a corpo', 'a corpo'], ['gg', 'giorni'], ['h', 'ore'], ['mese', 'mesi'], ['m', 'm'], ['m²', 'm²'], ['cad', 'cad']] },
+    { k: 'ot2_q', l: 'Quantità', t: 'n', step: 1, show: S => (S.ot2_um || 'a corpo') !== 'a corpo' },
+    { k: 'ot2_pu', l: 'Prezzo (unitario o a corpo)', t: 'n', u: '€', step: 10 },
+    { k: 'ot3_d', l: 'Attrezzatura 3: descrizione', t: 's', first: true, h: '' },
+    { k: 'ot3_um', l: 'Unità', t: 'o', o: [['a corpo', 'a corpo'], ['gg', 'giorni'], ['h', 'ore'], ['mese', 'mesi'], ['m', 'm'], ['m²', 'm²'], ['cad', 'cad']] },
+    { k: 'ot3_q', l: 'Quantità', t: 'n', step: 1, show: S => (S.ot3_um || 'a corpo') !== 'a corpo' },
+    { k: 'ot3_pu', l: 'Prezzo (unitario o a corpo)', t: 'n', u: '€', step: 10 },
   ] },
   { id: 'eco', t: 'Squadra, costi e prezzo', s: 'parametri interni, non appaiono nell\'offerta al cliente', f: [
     { k: 'team', l: 'Operai in squadra', t: 'n', step: 1 }, { k: 'h_day', l: 'Ore al giorno', t: 'n', step: 0.5 },
@@ -2013,7 +2155,7 @@ const SCHEMA_F = (() => {
   ecoF.push({ k: 'cal_base', l: 'Taratura: giorni base per cantiere', t: 'n', u: 'gg', step: 0.5, h: 'Durata minima di un cantiere (ponteggio, sicurezze, allestimento, collaudo).' }, { k: 'cal_kwp', l: 'Taratura: giorni per kWp', t: 'n', u: 'gg/kWp', step: 0.1, h: 'Default 4 + 0,6 × kWp: 3 kWp = 6 giorni, 6 kWp = 8, 10 kWp = 10.' });
   { const o = {}; ecoF.forEach(f => o[f.k] = f); const ord = ['team', 'h_day', 'days_man', 'cal_base', 'cal_kwp', 'prod_eff', 'km', 'eur_km', 'cost_h', 'transport', 'contingency', 'sic_mk', 'prof_on', 'prof_pct', 'prof_fix', 'prof_fix_kwp', 'prof_split']; o.days_man = daysF; eco.f = ord.map(k => o[k]); }
   const g = (g_, arr) => arr.map(x => Object.assign(x, { g: g_ }));
-  return g('imp', [by('cli'), by('for'), by('sito'), by('falde'), strut, by('mod'), by('acc'), by('ele'), by('lav'), eco])
+  return g('imp', [by('cli'), by('for'), by('sito'), by('falde'), strut, by('mod'), by('acc'), by('ele'), by('lav'), by('opv'), eco])
     .concat(g('com', [det, by('piano'), by('conc'), by('com'), by('inc'), by('fisc')]));
 })();
 const UI = { tab: (() => { try { return localStorage.getItem('fvres.tab') === 'com' ? 'com' : 'imp'; } catch (e) { return 'imp'; } })() };
@@ -2066,10 +2208,11 @@ function onPriceRef(e) {
 const isArchMod = S => String(S.mod_preset || '').startsWith('x_') && !!E.MODS[S.mod_preset];
 function fieldHtml(f, S) {
   if (f.show && !f.show(S)) return '';
+  if (f.t === 'h') return `<div class="fld wide subh">${esc(f.l)}</div>`;
   if (f.t === 'i') { const t = f.txt(S); return t ? `<div class="fld wide"><span class="help" style="margin:0">${esc(t)}</span></div>` : ''; }
   const v = getp(S, f.k);
   const id = 'f_' + f.k.replace('.', '_');
-  const w = f.wide ? ' wide' : '';
+  const w = (f.wide ? ' wide' : '') + (f.first ? ' r1' : '');
   const h = f.h ? `<span class="help">${esc(f.h)}</span>` : '';
   if (f.t === 'c') return `<label class="fld chk${w}"><input type="checkbox" id="${id}" data-k="${f.k}" ${v ? 'checked' : ''}><span>${esc(f.l)}</span>${h}</label>`;
   if (f.t === 'o') return `<div class="fld${w}"><label for="${id}">${esc(f.l)}</label><select id="${id}" data-k="${f.k}" ${f.num ? 'data-num="1"' : ''} ${f.preset ? 'data-preset="1"' : ''}>${f.o.map(([a, b]) => `<option value="${esc(a)}" ${String(a) === String(v) ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select>${h}</div>`;
